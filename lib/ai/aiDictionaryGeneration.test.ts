@@ -140,12 +140,8 @@ describe("DictionaryAIGeneration-1", () => {
     const result = await generateDictionaryEntry(query);
 
     expect(result.source).toBe("unavailable");
-    expect(result.entry.general_meaning_en).toContain(
-      "Could not generate a dictionary entry",
-    );
-    expect(result.entry.general_meaning_en).not.toContain(
-      "Definition unavailable from reliable sources",
-    );
+    expect(result.entry.general_meaning_en).toContain("not available yet");
+    expect(result.entry.general_meaning_en).not.toMatch(/timed out|invalid JSON/i);
     expect(result.entry.general_meaning_en).toBe(result.entry.detailed_meaning_en);
     expect(result.diagnostics).toBeUndefined();
   });

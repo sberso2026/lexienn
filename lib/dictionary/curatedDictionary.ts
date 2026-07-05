@@ -80,7 +80,7 @@ export const CURATED_DICTIONARY_ENTRIES: CuratedSeedEntry[] = [
       "A long piece of timber, metal, or concrete used to support weight; a ray of light.",
     detailed_meaning_en:
       "As a noun, a beam is a horizontal or sloped structural member that carries loads to supports. As a verb, 'beam' can mean to smile radiantly or to send out light or signals.",
-    target_meaning: "bigkis / sinag",
+    target_meaning: "biga / sinag",
     closest_local_equivalent_note:
       "Structural 'beam' is often discussed using the English term on site; 'sinag' applies to light beams.",
     profession_meanings: [
@@ -322,6 +322,136 @@ export const CURATED_DICTIONARY_ENTRIES: CuratedSeedEntry[] = [
     pronunciation: { simple: "PRYS", ipa: "/praɪs/" },
     related_terms: ["cost", "fee", "rate", "magkano"],
     common_mistakes: ["Using 'price' when 'cost' (to the seller) is meant in accounting contexts."],
+  },
+  {
+    id: "prod-curated-house",
+    input_key: "house",
+    entry_type: "word",
+    general_meaning_en: "A building or place where people live.",
+    detailed_meaning_en:
+      "A house is a structure used as a home for people. It can refer to a single-family dwelling, apartment, or any residential building.",
+    target_meaning: "bahay",
+    profession_meanings: [
+      {
+        context: "traveller",
+        meaning_en: "Lodging, accommodation, or the place where you are staying.",
+      },
+      {
+        context: "construction_worker",
+        meaning_en: "A residential structure on site or a unit being built or renovated.",
+        caution_note: ENGINEERING_CAUTION,
+      },
+    ],
+    examples: [
+      {
+        text: "This house is small.",
+        language_code: "en",
+        context_label: "General English",
+      },
+      {
+        text: "Maliit ang bahay na ito.",
+        language_code: "tl",
+        context_label: "Filipino / Tagalog",
+      },
+    ],
+    pronunciation: { simple: "HOWSS", ipa: "/haʊs/" },
+    related_terms: ["home", "building", "bahay", "tahanan"],
+    common_mistakes: ["Confusing 'house' (building) with 'home' (where you belong emotionally)."],
+    confidence_score: 0.95,
+    validation_status: "curated",
+  },
+  {
+    id: "prod-curated-home",
+    input_key: "home",
+    entry_type: "word",
+    general_meaning_en: "The place where one lives; a house or dwelling regarded as a personal space.",
+    detailed_meaning_en:
+      "'Home' can mean a physical house or the feeling of belonging in a place. In Filipino, both tahanan and bahay are common depending on context.",
+    target_meaning: "tahanan / bahay",
+    examples: [
+      { text: "I am going home.", language_code: "en", context_label: "General" },
+      { text: "Uuwi na ako sa bahay.", language_code: "tl", context_label: "Target language" },
+    ],
+    pronunciation: { simple: "HOHM", ipa: "/hoʊm/" },
+    related_terms: ["house", "bahay", "tahanan"],
+    validation_status: "curated",
+    confidence_score: 0.95,
+  },
+  {
+    id: "prod-curated-food",
+    input_key: "food",
+    entry_type: "word",
+    general_meaning_en: "Something eaten for nourishment or pleasure.",
+    detailed_meaning_en:
+      "Food includes meals, snacks, and ingredients. Essential for travel, health, and daily life.",
+    target_meaning: "pagkain",
+    profession_meanings: [
+      { context: "traveller", meaning_en: "Meals, local dishes, or asking where to eat." },
+      { context: "farmer", meaning_en: "Crops, harvest, or livestock feed." },
+    ],
+    examples: [
+      { text: "The food here is delicious.", language_code: "en", context_label: "General" },
+      { text: "Masarap ang pagkain dito.", language_code: "tl", context_label: "Target language" },
+    ],
+    pronunciation: { simple: "FOOD", ipa: "/fuːd/" },
+    related_terms: ["meal", "pagkain", "kain"],
+    validation_status: "curated",
+    confidence_score: 0.95,
+  },
+  {
+    id: "prod-curated-name",
+    input_key: "name",
+    entry_type: "word",
+    general_meaning_en: "A word or set of words by which a person, place, or thing is known.",
+    detailed_meaning_en:
+      "A name identifies someone or something. Common in introductions and forms.",
+    target_meaning: "pangalan",
+    examples: [
+      { text: "What is your name?", language_code: "en", context_label: "General" },
+      { text: "Ano ang pangalan mo?", language_code: "tl", context_label: "Target language" },
+    ],
+    pronunciation: { simple: "NAYM", ipa: "/neɪm/" },
+    related_terms: ["pangalan", "introduce"],
+    validation_status: "curated",
+    confidence_score: 0.95,
+  },
+  {
+    id: "prod-curated-work",
+    input_key: "work",
+    entry_type: "word",
+    general_meaning_en: "Activity involving mental or physical effort; a job or employment.",
+    detailed_meaning_en:
+      "'Work' can mean labor, a profession, or tasks to complete. Context determines whether it means employment or effort.",
+    target_meaning: "trabaho",
+    examples: [
+      { text: "I have work tomorrow.", language_code: "en", context_label: "General" },
+      { text: "May trabaho ako bukas.", language_code: "tl", context_label: "Target language" },
+    ],
+    pronunciation: { simple: "WURK", ipa: "/wɜːrk/" },
+    related_terms: ["job", "trabaho", "employment"],
+    validation_status: "curated",
+    confidence_score: 0.95,
+  },
+  {
+    id: "prod-curated-school",
+    input_key: "school",
+    entry_type: "word",
+    general_meaning_en: "An institution for educating children or students.",
+    detailed_meaning_en:
+      "A school is a place of learning. Filipino uses paaralan or eskwelahan depending on register.",
+    target_meaning: "paaralan / eskwelahan",
+    profession_meanings: [
+      { context: "student", meaning_en: "Classes, campus, homework, and academic schedule." },
+      { context: "traveller", meaning_en: "Asking directions to a school or enrollment office." },
+    ],
+    examples: [
+      { text: "The school is near the market.", language_code: "en", context_label: "General" },
+      { text: "Malapit ang paaralan sa palengke.", language_code: "tl", context_label: "Target language" },
+    ],
+    pronunciation: { simple: "SKOOL", ipa: "/skuːl/" },
+    related_terms: ["paaralan", "eskwelahan", "education"],
+    validation_status: "curated",
+    confidence_score: 0.95,
   },
   {
     id: "prod-curated-curate",

@@ -1,6 +1,6 @@
 import { isAustralianEnglishTarget } from "@/lib/languages/languageOptions";
-import { normalizeInputKey } from "@/lib/dictionary/professionEngine/constants";
 import { shouldShowInternalDebugUi } from "@/lib/debug/shouldShowInternalDebugUi";
+import { normalizeLookupCandidates } from "@/lib/text/normalizeLookupText";
 import type {
   ConfidenceStatus,
   DictionaryEntry,
@@ -9,6 +9,9 @@ import type {
   ProfessionMeaning,
 } from "@/lib/schemas";
 import { dictionaryEntrySchema } from "@/lib/schemas";
+
+export const DICTIONARY_UNAVAILABLE_MESSAGE =
+  "Definition is not available yet for this word. Try another spelling or language pair.";
 
 export function productionConfidence(score: number): ConfidenceStatus {
   return {
@@ -54,10 +57,7 @@ export function buildUnavailableEntry(
   fallbackReason?: string,
 ): DictionaryEntry {
   const input = query.input_text.trim();
-  const isAiFailure = fallbackReason?.includes("valid JSON");
-  const message = isAiFailure
-    ? "Could not generate a dictionary entry for this lookup. Try a simpler word or different spelling."
-    : "Definition unavailable from reliable sources. Try a simpler word or enable AI generation.";
+  const message = DICTIONARY_UNAVAILABLE_MESSAGE;
   const detailedMessage =
     shouldShowInternalDebugUi() && fallbackReason
       ? `${message} (${fallbackReason})`
@@ -126,7 +126,7 @@ export function buildEntryFromCurated(
     related_terms: seed.related_terms ?? [],
     common_mistakes: seed.common_mistakes ?? [],
     confidence: productionConfidence(seed.confidence_score ?? 0.92),
-    validation_status: seed.validation_status ?? "verified_dictionary",
+    validation_status: seed.validation_status ?? "curated",
     audio_type: "synthetic_tts",
     is_mock_data: false,
   });
@@ -183,6 +183,9 @@ export function findSeedByInputKey<T extends { input_key: string }>(
   entries: T[],
   inputText: string,
 ): T | undefined {
-  const key = normalizeInputKey(inputText);
-  return entries.find((entry) => entry.input_key === key);
+  for (const candidate of normalizeLookupCandidates(inputText)) {
+    const match = entries.find((entry) => entry.input_key === candidate);
+    if (match) return match;
+  }
+  return undefined;
 }

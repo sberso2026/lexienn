@@ -7,6 +7,7 @@ import {
   translateSentenceWithAi,
 } from "@/lib/translator/aiTranslationService";
 import { tryBlaanVerifiedTranslation } from "@/lib/translator/blaanVerifiedTranslation";
+import { tryCuratedPhraseTranslation } from "@/lib/translator/curatedPhraseTranslation";
 import { tryDictionaryTranslation } from "@/lib/translator/dictionaryTranslation";
 import { tryRuleFallbackTranslation } from "@/lib/translator/ruleFallback";
 import { isBlaanTarget } from "@/lib/languages/philippineIndigenousLanguages";
@@ -135,12 +136,8 @@ function buildUnavailableResponse(
   if (!options.reason) {
     if (!aiConfigured && aiEnabled) {
       reason = AI_NOT_CONFIGURED_MESSAGE;
-    } else if (aiConfigured && aiEnabled && options.aiAttempted) {
-      reason =
-        "Translation unavailable from reliable sources. AI translation timed out or did not return a valid result.";
     } else if (!request.rule_fallback_enabled && !aiEnabled) {
-      reason =
-        "Translation unavailable. Adjust translation options in Settings.";
+      reason = TRANSLATION_UNAVAILABLE_MESSAGE;
     }
   }
 
@@ -187,11 +184,13 @@ export type TranslationPipelineResult = TranslatorResponse & {
 /**
  * Translation provider pipeline:
  * 1. English-to-English parity
- * 2. Curated dictionary exact match
- * 3. Exact phrase pack match
- * 4. Rule/template/keyword fallback (when enabled)
- * 5. AI translation (when configured and enabled)
- * 6. Unavailable with a single clear reason
+ * 2. Curated phrase table (exact normalized match)
+ * 3. Curated dictionary exact match
+ * 4. B'laan verified phrase (bli target only)
+ * 5. Exact phrase pack match
+ * 6. Rule/template/keyword fallback (when enabled)
+ * 7. AI translation (when configured and enabled)
+ * 8. Unavailable with a single clear reason
  */
 export async function runTranslationPipeline(
   request: TranslatorRequest,
@@ -205,6 +204,13 @@ export async function runTranslationPipeline(
   ) {
     return resolveEnglishToEnglish(request);
   }
+
+  const curatedPhrase = tryCuratedPhraseTranslation(request);
+  if (curatedPhrase) {
+    diagnostics.push("matched:curated_phrase");
+    return attachDiagnostics(curatedPhrase, request, diagnostics);
+  }
+  diagnostics.push("miss:curated_phrase");
 
   const dictionary = tryDictionaryTranslation(request);
   if (dictionary) {

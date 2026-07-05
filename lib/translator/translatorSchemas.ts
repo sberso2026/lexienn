@@ -10,6 +10,7 @@ export const translationModeSchema = z.enum([
 ]);
 
 export const translationSourceSchema = z.enum([
+  "curated_phrase",
   "dictionary",
   "phrase_pack",
   "ai",
@@ -83,9 +84,10 @@ export const AI_NOT_CONFIGURED_MESSAGE =
   "AI translation is not configured. Add provider key or enable fallback.";
 
 export const TRANSLATION_UNAVAILABLE_MESSAGE =
-  "No reliable translation found. Try a simpler sentence or a supported phrase pattern.";
+  "Translation is not available yet for this phrase. Try a simpler phrase or download an offline pack.";
 
 export const TRANSLATION_SOURCE_LABELS: Record<TranslationSource, string> = {
+  curated_phrase: "Curated phrase",
   dictionary: "Dictionary",
   phrase_pack: "Phrase pack",
   ai: "AI generated",
@@ -103,6 +105,7 @@ export function getReliabilityLabel(
   confidence: number,
 ): string {
   if (source === "unavailable") return "Unavailable";
+  if (source === "curated_phrase") return "Curated phrase match";
   if (source === "dictionary") return "Curated dictionary match";
   if (source === "phrase_pack") return "Exact phrase pack match";
   if (source === "ai") {

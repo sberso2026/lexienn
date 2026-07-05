@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { logRouteResolution } from "@/lib/api/safeRouteLog";
+import { normalizeLookupText } from "@/lib/text/normalizeLookupText";
 import { translateSentence } from "@/lib/translator/translateSentence";
 import {
   translatorRequestSchema,
@@ -34,6 +36,15 @@ export async function POST(request: Request) {
 
   try {
     const result = await translateSentence(parsed.data);
+    const aiCalled = result.source === "ai";
+    logRouteResolution("api/translator/translate", {
+      normalized_key: normalizeLookupText(parsed.data.input_text),
+      source: result.source,
+      ai_called: aiCalled,
+      ...(result.source === "unavailable"
+        ? { error_code: result.unavailable_reason ?? "unavailable" }
+        : {}),
+    });
     const validated = translatorResponseSchema.safeParse(result);
     if (!validated.success) {
       if (process.env.NODE_ENV === "development") {
@@ -47,6 +58,12 @@ export async function POST(request: Request) {
     return NextResponse.json(validated.data);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Translation failed.";
+    logRouteResolution("api/translator/translate", {
+      normalized_key: normalizeLookupText(parsed.data.input_text),
+      source: "unavailable",
+      ai_called: false,
+      error_code: "server_error",
+    });
     if (process.env.NODE_ENV === "development") {
       console.error("[translator]", error);
     }

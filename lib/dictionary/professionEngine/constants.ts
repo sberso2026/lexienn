@@ -7,8 +7,11 @@ export const MEDICAL_CAUTION =
 export const SAFETY_CAUTION =
   "This is a language explanation, not professional safety guidance.";
 
+import { normalizeLookupCandidates } from "@/lib/text/normalizeLookupText";
+
 export function normalizeInputKey(input: string): string {
-  return input.trim().toLowerCase();
+  const [primary] = normalizeLookupCandidates(input);
+  return primary ?? input.trim().toLowerCase();
 }
 
 export function resolveContext(context: string): string {

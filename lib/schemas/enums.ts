@@ -27,6 +27,7 @@ export const validationStatusSchema = z.enum([
   "ai_generated",
   "ai_generated_unverified",
   "verified_dictionary",
+  "curated",
   "community_corrected",
   "native_speaker_reviewed",
   "professionally_reviewed",

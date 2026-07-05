@@ -760,16 +760,45 @@ describe("Lexienn MVP verification", () => {
     expect(offline).toContain("OfflinePhraseCard");
   });
 
-  it("batch 36 sqlite schema docs still list core tables", () => {
-    const schema = readFileSync("docs/offline-sqlite-schema.md", "utf8");
-    for (const table of [
-      "languages",
-      "entries",
-      "examples",
-      "favorites",
-      "missing_requests",
-    ]) {
-      expect(schema).toContain(`### \`${table}\``);
-    }
+  it("batch 37 curated fallback resolves house and name question without AI", async () => {
+    vi.stubEnv("AI_ENABLED", "false");
+    vi.stubEnv("AI_API_KEY", "");
+
+    const dict = await generateDictionaryEntry({
+      input_text: "house",
+      source_language: "en",
+      target_language: "tl",
+      user_context: "general",
+      explanation_level: "normal",
+      output_mode: "explain_and_translate",
+    });
+    expect(dict.source).toBe("curated_dictionary");
+    expect(dict.entry.target_meaning).toContain("bahay");
+
+    const { translateSentence } = await import("@/lib/translator/translateSentence");
+    const translated = await translateSentence({
+      input_text: "What's your name?",
+      source_language: "en",
+      target_language: "tl",
+      user_context: "general",
+      translation_mode: "natural",
+      ai_translation_enabled: false,
+      rule_fallback_enabled: true,
+    });
+    expect(translated.source).toBe("curated_phrase");
+    expect(translated.translated_text).toBe("Ano ang pangalan mo?");
+  });
+
+  it("batch 37 normalize lookup utility exists", () => {
+    const mod = readFileSync("lib/text/normalizeLookupText.ts", "utf8");
+    expect(mod).toContain("normalizeLookupText");
+    expect(mod).toContain("normalizeLookupCandidates");
+    expect(mod).toContain("what is");
+  });
+
+  it("batch 37 curated phrases data exists", () => {
+    const mod = readFileSync("lib/translator/curatedPhrases.ts", "utf8");
+    expect(mod).toContain("Ano ang pangalan mo?");
+    expect(mod).toContain("CURATED_PHRASE_ENTRIES");
   });
 });

@@ -6,6 +6,7 @@ const SOURCE_VARIANTS: Record<
   TranslationSource,
   "success" | "accent" | "neutral" | "info" | "warning"
 > = {
+  curated_phrase: "success",
   dictionary: "success",
   phrase_pack: "success",
   ai: "info",

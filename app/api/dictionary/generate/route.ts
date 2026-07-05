@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { logRouteResolution } from "@/lib/api/safeRouteLog";
 import { dictionaryGenerateResponseSchema } from "@/lib/dictionary/apiSchemas";
 import { generateDictionaryEntry } from "@/lib/dictionary/generateDictionaryEntry";
+import { normalizeLookupText } from "@/lib/text/normalizeLookupText";
 import { dictionaryQuerySchema } from "@/lib/schemas";
 
 export async function POST(request: Request) {
@@ -32,6 +34,15 @@ export async function POST(request: Request) {
 
   try {
     const result = await generateDictionaryEntry(parsed.data);
+    const aiCalled = result.source === "ai_generated";
+    logRouteResolution("api/dictionary/generate", {
+      normalized_key: normalizeLookupText(parsed.data.input_text),
+      source: result.source,
+      ai_called: aiCalled,
+      ...(result.source === "unavailable"
+        ? { error_code: result.diagnostics?.fallback_reason ?? "unavailable" }
+        : {}),
+    });
     const validated = dictionaryGenerateResponseSchema.safeParse(result);
     if (!validated.success) {
       return NextResponse.json(
@@ -41,6 +52,12 @@ export async function POST(request: Request) {
     }
     return NextResponse.json(validated.data);
   } catch {
+    logRouteResolution("api/dictionary/generate", {
+      normalized_key: normalizeLookupText(parsed.data.input_text),
+      source: "unavailable",
+      ai_called: false,
+      error_code: "server_error",
+    });
     return NextResponse.json(
       { error: "Dictionary generation failed." },
       { status: 500 },

@@ -387,7 +387,8 @@ describe("offline UI layout", () => {
       join(process.cwd(), "components/phrase-packs/PhrasePacksView.tsx"),
       "utf8",
     );
-    expect(phrasePacks).toContain("Phrase pack catalog");
+    expect(phrasePacks).toContain("PackSection");
+    expect(phrasePacks).toContain("Downloaded");
     expect(phrasePacks).not.toContain("PhrasePackCard");
     expect(phrasePacks).not.toContain("markPackDownloaded");
   });

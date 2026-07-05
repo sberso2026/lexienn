@@ -304,7 +304,7 @@ describe("dictionarySources resolution", () => {
     });
 
     expect(result.source).toBe("unavailable");
-    expect(result.entry.general_meaning_en).toContain("Definition unavailable");
+    expect(result.entry.general_meaning_en).toContain("not available yet");
     expect(result.entry.general_meaning_en).not.toMatch(/MVP mock/i);
     expect(result.diagnostics).toBeUndefined();
   });
@@ -341,7 +341,7 @@ describe("dictionarySources resolution", () => {
     });
 
     expect(result.source).toBe("unavailable");
-    expect(result.entry.general_meaning_en).toContain("Could not generate a dictionary entry");
+    expect(result.entry.general_meaning_en).toContain("not available yet");
     expect(result.diagnostics).toBeUndefined();
   });
 
