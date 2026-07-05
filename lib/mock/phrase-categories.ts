@@ -1,0 +1,57 @@
+import type { PhraseCategory } from "@/lib/schemas";
+
+export const PHRASE_CATEGORY_LABELS: Record<PhraseCategory, string> = {
+  emergency: "Emergency",
+  directions: "Directions",
+  food_and_water: "Food and water",
+  transport: "Transport",
+  medical: "Medical",
+  price_and_money: "Money and prices",
+  accommodation: "Accommodation",
+  respectful_greetings: "Greetings and respect",
+  fieldwork_engineering: "Work and fieldwork",
+  household_family: "Family and personal information",
+  time_and_schedule: "Time and schedule",
+  shopping_and_market: "Shopping and market",
+  safety_and_danger: "Safety and danger",
+  police_and_authority: "Police and local authority",
+  phone_and_communication: "Phone and communication",
+  farming_and_rural: "Farming and rural life",
+  weather_and_environment: "Weather and environment",
+  problems_and_repairs: "Problems and repairs",
+  consent_and_permission: "Consent and permission",
+  local_response_board: "Local response board",
+};
+
+export const PHRASE_CATEGORY_ORDER: PhraseCategory[] = [
+  "emergency",
+  "directions",
+  "food_and_water",
+  "transport",
+  "medical",
+  "price_and_money",
+  "accommodation",
+  "respectful_greetings",
+  "household_family",
+  "time_and_schedule",
+  "shopping_and_market",
+  "safety_and_danger",
+  "police_and_authority",
+  "phone_and_communication",
+  "fieldwork_engineering",
+  "farming_and_rural",
+  "weather_and_environment",
+  "problems_and_repairs",
+  "consent_and_permission",
+  "local_response_board",
+];
+
+export const OFFLINE_MODE_CATEGORIES: PhraseCategory[] = [
+  "emergency",
+  "directions",
+  "food_and_water",
+  "transport",
+  "medical",
+  "price_and_money",
+  "fieldwork_engineering",
+];
