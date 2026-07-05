@@ -1,8 +1,9 @@
 import {
   buildEntryFromGlossary,
-  findSeedByInputKey,
   type GlossarySeedEntry,
 } from "@/lib/dictionary/normalizeDictionaryEntry";
+import { ENGINEERING_GLOSSARY_EXTENDED_ENTRIES } from "@/lib/dictionary/engineeringGlossaryExtended";
+import { normalizeGlossaryLookupCandidates } from "@/lib/text/normalizeLookupText";
 import type { DictionaryEntry, DictionaryQuery } from "@/lib/schemas";
 
 const NO_EXACT_EQUIVALENT =
@@ -490,10 +491,17 @@ export const ENGINEERING_GLOSSARY_ENTRIES: GlossarySeedEntry[] = [
       },
     ],
   },
+  ...ENGINEERING_GLOSSARY_EXTENDED_ENTRIES,
 ];
 
 export function findGlossaryEntry(inputText: string): GlossarySeedEntry | undefined {
-  return findSeedByInputKey(ENGINEERING_GLOSSARY_ENTRIES, inputText);
+  for (const candidate of normalizeGlossaryLookupCandidates(inputText)) {
+    const match = ENGINEERING_GLOSSARY_ENTRIES.find(
+      (entry) => entry.input_key === candidate,
+    );
+    if (match) return match;
+  }
+  return undefined;
 }
 
 export function resolveGlossaryEntry(query: DictionaryQuery): DictionaryEntry | null {

@@ -220,6 +220,24 @@ describe("dictionarySources resolution", () => {
 
 
 
+  it("returns domain_glossary for tie beam with engineer context", async () => {
+    vi.stubEnv("AI_ENABLED", "false");
+    vi.stubEnv("AI_API_KEY", "");
+
+    const result = await generateDictionaryEntry({
+      input_text: "tie beam",
+      source_language: "en",
+      target_language: "tl",
+      user_context: "engineer",
+      explanation_level: "professional",
+      output_mode: "explain_and_translate",
+    });
+
+    expect(result.source).toBe("domain_glossary");
+    expect(result.entry.target_meaning).toMatch(/tie beam|biga na pangtali/i);
+    expect(result.entry.confidence.level).toBe("high");
+  });
+
   it("returns domain_glossary for deep beam with engineer context", async () => {
 
     stubAiDisabled();

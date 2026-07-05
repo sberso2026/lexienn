@@ -64,3 +64,28 @@ export function normalizeLookupCandidates(input: string): string[] {
 
   return [...candidates];
 }
+
+/**
+ * Glossary lookup variants including simple plural stripping on the last word.
+ * e.g. "tie beams" → "tie beam", "footings" → "footing"
+ */
+export function normalizeGlossaryLookupCandidates(input: string): string[] {
+  const base = normalizeLookupCandidates(input);
+  const extended = new Set<string>(base);
+
+  for (const candidate of base) {
+    if (candidate.endsWith("s") && candidate.length > 3 && !candidate.endsWith("ss")) {
+      extended.add(candidate.slice(0, -1));
+    }
+    const words = candidate.split(" ");
+    if (words.length > 1) {
+      const last = words[words.length - 1];
+      if (last.endsWith("s") && last.length > 2 && !last.endsWith("ss")) {
+        words[words.length - 1] = last.slice(0, -1);
+        extended.add(words.join(" "));
+      }
+    }
+  }
+
+  return [...extended];
+}

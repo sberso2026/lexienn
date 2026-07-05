@@ -1,4 +1,4 @@
-import { getAiConfig, getAiTimeoutMs } from "@/lib/ai/config";
+import { getAiBaseUrl, getAiConfig, getAiTimeoutMs } from "@/lib/ai/config";
 
 export type OpenAiChatMessage = {
   role: "system" | "user" | "assistant";
@@ -46,7 +46,8 @@ export async function requestOpenAiChatCompletion(
   let response: Response;
 
   try {
-    response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const baseUrl = getAiBaseUrl();
+    response = await fetch(`${baseUrl}/v1/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

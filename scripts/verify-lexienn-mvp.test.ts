@@ -801,4 +801,25 @@ describe("Lexienn MVP verification", () => {
     expect(mod).toContain("Ano ang pangalan mo?");
     expect(mod).toContain("CURATED_PHRASE_ENTRIES");
   });
+
+  it("batch 38 tie beam resolves from engineering glossary file", () => {
+    const ext = readFileSync("lib/dictionary/engineeringGlossaryExtended.ts", "utf8");
+    expect(ext).toContain("tie beam");
+    expect(ext).toContain("biga na pangtali");
+    expect(ext).toContain("Ikinokonekta ng tie beam");
+  });
+
+  it("batch 38 dictionary generate route uses node runtime", () => {
+    const route = readFileSync("app/api/dictionary/generate/route.ts", "utf8");
+    expect(route).toContain('runtime = "nodejs"');
+    expect(route).toContain("logDictionaryGenerate");
+  });
+
+  it("batch 38 ai status returns safe public fields", () => {
+    const route = readFileSync("app/api/ai/status/route.ts", "utf8");
+    const schema = readFileSync("lib/ai/aiStatusSchemas.ts", "utf8");
+    expect(route).toContain("getAiPublicStatus");
+    expect(schema).toContain("hasApiKey");
+    expect(route).not.toContain("AI_API_KEY");
+  });
 });

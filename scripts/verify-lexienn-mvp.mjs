@@ -200,7 +200,9 @@ function verifyFilesystem() {
     "lib/text/normalizeLookupText.ts",
     "lib/translator/curatedPhrases.ts",
     "lib/translator/curatedPhraseTranslation.ts",
+    "lib/dictionary/engineeringGlossaryExtended.ts",
     "lib/api/safeRouteLog.ts",
+    "app/api/dictionary/smoke-test/route.ts",
     "lib/storage/savedWordsStorage.ts",
     "lib/storage/phrasePackStorage.ts",
     "lib/storage/correctionsStorage.ts",
@@ -320,7 +322,9 @@ async function verifyApi() {
     if (
       aiStatus.response.ok &&
       typeof aiStatus.json?.ai_enabled === "boolean" &&
+      typeof aiStatus.json?.aiEnabled === "boolean" &&
       typeof aiStatus.json?.provider_configured === "boolean" &&
+      typeof aiStatus.json?.hasApiKey === "boolean" &&
       !aiStatus.text.includes("sk-")
     ) {
       pass("api-ai-status", "GET /api/ai/status returns config flags without secrets");

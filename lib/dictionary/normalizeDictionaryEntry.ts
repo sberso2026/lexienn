@@ -172,8 +172,8 @@ export function buildEntryFromGlossary(
       entry_type: seed.entry_type ?? "technical_term",
       profession_meanings: professionMeanings,
       usage_notes: usageNotes,
-      validation_status: seed.validation_status ?? "professionally_reviewed",
-      confidence_score: seed.confidence_score ?? 0.9,
+      validation_status: seed.validation_status ?? "curated",
+      confidence_score: seed.confidence_score ?? 0.95,
     },
     query,
   );

@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
-import { logRouteResolution } from "@/lib/api/safeRouteLog";
+import { logDictionaryGenerate } from "@/lib/api/safeRouteLog";
 import { dictionaryGenerateResponseSchema } from "@/lib/dictionary/apiSchemas";
 import { generateDictionaryEntry } from "@/lib/dictionary/generateDictionaryEntry";
 import { normalizeLookupText } from "@/lib/text/normalizeLookupText";
 import { dictionaryQuerySchema } from "@/lib/schemas";
+
+export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -32,17 +34,24 @@ export async function POST(request: Request) {
     );
   }
 
+  const lookupKey = normalizeLookupText(parsed.data.input_text);
+
   try {
     const result = await generateDictionaryEntry(parsed.data);
     const aiCalled = result.source === "ai_generated";
-    logRouteResolution("api/dictionary/generate", {
-      normalized_key: normalizeLookupText(parsed.data.input_text),
-      source: result.source,
-      ai_called: aiCalled,
-      ...(result.source === "unavailable"
-        ? { error_code: result.diagnostics?.fallback_reason ?? "unavailable" }
-        : {}),
+    const aiErrorCode =
+      result.source === "unavailable"
+        ? mapFallbackReasonToErrorCode(result.diagnostics?.fallback_reason)
+        : undefined;
+
+    logDictionaryGenerate({
+      lookupKey,
+      contextProfile: parsed.data.user_context,
+      selectedSource: result.source,
+      aiCalled,
+      aiErrorCode,
     });
+
     const validated = dictionaryGenerateResponseSchema.safeParse(result);
     if (!validated.success) {
       return NextResponse.json(
@@ -52,15 +61,28 @@ export async function POST(request: Request) {
     }
     return NextResponse.json(validated.data);
   } catch {
-    logRouteResolution("api/dictionary/generate", {
-      normalized_key: normalizeLookupText(parsed.data.input_text),
-      source: "unavailable",
-      ai_called: false,
-      error_code: "server_error",
+    logDictionaryGenerate({
+      lookupKey,
+      contextProfile: parsed.data.user_context,
+      selectedSource: "unavailable",
+      aiCalled: false,
+      aiErrorCode: "server_error",
     });
     return NextResponse.json(
       { error: "Dictionary generation failed." },
       { status: 500 },
     );
   }
+}
+
+function mapFallbackReasonToErrorCode(reason?: string): string {
+  if (!reason) return "unavailable";
+  const lower = reason.toLowerCase();
+  if (lower.includes("ai_enabled is false")) return "provider_disabled";
+  if (lower.includes("not configured") || lower.includes("missing")) {
+    return "missing_api_key";
+  }
+  if (lower.includes("valid json")) return "provider_invalid_json";
+  if (lower.includes("timeout")) return "provider_timeout";
+  return "unavailable";
 }

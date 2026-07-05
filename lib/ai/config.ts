@@ -64,8 +64,41 @@ export function getAiStatus(): AiStatus {
 export function getAiTimeoutMs(): number {
   const raw = process.env.AI_TIMEOUT_MS?.trim();
   const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
-  if (!Number.isFinite(parsed) || parsed <= 0) return 20_000;
+  if (!Number.isFinite(parsed) || parsed <= 0) return 30_000;
   return Math.min(parsed, 120_000);
+}
+
+export function getAiBaseUrl(): string {
+  const custom = process.env.AI_BASE_URL?.trim();
+  if (custom) return custom.replace(/\/$/, "");
+  return "https://api.openai.com";
+}
+
+export type AiPublicStatus = {
+  aiEnabled: boolean;
+  providerConfigured: boolean;
+  modelConfigured: boolean;
+  hasApiKey: boolean;
+  timeoutMs: number;
+  runtime: "server";
+  developerMode: boolean;
+  provider: string;
+  fallbackEnabled: boolean;
+};
+
+export function getAiPublicStatus(): AiPublicStatus {
+  const config = getAiConfig();
+  return {
+    aiEnabled: config.enabled,
+    providerConfigured: config.providerConfigured,
+    modelConfigured: config.modelConfigured,
+    hasApiKey: config.apiKey.length > 0,
+    timeoutMs: getAiTimeoutMs(),
+    runtime: "server",
+    developerMode: process.env.NEXT_PUBLIC_ENABLE_DEVELOPER_MODE === "true",
+    provider: config.provider,
+    fallbackEnabled: config.fallbackEnabled,
+  };
 }
 
 export function getOfflinePackAiTimeoutMs(): number {
