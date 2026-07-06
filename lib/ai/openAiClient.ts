@@ -1,5 +1,14 @@
-import { getAiBaseUrl, getAiConfig, getAiTimeoutMs } from "@/lib/ai/config";
+import { getAiConfig, getAiTimeoutMs } from "@/lib/ai/config";
 import type { OpenAiChatCompletionResult, OpenAiErrorCode } from "@/lib/ai/aiErrors";
+import {
+  mapHttpStatusToOpenAiErrorCode,
+  openAiErrorToSafeMessage,
+} from "@/lib/ai/aiErrors";
+import {
+  getOpenAiChatCompletionsUrl,
+  getOpenAiEndpointPathFromUrl,
+  normalizeOpenAiApiBaseUrl,
+} from "@/lib/ai/openAiEndpoint";
 
 export type OpenAiChatMessage = {
   role: "system" | "user" | "assistant";
@@ -21,6 +30,14 @@ type OpenAiChatResponse = {
   }>;
 };
 
+type OpenAiErrorBody = {
+  error?: {
+    message?: string;
+    type?: string;
+    code?: string | null;
+  };
+};
+
 function createTimeoutSignal(timeoutMs: number): AbortSignal {
   if (typeof AbortSignal.timeout === "function") {
     return AbortSignal.timeout(timeoutMs);
@@ -32,7 +49,45 @@ function createTimeoutSignal(timeoutMs: number): AbortSignal {
 }
 
 function logOpenAiSafe(event: string, details: Record<string, unknown>): void {
-  console.info(`[openai] ${event}`, details);
+  const safe = { ...details };
+  for (const key of Object.keys(safe)) {
+    const value = safe[key];
+    if (typeof value === "string" && /sk-|Bearer|api[_-]?key/i.test(value)) {
+      safe[key] = "[redacted]";
+    }
+  }
+  console.info(`[openai] ${event}`, safe);
+}
+
+async function parseOpenAiErrorBody(
+  response: Response,
+): Promise<Pick<OpenAiChatCompletionResult & { ok: false }, "providerErrorType" | "providerErrorCode" | "providerErrorMessage">> {
+  try {
+    const body = (await response.json()) as OpenAiErrorBody;
+    const err = body.error;
+    if (!err) return {};
+    return {
+      providerErrorType: err.type,
+      providerErrorCode: typeof err.code === "string" ? err.code : undefined,
+      providerErrorMessage: err.message?.slice(0, 240),
+    };
+  } catch {
+    return {};
+  }
+}
+
+export function resolveOpenAiChatCompletionsEndpoint(): {
+  url: string;
+  endpointPath: string;
+  configWarning: string | null;
+} {
+  const { configWarning } = normalizeOpenAiApiBaseUrl(process.env.AI_BASE_URL);
+  const url = getOpenAiChatCompletionsUrl();
+  return {
+    url,
+    endpointPath: getOpenAiEndpointPathFromUrl(url),
+    configWarning,
+  };
 }
 
 export async function requestOpenAiChatCompletionDetailed(
@@ -48,11 +103,16 @@ export async function requestOpenAiChatCompletionDetailed(
   }
 
   const timeoutMs = options.timeoutMs ?? getAiTimeoutMs();
-  const baseUrl = getAiBaseUrl();
+  const { url, endpointPath, configWarning } = resolveOpenAiChatCompletionsEndpoint();
+
+  if (configWarning) {
+    logOpenAiSafe("config_warning", { message: configWarning, endpointPath });
+  }
+
   let response: Response;
 
   try {
-    response = await fetch(`${baseUrl}/v1/chat/completions`, {
+    response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -67,20 +127,30 @@ export async function requestOpenAiChatCompletionDetailed(
       name === "TimeoutError" || name === "AbortError"
         ? "provider_timeout"
         : "unknown_provider_error";
-    logOpenAiSafe("request_failed", { errorCode, timeoutMs });
-    return { ok: false, errorCode };
+    logOpenAiSafe("request_failed", { errorCode, timeoutMs, endpointPath });
+    return { ok: false, errorCode, endpointPath };
   }
 
   if (!response.ok) {
+    const providerDetails = await parseOpenAiErrorBody(response);
+    const errorCode = mapHttpStatusToOpenAiErrorCode(response.status);
     logOpenAiSafe("http_error", {
-      errorCode: "provider_http_error",
+      errorCode,
       httpStatus: response.status,
-      timeoutMs,
+      endpointPath,
+      providerErrorType: providerDetails.providerErrorType,
+      providerErrorCode: providerDetails.providerErrorCode,
+      safeMessage: openAiErrorToSafeMessage(errorCode),
+      ...(providerDetails.providerErrorMessage
+        ? { providerErrorMessage: providerDetails.providerErrorMessage }
+        : {}),
     });
     return {
       ok: false,
-      errorCode: "provider_http_error",
+      errorCode,
       httpStatus: response.status,
+      endpointPath,
+      ...providerDetails,
     };
   }
 
@@ -88,13 +158,16 @@ export async function requestOpenAiChatCompletionDetailed(
     const payload = (await response.json()) as OpenAiChatResponse;
     const content = payload.choices?.[0]?.message?.content;
     if (!content || !content.trim()) {
-      logOpenAiSafe("empty_content", { errorCode: "provider_invalid_json" });
-      return { ok: false, errorCode: "provider_invalid_json" };
+      logOpenAiSafe("empty_content", { errorCode: "provider_invalid_json", endpointPath });
+      return { ok: false, errorCode: "provider_invalid_json", endpointPath };
     }
     return { ok: true, content };
   } catch {
-    logOpenAiSafe("response_parse_failed", { errorCode: "provider_invalid_json" });
-    return { ok: false, errorCode: "provider_invalid_json" };
+    logOpenAiSafe("response_parse_failed", {
+      errorCode: "provider_invalid_json",
+      endpointPath,
+    });
+    return { ok: false, errorCode: "provider_invalid_json", endpointPath };
   }
 }
 

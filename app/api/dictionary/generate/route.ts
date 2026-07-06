@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { logDictionaryGenerate } from "@/lib/api/safeRouteLog";
 import { aiFailureToErrorCode } from "@/lib/ai/aiErrors";
 import { isAiDictionaryConfigured } from "@/lib/ai/aiDictionaryService";
+import { isServerDeveloperDiagnosticsEnabled } from "@/lib/debug/serverDiagnostics";
 import { dictionaryGenerateResponseSchema } from "@/lib/dictionary/apiSchemas";
 import { generateDictionaryEntry } from "@/lib/dictionary/generateDictionaryEntry";
 import { normalizeLookupText } from "@/lib/text/normalizeLookupText";
@@ -42,12 +43,10 @@ export async function POST(request: Request) {
   try {
     const result = await generateDictionaryEntry(parsed.data);
     const durationMs = Date.now() - startedAt;
-    const aiCalled =
-      result.source === "ai_generated" ||
-      Boolean(result.diagnostics?.used_ai);
+    const aiCalled = result.diagnostics.used_ai;
     const aiErrorCode =
       result.source === "unavailable"
-        ? mapFallbackReasonToErrorCode(result.diagnostics?.fallback_reason)
+        ? mapFallbackReasonToErrorCode(result.diagnostics.fallback_reason)
         : undefined;
 
     logDictionaryGenerate({
@@ -63,7 +62,16 @@ export async function POST(request: Request) {
       durationMs,
     });
 
-    const validated = dictionaryGenerateResponseSchema.safeParse(result);
+    const clientPayload = {
+      query: result.query,
+      entry: result.entry,
+      source: result.source,
+      ...(isServerDeveloperDiagnosticsEnabled()
+        ? { diagnostics: result.diagnostics }
+        : {}),
+    };
+
+    const validated = dictionaryGenerateResponseSchema.safeParse(clientPayload);
     if (!validated.success) {
       return NextResponse.json(
         { error: "Dictionary generation produced an invalid response." },
@@ -105,6 +113,15 @@ function mapFallbackReasonToErrorCode(reason?: string): string {
   }
   if (lower.includes("provider_timeout") || lower.includes("timed out")) {
     return "provider_timeout";
+  }
+  if (lower.includes("provider_model_or_endpoint_not_found") || lower.includes("model or endpoint not found")) {
+    return "provider_model_or_endpoint_not_found";
+  }
+  if (lower.includes("provider_auth_error") || lower.includes("authentication failed")) {
+    return "provider_auth_error";
+  }
+  if (lower.includes("provider_rate_or_quota") || lower.includes("rate limit") || lower.includes("quota")) {
+    return "provider_rate_or_quota_error";
   }
   if (lower.includes("provider_http_error") || lower.includes("http error")) {
     return "provider_http_error";

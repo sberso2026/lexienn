@@ -150,7 +150,7 @@ describe("DictionaryAIGeneration-1", () => {
     expect(result.entry.general_meaning_en).toContain("not available yet");
     expect(result.entry.general_meaning_en).not.toMatch(/timed out|invalid JSON/i);
     expect(result.entry.general_meaning_en).toBe(result.entry.detailed_meaning_en);
-    expect(result.diagnostics).toBeUndefined();
+    expect(result.diagnostics.used_ai).toBe(true);
   });
 
   it("hides development diagnostics unless developer mode feature is enabled", () => {

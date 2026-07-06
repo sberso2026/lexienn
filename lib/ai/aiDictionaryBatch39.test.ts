@@ -96,7 +96,7 @@ describe("batch 39 AI dictionary generation path", () => {
     expect(result.source).toBe("unavailable");
     expect(result.entry.general_meaning_en).toContain("not available yet");
     expect(result.entry.general_meaning_en).not.toMatch(/timed out|invalid JSON/i);
-    expect(result.diagnostics).toBeUndefined();
+    expect(result.diagnostics.used_ai).toBe(true);
   });
 
   it("house and tie beam do not call AI", async () => {
@@ -190,6 +190,8 @@ describe("batch 39 AI dictionary generation path", () => {
     expect(body.aiCallSucceeded).toBe(true);
     expect(body.jsonParsed).toBe(true);
     expect(body.errorCode).toBeNull();
+    expect(body.endpointStyle).toBe("chat_completions");
+    expect(body.finalEndpoint).toBe("https://api.openai.com/v1/chat/completions");
   });
 
   it("extractJsonFromAiText parses fenced JSON", () => {

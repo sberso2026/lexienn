@@ -68,10 +68,10 @@ export function getAiTimeoutMs(): number {
   return Math.min(parsed, 120_000);
 }
 
+import { normalizeOpenAiApiBaseUrl } from "@/lib/ai/openAiEndpoint";
+
 export function getAiBaseUrl(): string {
-  const custom = process.env.AI_BASE_URL?.trim();
-  if (custom) return custom.replace(/\/$/, "");
-  return "https://api.openai.com";
+  return normalizeOpenAiApiBaseUrl(process.env.AI_BASE_URL).baseUrl;
 }
 
 export type AiPublicStatus = {

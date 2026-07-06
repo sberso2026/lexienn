@@ -18,6 +18,30 @@ function seed(
 /** Built-in common English technical and general vocabulary — no AI required. */
 export const COMMON_SEED_DICTIONARY_ENTRIES: CuratedSeedEntry[] = [
   seed({
+    id: "seed-copious",
+    input_key: "copious",
+    entry_type: "word",
+    general_meaning_en:
+      "Copious means abundant in quantity or supply; more than enough.",
+    detailed_meaning_en:
+      "Use copious to describe large amounts of something, such as copious notes, copious rainfall, or copious documentation on a project.",
+    target_meaning: "masagana / marami",
+    examples: [
+      {
+        text: "The inspector left copious notes on the concrete pour.",
+        language_code: "en",
+        context_label: "General",
+      },
+      {
+        text: "Nag-iwan ang inspektor ng maraming tala tungkol sa pagbuhos ng kongkreto.",
+        language_code: "tl",
+        context_label: "Filipino / Tagalog",
+      },
+    ],
+    pronunciation: { simple: "KOH-pee-us", ipa: "/ˈkoʊpiəs/" },
+    related_terms: ["abundant", "plentiful", "ample", "extensive"],
+  }),
+  seed({
     id: "seed-acceleration",
     input_key: "acceleration",
     entry_type: "word",

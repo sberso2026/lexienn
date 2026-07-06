@@ -324,7 +324,7 @@ describe("dictionarySources resolution", () => {
     expect(result.source).toBe("unavailable");
     expect(result.entry.general_meaning_en).toContain("not available yet");
     expect(result.entry.general_meaning_en).not.toMatch(/MVP mock/i);
-    expect(result.diagnostics).toBeUndefined();
+    expect(result.diagnostics.used_ai).toBe(false);
   });
 
   it("returns ai_generated for unknown normal words when AI is configured", async () => {
@@ -348,7 +348,7 @@ describe("dictionarySources resolution", () => {
 
     expect(result.source).toBe("ai_generated");
     expect(result.entry.general_meaning_en).toContain("pleasant surprises");
-    expect(result.diagnostics).toBeUndefined();
+    expect(result.diagnostics.used_ai).toBe(true);
   });
 
   it("falls back to unavailable when AI JSON is invalid", async () => {
@@ -369,7 +369,7 @@ describe("dictionarySources resolution", () => {
 
     expect(result.source).toBe("unavailable");
     expect(result.entry.general_meaning_en).toContain("not available yet");
-    expect(result.diagnostics).toBeUndefined();
+    expect(result.diagnostics.used_ai).toBe(true);
   });
 
 

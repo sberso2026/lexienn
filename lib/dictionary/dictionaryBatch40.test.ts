@@ -129,18 +129,8 @@ describe("batch 40 dictionary generation", () => {
 
     expect(result.source).toBe("unavailable");
     expect(result.entry.general_meaning_en).toContain("not available yet");
-    expect(result.diagnostics).toBeUndefined();
-
-    vi.stubEnv("NEXT_PUBLIC_ENABLE_DEVELOPER_MODE", "true");
-    const devResult = await generateDictionaryEntry({
-      input_text: "palimpsest",
-      source_language: "en",
-      target_language: "en",
-      user_context: "general",
-      explanation_level: "normal",
-      output_mode: "explain",
-    });
-    expect(devResult.diagnostics?.aiErrorCode).toBe("provider_timeout");
+    expect(result.diagnostics.used_ai).toBe(true);
+    expect(result.diagnostics.aiErrorCode).toBe("provider_timeout");
   });
 
   it("buildDictionaryQueryFromSearchParams preserves target=en from URL", () => {

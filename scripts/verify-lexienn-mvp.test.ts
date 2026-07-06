@@ -834,4 +834,14 @@ describe("Lexienn MVP verification", () => {
     expect(resultView).toContain("generateDictionaryEntryViaApi");
     expect(resultView).toContain("buildDictionaryQueryFromSearchParams");
   });
+
+  it("batch 41 OpenAI endpoint normalization exists", () => {
+    const endpoint = readFileSync("lib/ai/openAiEndpoint.ts", "utf8");
+    const client = readFileSync("lib/ai/openAiClient.ts", "utf8");
+    const errors = readFileSync("lib/ai/aiErrors.ts", "utf8");
+    expect(endpoint).toContain("https://api.openai.com/v1");
+    expect(endpoint).toContain("/chat/completions");
+    expect(client).not.toContain("/v1/chat/completions");
+    expect(errors).toContain("provider_model_or_endpoint_not_found");
+  });
 });
