@@ -240,3 +240,37 @@ body {
     animation: none !important;
   }
 }
+
+.install-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.install-steps > li {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  column-gap: 0.75rem;
+  align-items: start;
+}
+
+.install-steps > li + li {
+  margin-top: 0.75rem;
+}
+
+.install-step-number,
+.step-number {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 1.375rem;
+  text-align: right;
+}
+
+.install-step-content,
+.step-content {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.75rem;
+  line-height: 1.375rem;
+}

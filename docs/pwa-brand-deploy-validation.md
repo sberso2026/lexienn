@@ -37,7 +37,26 @@ Cache busting: UI brand images use `?v=<BRAND_ASSET_VERSION>` from `lib/brand/br
 
 ---
 
-## Production QA log — 6 July 2026
+## Production QA log — 6 July 2026 (install step layout)
+
+| Field | Value |
+| --- | --- |
+| **Date tested** | 6 July 2026 (UTC+8) |
+| **Deploy** | Safari step grid layout fix + `sr-only` step labels |
+| **Change** | Custom `install-steps` grid replaces native `<ol list-decimal>` markers |
+| **Automated result** | **PASS** (lint, typecheck, 38 PWA/brand tests, build, `verify:production-pwa`) |
+
+### iPhone Safari step layout (manual)
+
+- [ ] Step 1: `1.`, share icon, and text on one aligned row (no orphaned number)
+- [ ] Steps 2–4 align with Step 1 content column
+- [ ] Logo clean (no checkerboard)
+- [ ] “Can’t see the icon?” help box visible
+- [ ] Safe-area padding clears Safari bottom toolbar
+
+---
+
+## Production QA log — 6 July 2026 (brand assets)
 
 | Field | Value |
 | --- | --- |

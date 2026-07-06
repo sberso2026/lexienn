@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { LexiennBrandLogo } from "@/components/brand/LexiennBrandLogo";
 import { ActionButton } from "@/components/ui/ActionButton";
 import { isDeveloperModeFeatureEnabled } from "@/lib/config/publicEnv";
@@ -50,6 +50,26 @@ function SafariShareIcon({ className }: { className?: string }) {
   );
 }
 
+function InstallStep({
+  number,
+  children,
+}: {
+  number: number;
+  children: ReactNode;
+}) {
+  return (
+    <li>
+      <span className="step-number" aria-hidden="true">
+        {number}.
+      </span>
+      <div className="step-content">
+        <span className="sr-only">Step {number}: </span>
+        {children}
+      </div>
+    </li>
+  );
+}
+
 export function MobileInstallGate({ onDeveloperBypass }: MobileInstallGateProps) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(
     null,
@@ -94,7 +114,7 @@ export function MobileInstallGate({ onDeveloperBypass }: MobileInstallGateProps)
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-y-auto bg-[radial-gradient(circle_at_top,#1a3f6b_0%,#0b1f38_65%)] px-6 py-8 text-center text-white"
+      className="fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-y-auto bg-[radial-gradient(circle_at_top,#1a3f6b_0%,#0b1f38_65%)] px-6 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-8 text-center text-white"
       role="dialog"
       aria-label="Install Lexienn"
     >
@@ -111,18 +131,22 @@ export function MobileInstallGate({ onDeveloperBypass }: MobileInstallGateProps)
 
       {iosGuideMode === "safari" && (
         <>
-          <ol className="mt-6 max-w-sm list-decimal space-y-3 pl-5 text-left text-sm text-slate-100">
-            <li>
-              <span className="flex items-start gap-2">
-                <SafariShareIcon className="mt-0.5 h-5 w-5 shrink-0 text-slate-100" />
-                <span>
-                  Tap the square-with-up-arrow icon at the bottom center of Safari.
-                </span>
+          <ol className="install-steps mt-6 w-full max-w-sm text-left text-sm text-slate-100">
+            <InstallStep number={1}>
+              <SafariShareIcon className="mt-0.5 h-5 w-5 shrink-0 text-slate-100" />
+              <span>
+                Tap the square-with-up-arrow icon at the bottom center of Safari.
               </span>
-            </li>
-            <li>Scroll the menu if needed, then tap Add to Home Screen.</li>
-            <li>Tap Add.</li>
-            <li>Open Lexienn from the new Home Screen icon.</li>
+            </InstallStep>
+            <InstallStep number={2}>
+              <span>Scroll the menu if needed, then tap Add to Home Screen.</span>
+            </InstallStep>
+            <InstallStep number={3}>
+              <span>Tap Add.</span>
+            </InstallStep>
+            <InstallStep number={4}>
+              <span>Open Lexienn from the new Home Screen icon.</span>
+            </InstallStep>
           </ol>
           <div className="mt-4 max-w-sm rounded-lg border border-white/20 bg-white/5 p-3 text-left text-xs leading-relaxed text-slate-200">
             <p className="font-semibold text-slate-100">Can&apos;t see the icon?</p>

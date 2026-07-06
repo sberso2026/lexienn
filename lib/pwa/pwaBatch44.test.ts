@@ -99,14 +99,23 @@ describe("PWA batch 44", () => {
     expect(header).toContain("Lexienn");
   });
 
-  it("MobileInstallGate shows iOS Safari share icon instructions", () => {
+  it("MobileInstallGate uses custom step grid for iOS Safari instructions", () => {
     const gate = readFileSync("components/pwa/MobileInstallGate.tsx", "utf8");
+    const safariBlock = gate.slice(
+      gate.indexOf('iosGuideMode === "safari"'),
+      gate.indexOf('iosGuideMode === "open-in-safari"'),
+    );
     expect(gate).toContain("square-with-up-arrow icon at the bottom center of Safari");
     expect(gate).not.toContain("Tap the Share button.");
     expect(gate).toContain('aria-label="Safari share icon"');
+    expect(safariBlock).toContain("install-steps");
+    expect(gate).toContain("step-number");
+    expect(gate).toContain("step-content");
+    expect(safariBlock).not.toContain("list-decimal");
+    expect(safariBlock).toContain("SafariShareIcon");
+    expect(safariBlock).toContain("InstallStep number={1}");
+    expect(gate).toContain('className="sr-only"');
     expect(gate).toContain("Can&apos;t see the icon?");
-    expect(gate).toContain("Open in Safari first");
-    expect(gate).toContain("getIOSInstallGuideMode");
   });
 
   it("AppShell blocks app content behind install gate", () => {
