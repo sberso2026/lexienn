@@ -894,6 +894,6 @@ describe("Lexienn MVP verification", () => {
     expect(readFileSync("components/brand/LexiennBrandLogo.tsx", "utf8")).toContain(
       "brandAssetUrl",
     );
-    expect(readFileSync("public/sw.js", "utf8")).toContain("lexienn-shell-v3-brand2");
+    expect(readFileSync("public/sw.js", "utf8")).toContain("lexienn-shell-v4-installfix");
   });
 });

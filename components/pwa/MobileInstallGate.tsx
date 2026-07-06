@@ -9,12 +9,41 @@ import {
   getIOSInstallGuideMode,
   isAndroid,
   isIOS,
+  type IOSInstallGuideMode,
 } from "@/lib/pwa/isStandaloneApp";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
+
+export type InstallGateUiState = {
+  clientReady: boolean;
+  iosGuideMode: IOSInstallGuideMode | null;
+  showAndroidMenuGuide: boolean;
+  showAndroidInstallButton: boolean;
+};
+
+export function resolveInstallGateUiState(
+  deferredPrompt: BeforeInstallPromptEvent | null,
+): InstallGateUiState {
+  if (typeof window === "undefined") {
+    return {
+      clientReady: false,
+      iosGuideMode: null,
+      showAndroidMenuGuide: false,
+      showAndroidInstallButton: false,
+    };
+  }
+
+  const ios = isIOS();
+  return {
+    clientReady: true,
+    iosGuideMode: ios ? getIOSInstallGuideMode() : null,
+    showAndroidMenuGuide: isAndroid() && !deferredPrompt,
+    showAndroidInstallButton: !ios && Boolean(deferredPrompt),
+  };
+}
 
 interface MobileInstallGateProps {
   onDeveloperBypass?: () => void;
@@ -50,7 +79,7 @@ function SafariShareIcon({ className }: { className?: string }) {
   );
 }
 
-function InstallStep({
+export function InstallStep({
   number,
   children,
 }: {
@@ -63,10 +92,32 @@ function InstallStep({
         {number}.
       </span>
       <div className="step-content">
-        <span className="sr-only">Step {number}: </span>
+        <span className="sr-only">{`Step ${number}: `}</span>
         {children}
       </div>
     </li>
+  );
+}
+
+function InstallGateShell({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-y-auto bg-[radial-gradient(circle_at_top,#1a3f6b_0%,#0b1f38_65%)] px-6 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-8 text-center text-white"
+      role="dialog"
+      aria-label="Install Lexienn"
+    >
+      <div className="mb-6 flex items-center justify-center bg-transparent">
+        <LexiennBrandLogo size="install" priority className="drop-shadow-lg" />
+      </div>
+      <h1 className="text-2xl font-semibold tracking-tight">Install Lexienn</h1>
+      <p className="mt-2 max-w-sm text-sm text-slate-200">
+        Add Lexienn to your home screen for the app experience.
+      </p>
+      <p className="mt-1 max-w-sm text-xs text-slate-300">
+        Open from the home-screen icon to use Lexienn without the browser bar.
+      </p>
+      {children}
+    </div>
   );
 }
 
@@ -77,17 +128,16 @@ export function MobileInstallGate({ onDeveloperBypass }: MobileInstallGateProps)
   const [installOutcome, setInstallOutcome] = useState<"idle" | "accepted" | "dismissed">(
     "idle",
   );
-  const [iosGuideMode, setIosGuideMode] = useState<ReturnType<typeof getIOSInstallGuideMode>>(
-    null,
-  );
+  const [ui, setUi] = useState<InstallGateUiState>(() => ({
+    clientReady: false,
+    iosGuideMode: null,
+    showAndroidMenuGuide: false,
+    showAndroidInstallButton: false,
+  }));
 
   useEffect(() => {
-    if (isIOS()) {
-      setIosGuideMode(getIOSInstallGuideMode());
-    }
-  }, []);
-
-  const androidGuide = isAndroid() && !deferredPrompt;
+    setUi(resolveInstallGateUiState(deferredPrompt));
+  }, [deferredPrompt]);
 
   useEffect(() => {
     const onBeforeInstall = (event: Event) => {
@@ -113,23 +163,14 @@ export function MobileInstallGate({ onDeveloperBypass }: MobileInstallGateProps)
   }, [onDeveloperBypass]);
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-y-auto bg-[radial-gradient(circle_at_top,#1a3f6b_0%,#0b1f38_65%)] px-6 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-8 text-center text-white"
-      role="dialog"
-      aria-label="Install Lexienn"
-    >
-      <div className="mb-6 flex items-center justify-center bg-transparent">
-        <LexiennBrandLogo size="install" priority className="drop-shadow-lg" />
-      </div>
-      <h1 className="text-2xl font-semibold tracking-tight">Install Lexienn</h1>
-      <p className="mt-2 max-w-sm text-sm text-slate-200">
-        Add Lexienn to your home screen for the app experience.
-      </p>
-      <p className="mt-1 max-w-sm text-xs text-slate-300">
-        Open from the home-screen icon to use Lexienn without the browser bar.
-      </p>
+    <InstallGateShell>
+      {!ui.clientReady && (
+        <p className="mt-6 max-w-sm text-sm text-slate-300" aria-live="polite">
+          Preparing install instructions…
+        </p>
+      )}
 
-      {iosGuideMode === "safari" && (
+      {ui.clientReady && ui.iosGuideMode === "safari" && (
         <>
           <ol className="install-steps mt-6 w-full max-w-sm text-left text-sm text-slate-100">
             <InstallStep number={1}>
@@ -160,7 +201,7 @@ export function MobileInstallGate({ onDeveloperBypass }: MobileInstallGateProps)
         </>
       )}
 
-      {iosGuideMode === "open-in-safari" && (
+      {ui.clientReady && ui.iosGuideMode === "open-in-safari" && (
         <div className="mt-6 max-w-sm text-left">
           <p className="text-sm font-semibold text-amber-100">Open in Safari first</p>
           <p className="mt-2 text-sm text-slate-200">
@@ -175,7 +216,7 @@ export function MobileInstallGate({ onDeveloperBypass }: MobileInstallGateProps)
         </div>
       )}
 
-      {!isIOS() && deferredPrompt && (
+      {ui.clientReady && ui.showAndroidInstallButton && (
         <div className="mt-6 w-full max-w-sm">
           <ActionButton variant="primary" fullWidth onClick={() => void handleInstall()}>
             Install Lexienn
@@ -183,7 +224,7 @@ export function MobileInstallGate({ onDeveloperBypass }: MobileInstallGateProps)
         </div>
       )}
 
-      {androidGuide && (
+      {ui.clientReady && ui.showAndroidMenuGuide && (
         <ol className="mt-6 max-w-sm list-decimal space-y-2 pl-5 text-left text-sm text-slate-100">
           <li>Open the Chrome menu (⋮).</li>
           <li>Tap Install app or Add to Home screen.</li>
@@ -206,6 +247,6 @@ export function MobileInstallGate({ onDeveloperBypass }: MobileInstallGateProps)
           Developer bypass
         </button>
       )}
-    </div>
+    </InstallGateShell>
   );
 }

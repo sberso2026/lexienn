@@ -1,9 +1,8 @@
-/* Lexienn minimal service worker — caches app shell and icons only. */
-/* CACHE_NAME must bump when BRAND_ASSET_VERSION changes (lib/brand/brandAssetVersion.ts). */
-const CACHE_NAME = "lexienn-shell-v3-brand2";const SHELL_ASSETS = [
-  "/",
-  "/offline",
-  "/translator",
+/* Lexienn minimal service worker — static brand/icons only. Never cache HTML or /_next chunks. */
+/* CACHE_NAME must bump on deploy-sensitive shell changes. */
+const CACHE_NAME = "lexienn-shell-v4-installfix";
+
+const STATIC_ASSETS = [
   "/manifest.webmanifest",
   "/favicon.png",
   "/apple-touch-icon.png",
@@ -16,20 +15,37 @@ const CACHE_NAME = "lexienn-shell-v3-brand2";const SHELL_ASSETS = [
   "/icons/maskable-icon-512x512.png",
 ];
 
+function isStaticBrandAsset(pathname) {
+  return (
+    STATIC_ASSETS.includes(pathname) ||
+    pathname.startsWith("/icons/") ||
+    pathname.startsWith("/brand/") ||
+    pathname.startsWith("/sounds/")
+  );
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS).catch(() => undefined)),
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(STATIC_ASSETS).catch(() => undefined)),
   );
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))),
-    ),
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME)
+            .map((key) => caches.delete(key)),
+        ),
+      )
+      .then(() => self.clients.claim()),
   );
-  self.clients.claim();
 });
 
 self.addEventListener("message", (event) => {
@@ -40,18 +56,17 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-  const url = new URL(request.url);
-
   if (request.method !== "GET") return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
   if (url.pathname.startsWith("/api/")) return;
+  if (url.pathname.startsWith("/_next/")) return;
 
-  const isShellAsset =
-    SHELL_ASSETS.includes(url.pathname) ||
-    url.pathname.startsWith("/icons/") ||
-    url.pathname.startsWith("/brand/") ||
-    url.pathname.startsWith("/sounds/");
+  if (request.mode === "navigate") return;
 
-  if (!isShellAsset) return;
+  if (!isStaticBrandAsset(url.pathname)) return;
 
   event.respondWith(
     caches.open(CACHE_NAME).then(async (cache) => {
@@ -59,7 +74,9 @@ self.addEventListener("fetch", (event) => {
       if (cached) return cached;
       try {
         const response = await fetch(request);
-        if (response.ok) cache.put(request, response.clone());
+        if (response.ok) {
+          cache.put(request, response.clone());
+        }
         return response;
       } catch {
         return (

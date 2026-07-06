@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { LexiennLaunchScreen } from "@/components/launch/LexiennLaunchScreen";
 import { MobileInstallGate } from "@/components/pwa/MobileInstallGate";
+import { ClientErrorReporter } from "@/components/pwa/ClientErrorReporter";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 import { shouldShowLaunchScreen } from "@/lib/launch/shouldShowLaunchScreen";
 import { shouldShowMobileInstallGate } from "@/lib/pwa/shouldShowMobileInstallGate";
@@ -38,13 +39,19 @@ export function AppShell({ children }: AppShellProps) {
   }, []);
 
   if (!shellReady) {
-    return <ServiceWorkerRegister />;
+    return (
+      <>
+        <ServiceWorkerRegister />
+        <ClientErrorReporter />
+      </>
+    );
   }
 
   if (installGateOpen) {
     return (
       <>
         <ServiceWorkerRegister />
+        <ClientErrorReporter />
         <MobileInstallGate onDeveloperBypass={handleDeveloperBypass} />
       </>
     );
@@ -53,6 +60,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <>
       <ServiceWorkerRegister />
+      <ClientErrorReporter />
       {!launchDone && showLaunch && (
         <LexiennLaunchScreen onComplete={handleLaunchComplete} />
       )}

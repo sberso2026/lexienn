@@ -7,7 +7,7 @@ import sharp from "sharp";
 const BASE = (process.argv[2] ?? "https://lexienn.rtbea.com.au").replace(/\/$/, "");
 
 const CHECKS = [
-  { name: "service worker v3-brand2", path: "/sw.js", type: "text", includes: "lexienn-shell-v3-brand2" },
+  { name: "service worker v4-installfix", path: "/sw.js", type: "text", includes: "lexienn-shell-v4-installfix" },
   {
     name: "versioned apple-touch-icon link in HTML",
     path: "/translator",

@@ -102,12 +102,14 @@ describe("PWA batch 44", () => {
   it("MobileInstallGate uses custom step grid for iOS Safari instructions", () => {
     const gate = readFileSync("components/pwa/MobileInstallGate.tsx", "utf8");
     const safariBlock = gate.slice(
-      gate.indexOf('iosGuideMode === "safari"'),
-      gate.indexOf('iosGuideMode === "open-in-safari"'),
+      gate.indexOf('ui.iosGuideMode === "safari"'),
+      gate.indexOf('ui.iosGuideMode === "open-in-safari"'),
     );
     expect(gate).toContain("square-with-up-arrow icon at the bottom center of Safari");
     expect(gate).not.toContain("Tap the Share button.");
     expect(gate).toContain('aria-label="Safari share icon"');
+    expect(gate).toContain("resolveInstallGateUiState");
+    expect(gate).toContain("clientReady");
     expect(safariBlock).toContain("install-steps");
     expect(gate).toContain("step-number");
     expect(gate).toContain("step-content");
@@ -135,9 +137,10 @@ describe("PWA batch 44", () => {
     expect(fn).not.toContain("hasSeenLaunchEver");
   });
 
-  it("service worker does not cache /api/*", () => {
+  it("service worker does not cache /api/* or /_next/*", () => {
     const sw = readFileSync("public/sw.js", "utf8");
     expect(sw).toContain('url.pathname.startsWith("/api/")');
+    expect(sw).toContain('url.pathname.startsWith("/_next/")');
     expect(sw).toContain("return;");
   });
 
