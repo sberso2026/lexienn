@@ -99,12 +99,14 @@ describe("PWA batch 44", () => {
     expect(header).toContain("Lexienn");
   });
 
-  it("MobileInstallGate shows iOS steps when beforeinstallprompt unavailable", () => {
+  it("MobileInstallGate shows iOS Safari share icon instructions", () => {
     const gate = readFileSync("components/pwa/MobileInstallGate.tsx", "utf8");
-    expect(gate).toContain("Add to Home Screen");
-    expect(gate).toContain("beforeinstallprompt");
-    expect(gate).toContain("LexiennBrandLogo");
-    expect(gate).toContain("Install Lexienn");
+    expect(gate).toContain("square-with-up-arrow icon at the bottom center of Safari");
+    expect(gate).not.toContain("Tap the Share button.");
+    expect(gate).toContain('aria-label="Safari share icon"');
+    expect(gate).toContain("Can&apos;t see the icon?");
+    expect(gate).toContain("Open in Safari first");
+    expect(gate).toContain("getIOSInstallGuideMode");
   });
 
   it("AppShell blocks app content behind install gate", () => {

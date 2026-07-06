@@ -1,4 +1,10 @@
 import Image from "next/image";
+import {
+  brandAssetUrl,
+  HEADER_LOGO_ICON_PATH,
+  HEADER_LOGO_MARK_PATH,
+  INSTALL_GATE_LOGO_PATH,
+} from "@/lib/brand/brandAssetPaths";
 
 type LexiennBrandLogoSize = "header-mobile" | "header-desktop" | "install" | "icon";
 
@@ -16,6 +22,16 @@ const SIZE_CLASS: Record<LexiennBrandLogoSize, string> = {
   install: "h-32 w-32",
 };
 
+function logoSrcForSize(size: LexiennBrandLogoSize): string {
+  if (size === "icon" || size === "header-mobile") {
+    return brandAssetUrl(HEADER_LOGO_ICON_PATH);
+  }
+  if (size === "install") {
+    return brandAssetUrl(INSTALL_GATE_LOGO_PATH);
+  }
+  return brandAssetUrl(HEADER_LOGO_MARK_PATH);
+}
+
 interface LexiennBrandLogoProps {
   size?: LexiennBrandLogoSize;
   className?: string;
@@ -28,19 +44,19 @@ export function LexiennBrandLogo({
   priority = false,
 }: LexiennBrandLogoProps) {
   const px = SIZE_PX[size];
-  const src =
-    size === "icon" || size === "header-mobile"
-      ? "/brand/lexienn-logo-icon.png"
-      : "/brand/lexienn-logo-transparent.png";
+  const src = logoSrcForSize(size);
 
   return (
-    <Image
-      src={src}
-      alt="Lexienn"
-      width={px}
-      height={px}
-      className={`shrink-0 object-contain ${SIZE_CLASS[size]} ${className}`}
-      priority={priority}
-    />
+    <span className="inline-flex shrink-0 items-center justify-center bg-transparent">
+      <Image
+        src={src}
+        alt="Lexienn"
+        width={px}
+        height={px}
+        className={`bg-transparent object-contain ${SIZE_CLASS[size]} ${className}`}
+        priority={priority}
+        unoptimized
+      />
+    </span>
   );
 }

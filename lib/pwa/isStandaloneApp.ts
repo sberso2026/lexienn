@@ -44,6 +44,23 @@ export function isSafariIOS(): boolean {
   return /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
 }
 
+/** Facebook, Instagram, WeChat, TikTok, in-app browsers, etc. */
+export function isLikelyInAppBrowser(): boolean {
+  if (typeof window === "undefined") return false;
+  const ua = navigator.userAgent;
+  return /FBAN|FBAV|Instagram|Line\/|Messenger|MicroMessenger|TikTok|GSA|ChatGPT/i.test(
+    ua,
+  );
+}
+
+export type IOSInstallGuideMode = "safari" | "open-in-safari";
+
+export function getIOSInstallGuideMode(): IOSInstallGuideMode | null {
+  if (!isIOS()) return null;
+  if (isLikelyInAppBrowser() || !isSafariIOS()) return "open-in-safari";
+  return "safari";
+}
+
 export function isAndroid(): boolean {
   if (typeof window === "undefined") return false;
   return /Android/i.test(navigator.userAgent);

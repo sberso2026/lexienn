@@ -1,6 +1,6 @@
 /* Lexienn minimal service worker — caches app shell and icons only. */
-const CACHE_NAME = "lexienn-shell-v2";
-const SHELL_ASSETS = [
+/* CACHE_NAME must bump when BRAND_ASSET_VERSION changes (lib/brand/brandAssetVersion.ts). */
+const CACHE_NAME = "lexienn-shell-v3-brand2";const SHELL_ASSETS = [
   "/",
   "/offline",
   "/translator",

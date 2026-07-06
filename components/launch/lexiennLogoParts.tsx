@@ -1,5 +1,7 @@
 /** Stylized SVG logo pieces approximating the Lexienn mark for assembly animation. */
 
+import { brandAssetUrl, INSTALL_GATE_LOGO_PATH } from "@/lib/brand/brandAssetPaths";
+
 export function LexiennLogoBlueSwoosh({ className }: { className?: string }) {
   return (
     <svg
@@ -122,7 +124,7 @@ export function LexiennLogoComplete({ className }: { className?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/brand/lexienn-logo-transparent.png"
+      src={brandAssetUrl(INSTALL_GATE_LOGO_PATH)}
       alt=""
       className={className}
       draggable={false}

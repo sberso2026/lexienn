@@ -6,6 +6,7 @@ import { access, mkdir } from "fs/promises";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import sharp from "sharp";
+import { removeCheckerboardToBuffer } from "./process-brand-logo.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -18,7 +19,8 @@ const iconSource = join(brandDir, "lexienn-logo-icon.png");
 const markSource = join(brandDir, "lexienn-logo-mark.png");
 
 const SIZES = [72, 96, 128, 144, 152, 180, 192, 384, 512];
-const MASKABLE_BG = { r: 22, g: 58, b: 99, alpha: 1 };
+/** Lexienn navy #163a63 — intentional background for home-screen / favicon icons */
+const LEXIENN_NAVY = { r: 22, g: 58, b: 99, alpha: 1 };
 const ICON_FIT = 0.82;
 const MASKABLE_FIT = 0.68;
 
@@ -34,46 +36,35 @@ async function fileExists(path) {
 async function ensureBrandAssets() {
   await mkdir(brandDir, { recursive: true });
   const fallback = join(brandDir, "lexienn-logo.png");
-  const master = (await fileExists(transparentSource))
-    ? transparentSource
-    : (await fileExists(fallback))
-      ? fallback
-      : null;
 
-  if (!master) {
+  if (!(await fileExists(fallback))) {
     throw new Error(
-      "Missing public/brand/lexienn-logo-transparent.png (or lexienn-logo.png). Copy the Lexienn logo first.",
+      "Missing public/brand/lexienn-logo.png. Copy the Lexienn master logo first.",
     );
   }
 
-  if (!(await fileExists(transparentSource))) {
-    await sharp(master).png().toFile(transparentSource);
-  }
+  const transparent = await removeCheckerboardToBuffer(fallback);
+  await transparent.clone().toFile(transparentSource);
 
-  if (!(await fileExists(iconSource))) {
-    const meta = await sharp(transparentSource).metadata();
-    const side = Math.min(meta.width ?? 512, meta.height ?? 512);
-    const inset = Math.round(side * 0.06);
-    await sharp(transparentSource)
-      .extract({
-        left: inset,
-        top: inset,
-        width: side - inset * 2,
-        height: side - inset * 2,
-      })
-      .png()
-      .toFile(iconSource);
-  }
+  const trimmed = await removeCheckerboardToBuffer(fallback).then((img) => img.trim());
 
-  if (!(await fileExists(markSource))) {
-    await sharp(transparentSource)
-      .resize(256, 256, {
-        fit: "contain",
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      })
-      .png()
-      .toFile(markSource);
-  }
+  await trimmed
+    .clone()
+    .resize(512, 512, {
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png()
+    .toFile(iconSource);
+
+  await trimmed
+    .clone()
+    .resize(256, 256, {
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png()
+    .toFile(markSource);
 }
 
 async function renderIcon(size, { maskable = false } = {}) {
@@ -88,9 +79,6 @@ async function renderIcon(size, { maskable = false } = {}) {
 
   const left = Math.round((size - logoSize) / 2);
   const top = Math.round((size - logoSize) / 2);
-  const background = maskable
-    ? MASKABLE_BG
-    : { r: 0, g: 0, b: 0, alpha: 0 };
 
   const filename = maskable
     ? `maskable-icon-${size}x${size}.png`
@@ -101,7 +89,7 @@ async function renderIcon(size, { maskable = false } = {}) {
       width: size,
       height: size,
       channels: 4,
-      background,
+      background: LEXIENN_NAVY,
     },
   })
     .composite([{ input: logo, left, top }])
@@ -109,6 +97,31 @@ async function renderIcon(size, { maskable = false } = {}) {
     .toFile(join(iconsDir, filename));
 
   return filename;
+}
+
+async function renderBrandedAppIcon(size, outputPath, fit = ICON_FIT) {
+  const logoSize = Math.round(size * fit);
+  const logo = await sharp(iconSource)
+    .resize(logoSize, logoSize, {
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .toBuffer();
+
+  const left = Math.round((size - logoSize) / 2);
+  const top = Math.round((size - logoSize) / 2);
+
+  await sharp({
+    create: {
+      width: size,
+      height: size,
+      channels: 4,
+      background: LEXIENN_NAVY,
+    },
+  })
+    .composite([{ input: logo, left, top }])
+    .png()
+    .toFile(outputPath);
 }
 
 async function main() {
@@ -122,23 +135,10 @@ async function main() {
     }
   }
 
-  await sharp(iconSource)
-    .resize(180, 180, {
-      fit: "contain",
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    })
-    .png()
-    .toFile(join(publicDir, "apple-touch-icon.png"));
+  await renderBrandedAppIcon(180, join(publicDir, "apple-touch-icon.png"));
+  await renderBrandedAppIcon(32, join(publicDir, "favicon.png"), 0.78);
 
-  await sharp(iconSource)
-    .resize(32, 32, {
-      fit: "contain",
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    })
-    .png()
-    .toFile(join(publicDir, "favicon.png"));
-
-  console.log("Generated PWA icons from public/brand/lexienn-logo-icon.png");
+  console.log("Generated PWA icons with Lexienn navy backgrounds");
 }
 
 main().catch((error) => {

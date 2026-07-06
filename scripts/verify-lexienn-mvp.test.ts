@@ -885,4 +885,15 @@ describe("Lexienn MVP verification", () => {
       "isLocalhostDev",
     );
   });
+
+  it("brand deploy validation docs and cache busting exist", () => {
+    expect(existsSync("docs/pwa-brand-deploy-validation.md")).toBe(true);
+    expect(readFileSync("lib/brand/brandAssetVersion.ts", "utf8")).toContain(
+      "BRAND_ASSET_VERSION",
+    );
+    expect(readFileSync("components/brand/LexiennBrandLogo.tsx", "utf8")).toContain(
+      "brandAssetUrl",
+    );
+    expect(readFileSync("public/sw.js", "utf8")).toContain("lexienn-shell-v3-brand2");
+  });
 });
