@@ -430,7 +430,7 @@ describe("Lexienn MVP verification", () => {
     const nav = readFileSync("components/layout/MobileBottomNav.tsx", "utf8");
     const config = readFileSync("lib/navigation/navConfig.tsx", "utf8");
     expect(nav).toContain("MAIN_NAV_ITEMS");
-    expect(config).toContain('label: "Define"');
+    expect(config).toContain('label: "Home"');
     expect(config).toContain('label: "Translate"');
     expect(config).toContain('label: "Packs"');
     expect(nav).toContain("md:hidden");

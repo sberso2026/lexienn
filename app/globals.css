@@ -21,7 +21,10 @@
   --radius-xl: 1.25rem;
   --badge-info: #1d4ed8;
   --space-compact: 0.75rem;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --header-height: 3rem;
+  --header-mobile-rows: 4.75rem;
   --nav-height: 4rem;
 }
 
@@ -74,7 +77,7 @@ body {
 
 .skip-link:focus {
   left: 1rem;
-  top: 1rem;
+  top: calc(1rem + var(--safe-area-top));
   width: auto;
   height: auto;
   overflow: visible;
@@ -99,7 +102,15 @@ body {
 }
 
 .safe-bottom {
-  padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--nav-height) + var(--safe-area-bottom));
+}
+
+.safe-area-top {
+  padding-top: var(--safe-area-top);
+}
+
+.app-shell {
+  min-height: 100dvh;
 }
 
 @media (min-width: 768px) {

@@ -11,7 +11,7 @@ export function MobileBottomNav() {
     <nav
       aria-label="Main navigation"
       className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--card-border)] bg-[var(--card)]/98 backdrop-blur-md md:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      style={{ paddingBottom: "var(--safe-area-bottom)" }}
     >
       <ul className="mx-auto flex max-w-lg items-stretch justify-around px-0.5 pt-0.5">
         {MAIN_NAV_ITEMS.map((item) => {

@@ -2,10 +2,16 @@
 
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
+import { LexiennBootSplash } from "@/components/app/LexiennBootSplash";
 import { LexiennLaunchScreen } from "@/components/launch/LexiennLaunchScreen";
 import { MobileInstallGate } from "@/components/pwa/MobileInstallGate";
 import { ClientErrorReporter } from "@/components/pwa/ClientErrorReporter";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
+import {
+  isAppBootChecking,
+  resolveAppBootState,
+  shouldRenderSignInPanel,
+} from "@/lib/app/appBoot";
 import { shouldShowLaunchScreen } from "@/lib/launch/shouldShowLaunchScreen";
 import { shouldShowMobileInstallGate } from "@/lib/pwa/shouldShowMobileInstallGate";
 
@@ -14,35 +20,69 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const [bootState, setBootState] = useState<ReturnType<typeof resolveAppBootState>>({
+    auth: "checking",
+    showSignIn: false,
+  });
   const [installGateOpen, setInstallGateOpen] = useState(false);
-  const [shellReady, setShellReady] = useState(false);
   const [showLaunch, setShowLaunch] = useState(false);
-  const [launchDone, setLaunchDone] = useState(false);
+  const [appContentVisible, setAppContentVisible] = useState(false);
 
   useEffect(() => {
+    const auth = resolveAppBootState();
+    setBootState(auth);
+
+    if (shouldRenderSignInPanel(auth)) {
+      return;
+    }
+
     const gated = shouldShowMobileInstallGate();
     setInstallGateOpen(gated);
-    if (!gated) {
-      setShowLaunch(shouldShowLaunchScreen());
+
+    if (gated) {
+      return;
     }
-    setShellReady(true);
+
+    const launch = shouldShowLaunchScreen();
+    setShowLaunch(launch);
+    if (!launch) {
+      setAppContentVisible(true);
+    }
   }, []);
 
   const handleLaunchComplete = useCallback(() => {
     setShowLaunch(false);
-    setLaunchDone(true);
+    setAppContentVisible(true);
   }, []);
 
   const handleDeveloperBypass = useCallback(() => {
     setInstallGateOpen(false);
-    setShowLaunch(shouldShowLaunchScreen());
+    const launch = shouldShowLaunchScreen();
+    setShowLaunch(launch);
+    setAppContentVisible(!launch);
   }, []);
 
-  if (!shellReady) {
+  const shellOverlay = (
+    <>
+      <ServiceWorkerRegister />
+      <ClientErrorReporter />
+    </>
+  );
+
+  if (isAppBootChecking(bootState)) {
     return (
       <>
-        <ServiceWorkerRegister />
-        <ClientErrorReporter />
+        {shellOverlay}
+        <LexiennBootSplash />
+      </>
+    );
+  }
+
+  if (shouldRenderSignInPanel(bootState)) {
+    return (
+      <>
+        {shellOverlay}
+        <LexiennBootSplash message="Checking account…" />
       </>
     );
   }
@@ -50,21 +90,25 @@ export function AppShell({ children }: AppShellProps) {
   if (installGateOpen) {
     return (
       <>
-        <ServiceWorkerRegister />
-        <ClientErrorReporter />
+        {shellOverlay}
         <MobileInstallGate onDeveloperBypass={handleDeveloperBypass} />
       </>
     );
   }
 
+  const launchActive = showLaunch && !appContentVisible;
+
   return (
     <>
-      <ServiceWorkerRegister />
-      <ClientErrorReporter />
-      {!launchDone && showLaunch && (
-        <LexiennLaunchScreen onComplete={handleLaunchComplete} />
-      )}
-      {children}
+      {shellOverlay}
+      {launchActive && <LexiennLaunchScreen onComplete={handleLaunchComplete} />}
+      {!launchActive && !appContentVisible && <LexiennBootSplash />}
+      <div
+        className={appContentVisible ? "contents" : "hidden"}
+        aria-hidden={!appContentVisible}
+      >
+        {children}
+      </div>
     </>
   );
 }

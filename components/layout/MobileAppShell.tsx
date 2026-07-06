@@ -10,7 +10,7 @@ interface MobileAppShellProps {
 
 export function MobileAppShell({ children }: MobileAppShellProps) {
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="app-shell flex min-h-dvh flex-col">
       <ClientAppHeader />
       <OfflineIndicator />
       <div className="hidden md:block">

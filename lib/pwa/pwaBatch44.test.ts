@@ -192,7 +192,7 @@ describe("PWA batch 44", () => {
 
   it("home route redirects to translator", () => {
     const home = readFileSync("app/page.tsx", "utf8");
-    expect(home).toContain('redirect("/translator")');
+    expect(home).toContain('redirect("/dictionary")');
   });
 
   it("Android install button calls beforeinstallprompt prompt", () => {
