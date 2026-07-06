@@ -25,6 +25,7 @@
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --header-height: 3rem;
   --header-mobile-rows: 4.75rem;
+  --app-header-offset-mobile: 4.75rem;
   --nav-height: 4rem;
 }
 
@@ -113,7 +114,49 @@ body {
   min-height: 100dvh;
 }
 
+.mobile-app-shell {
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.mobile-app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+}
+
+.mobile-app-content {
+  height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: calc(var(--app-header-offset-mobile) + var(--safe-area-top));
+  padding-bottom: calc(var(--nav-height) + var(--safe-area-bottom));
+}
+
+.mobile-bottom-nav {
+  padding-bottom: var(--safe-area-bottom);
+}
+
 @media (min-width: 768px) {
+  .mobile-app-shell {
+    overflow: visible;
+  }
+
+  .mobile-app-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+
+  .mobile-app-content {
+    height: auto;
+    overflow: visible;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
   .safe-bottom {
     padding-bottom: 0;
   }

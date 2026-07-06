@@ -220,6 +220,7 @@ export function DictionaryLookupForm({
         } else {
           setFormError("Could not generate a dictionary result. Please try again.");
         }
+      } finally {
         setIsSubmitting(false);
       }
     })();

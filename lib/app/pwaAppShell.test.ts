@@ -40,11 +40,21 @@ describe("PWA app shell layout and navigation", () => {
     expect(globals).toContain("--safe-area-top");
     expect(globals).toContain("--safe-area-bottom");
     expect(globals).toContain(".safe-area-top");
-    expect(globals).toContain(".safe-bottom");
+    expect(globals).toContain(".mobile-app-content");
+    expect(globals).toContain("--app-header-offset-mobile");
     expect(globals).toContain("100dvh");
-    expect(mobileShell).toContain("app-shell");
-    expect(mobileShell).toContain("min-h-dvh");
-    expect(mobileShell).toContain("safe-bottom");
+    expect(mobileShell).toContain("mobile-app-shell");
+    expect(mobileShell).toContain("mobile-app-content");
+    expect(mobileShell).not.toContain("safe-bottom");
+  });
+
+  it("renders fixed mobile header outside scrollable main content", () => {
+    expect(mobileShell).toContain("<ClientAppHeader />");
+    expect(mobileShell).toContain('id="main-content"');
+    expect(mobileShell).toContain("mobile-app-content");
+    expect(globals).toContain(".mobile-app-header");
+    expect(globals).toContain("position: fixed");
+    expect(globals).toContain("padding-top: calc(var(--app-header-offset-mobile)");
   });
 
   it("CompactHeader mobile layout avoids overlapping absolute title positioning", () => {
@@ -77,7 +87,8 @@ describe("PWA app shell layout and navigation", () => {
 
   it("hides app content until launch completes in standalone PWA boot", () => {
     expect(appShell).toContain("appContentVisible");
-    expect(appShell).toContain('className={appContentVisible ? "contents" : "hidden"}');
+    expect(appShell).toContain("appContentVisible ? children : null");
+    expect(appShell).not.toContain('aria-hidden={!appContentVisible}');
     expect(appShell).toContain("shouldShowMobileInstallGate");
     expect(appShell).toContain("shouldShowLaunchScreen");
   });

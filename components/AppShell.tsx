@@ -114,12 +114,7 @@ export function AppShell({ children }: AppShellProps) {
       {shellOverlay}
       {launchActive && <LexiennLaunchScreen onComplete={handleLaunchComplete} />}
       {!launchActive && !appContentVisible && <LexiennBootSplash />}
-      <div
-        className={appContentVisible ? "contents" : "hidden"}
-        aria-hidden={!appContentVisible}
-      >
-        {children}
-      </div>
+      {appContentVisible ? children : null}
     </>
   );
 }

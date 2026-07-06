@@ -39,12 +39,7 @@ const translationModes: Array<{ value: TranslationMode; label: string }> = [
   { value: "speak_to_local", label: "Local" },
 ];
 
-type RequestUiState =
-  | "ready"
-  | "translating"
-  | "from_cache"
-  | "cancelled"
-  | "error";
+type RequestUiState = "ready" | "translating" | "from_cache" | "error";
 
 export function TextTranslatorView() {
   const { preferences } = useUserPreferences();
@@ -159,7 +154,6 @@ export function TextTranslatorView() {
       });
     } catch (error) {
       if (isAbortError(error) || !isActiveRequest(requestKey)) {
-        setRequestState("cancelled");
         return;
       }
       setFormError(
@@ -168,6 +162,8 @@ export function TextTranslatorView() {
           : "Could not translate. Try again.",
       );
       setRequestState("error");
+    } finally {
+      setRequestState((state) => (state === "translating" ? "ready" : state));
     }
   }
 

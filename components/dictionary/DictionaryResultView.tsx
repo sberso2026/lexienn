@@ -104,9 +104,7 @@ export function DictionaryResultView() {
               : "Failed to load dictionary result.",
           );
         } finally {
-          if (isActiveRequest(requestKey)) {
-            setLoading(false);
-          }
+          setLoading(false);
         }
         return;
       }

@@ -58,7 +58,10 @@ function HeaderStatusRow({
         variant={online ? "success" : "warning"}
         icon={<CloudIcon online={online} />}
       />
-      <span className={voiceReady ? undefined : "invisible"} aria-hidden={!voiceReady}>
+      <span
+        className={voiceReady ? undefined : "invisible pointer-events-none"}
+        aria-hidden={!voiceReady}
+      >
         <StatusChip label="Voice" variant="info" icon={<SpeakerIcon />} />
       </span>
     </div>
@@ -78,7 +81,7 @@ function HeaderBrandLink({ className }: { className?: string }) {
   );
 }
 
-export function CompactHeader() {
+export function CompactHeader({ className = "" }: { className?: string }) {
   const pathname = usePathname();
   const { preferences } = useUserPreferences();
   const [online, setOnline] = useState(true);
@@ -128,7 +131,9 @@ export function CompactHeader() {
   );
 
   return (
-    <header className="safe-area-top sticky top-0 z-40 border-b border-[var(--card-border)] bg-[var(--card)]/95 backdrop-blur-md">
+    <header
+      className={`mobile-app-header safe-area-top border-b border-[var(--card-border)] bg-[var(--card)]/95 backdrop-blur-md ${className}`}
+    >
       <div className="mx-auto max-w-lg px-4 sm:max-w-2xl lg:max-w-3xl">
         <div className="flex flex-col gap-1.5 py-2 md:hidden">
           <div className="flex min-w-0 items-center gap-2.5">

@@ -15,8 +15,7 @@ export function PageContainer({
   hideHeader = false,
 }: PageContainerProps) {
   return (
-    <main
-      id="main-content"
+    <div
       className="mx-auto w-full max-w-lg px-4 py-3 sm:max-w-2xl sm:px-6 sm:py-5 lg:max-w-3xl"
     >
       {!hideHeader && (title || description) && (
@@ -34,6 +33,6 @@ export function PageContainer({
         </header>
       )}
       {children}
-    </main>
+    </div>
   );
 }

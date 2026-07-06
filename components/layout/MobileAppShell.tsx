@@ -10,13 +10,15 @@ interface MobileAppShellProps {
 
 export function MobileAppShell({ children }: MobileAppShellProps) {
   return (
-    <div className="app-shell flex min-h-dvh flex-col">
+    <div className="mobile-app-shell md:flex md:min-h-dvh md:flex-col">
       <ClientAppHeader />
-      <OfflineIndicator />
       <div className="hidden md:block">
         <AppNav />
       </div>
-      <div className="safe-bottom flex-1">{children}</div>
+      <main id="main-content" className="mobile-app-content md:flex-1">
+        <OfflineIndicator />
+        {children}
+      </main>
       <MobileBottomNav />
     </div>
   );
