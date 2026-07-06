@@ -17,6 +17,7 @@ import { DEV_LABELS } from "@/lib/ui/developerLabels";
 import { mockUserContextProfiles } from "@/lib/mock";
 import type { TranslationMode } from "@/lib/translator/translatorSchemas";
 import { OfflineStorageActions } from "@/components/settings/OfflineStorageActions";
+import { AppExperienceSettings } from "@/components/settings/AppExperienceSettings";
 import { MicDiagnosticsPanel } from "@/components/settings/MicDiagnosticsPanel";
 import {
   getActiveOfflinePackId,
@@ -181,6 +182,8 @@ export function SettingsView() {
           save it.
         </p>
       </CompactCard>
+
+      <AppExperienceSettings />
 
       {developerModeAvailable && (
         <CompactCard>

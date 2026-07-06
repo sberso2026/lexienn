@@ -107,3 +107,136 @@ body {
     padding-bottom: 0;
   }
 }
+
+@keyframes launch-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-120%) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes launch-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(120%) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes launch-from-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(90%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes launch-from-top-right {
+  from {
+    opacity: 0;
+    transform: translate(80%, -80%) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes launch-page-fold {
+  from {
+    opacity: 0;
+    transform: rotateY(70deg) translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: rotateY(0) translateX(0);
+  }
+}
+
+@keyframes launch-align-pulse {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+}
+
+@keyframes launch-complete-pulse {
+  0% {
+    opacity: 0.6;
+    transform: scale(0.94);
+    filter: drop-shadow(0 0 0 rgba(77, 163, 255, 0));
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04);
+    filter: drop-shadow(0 0 18px rgba(77, 163, 255, 0.55));
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: drop-shadow(0 0 8px rgba(77, 163, 255, 0.25));
+  }
+}
+
+.launch-piece {
+  opacity: 0;
+  animation-fill-mode: forwards;
+  animation-duration: 0.55s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.launch-blue {
+  animation-name: launch-from-left;
+  animation-delay: 0.1s;
+}
+
+.launch-red {
+  animation-name: launch-from-right;
+  animation-delay: 0.28s;
+}
+
+.launch-book {
+  animation-name: launch-from-bottom;
+  animation-delay: 0.5s;
+}
+
+.launch-page {
+  animation-name: launch-page-fold;
+  animation-delay: 0.72s;
+}
+
+.launch-star {
+  animation-name: launch-from-top-right;
+  animation-delay: 0.95s;
+}
+
+.launch-alignment {
+  animation: launch-align-pulse 1.4s ease-in-out 0.4s infinite;
+}
+
+.launch-complete {
+  animation: launch-complete-pulse 0.7s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launch-piece,
+  .launch-alignment,
+  .launch-complete {
+    animation: none !important;
+  }
+}

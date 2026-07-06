@@ -734,8 +734,8 @@ describe("Lexienn MVP verification", () => {
     expect(manifest).toContain('start_url: "/"');
     expect(manifest).toContain('display: "standalone"');
     expect(manifest).toContain("theme_color");
-    expect(manifest).toContain("icon-192.png");
-    expect(manifest).toContain("icon-512.png");
+    expect(manifest).toContain("icon-192x192.png");
+    expect(manifest).toContain("icon-512x512.png");
     expect(manifest).toContain("maskable");
     expect(manifest).not.toContain("AI_API_KEY");
   });
@@ -747,10 +747,10 @@ describe("Lexienn MVP verification", () => {
     expect(layout).toContain("appleWebApp");
     expect(layout).toContain("viewport");
     for (const icon of [
-      "public/icons/icon-192.png",
-      "public/icons/icon-512.png",
-      "public/icons/icon-192-maskable.png",
-      "public/icons/icon-512-maskable.png",
+      "public/icons/icon-192x192.png",
+      "public/icons/icon-512x512.png",
+      "public/icons/maskable-icon-192x192.png",
+      "public/icons/maskable-icon-512x512.png",
     ]) {
       expect(existsSync(icon)).toBe(true);
     }
@@ -761,7 +761,7 @@ describe("Lexienn MVP verification", () => {
     expect(doc).toContain("Android");
     expect(doc).toContain("iOS");
     expect(doc).toContain("IndexedDB");
-    expect(doc).toMatch(/service worker|No service worker/i);
+    expect(doc).toMatch(/service worker/i);
     expect(doc).toMatch(/Spotlight|AppSearch/i);
     expect(doc).not.toContain("AI_API_KEY");
   });
@@ -857,5 +857,19 @@ describe("Lexienn MVP verification", () => {
     expect(endpoint).toContain("/chat/completions");
     expect(client).not.toContain("/v1/chat/completions");
     expect(errors).toContain("provider_model_or_endpoint_not_found");
+  });
+
+  it("batch 43 PWA launch screen and installability wiring", () => {
+    expect(existsSync("components/launch/LexiennLaunchScreen.tsx")).toBe(true);
+    expect(existsSync("components/pwa/InstallAppPrompt.tsx")).toBe(true);
+    expect(existsSync("public/sw.js")).toBe(true);
+    expect(existsSync("docs/mobile-launch-animation.md")).toBe(true);
+    const manifest = readFileSync("app/manifest.ts", "utf8");
+    expect(manifest).toContain("shortcuts");
+    expect(manifest).toContain("#163a63");
+    const layout = readFileSync("app/layout.tsx", "utf8");
+    expect(layout).toContain("AppShell");
+    expect(existsSync("public/icons/icon-192x192.png")).toBe(true);
+    expect(existsSync("public/apple-touch-icon.png")).toBe(true);
   });
 });
