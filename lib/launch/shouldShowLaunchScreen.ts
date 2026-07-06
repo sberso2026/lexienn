@@ -31,8 +31,8 @@ export function shouldShowLaunchScreen(): boolean {
   const prefs = loadLaunchPreferences();
   if (!prefs.animationEnabled) return false;
   if (hasSeenLaunchThisSession()) return false;
-  if (isStandaloneApp()) return true;
-  return !hasSeenLaunchEver();
+  if (!isStandaloneApp()) return false;
+  return true;
 }
 
 export function shouldUseReducedMotionLaunch(): boolean {

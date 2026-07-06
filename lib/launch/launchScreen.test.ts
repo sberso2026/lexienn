@@ -130,9 +130,14 @@ describe("shouldShowLaunchScreen", () => {
     expect(shouldShowLaunchScreen()).toBe(false);
   });
 
-  it("does not show when already seen this session", () => {
-    markLaunchSeenThisSession();
+  it("does not show when not in standalone mode", () => {
+    installBrowserGlobals({ standalone: false });
     expect(shouldShowLaunchScreen()).toBe(false);
+  });
+
+  it("shows when standalone and animation enabled", () => {
+    installBrowserGlobals({ standalone: true });
+    expect(shouldShowLaunchScreen()).toBe(true);
   });
 });
 

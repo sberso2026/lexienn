@@ -12,7 +12,8 @@ Lexienn ships a [Web App Manifest](../app/manifest.ts), home-screen icons, a min
 | Favicon | `public/favicon.png` |
 | Brand logo | `public/brand/lexienn-logo.png` |
 | Service worker | `public/sw.js` |
-| Install prompt | `components/pwa/InstallAppPrompt.tsx` |
+| Install gate (mobile browser) | `components/pwa/MobileInstallGate.tsx` |
+| Install prompt (legacy) | `components/pwa/InstallAppPrompt.tsx` (superseded by gate on mobile) |
 | Mobile metadata | `app/layout.tsx` (`themeColor`, Apple web app tags) |
 
 Regenerate icons after updating the master logo:
@@ -24,6 +25,18 @@ npm run generate:icons
 ## Service worker scope
 
 The service worker caches only the **app shell** and static assets (icons, brand images). It does **not** cache `/api/*` responses. Offline phrase packs continue to use IndexedDB / local storage as before.
+
+## Mobile install gate (Batch 44)
+
+On **mobile browsers** (not standalone PWA), Lexienn shows a full-screen **Install Lexienn** gate before normal use. Users must add the app to their home screen and open it from the installed icon.
+
+- **iPhone Safari** — guided Share → Add to Home Screen steps (iOS cannot auto-install).
+- **Android Chrome** — native install button when `beforeinstallprompt` is available; menu steps as fallback.
+- **Desktop** — not blocked.
+- **localhost** — not blocked (development).
+- **Developer bypass** — only when `NEXT_PUBLIC_ENABLE_DEVELOPER_MODE=true`.
+
+After installing and opening from the home-screen icon, the app runs in **standalone** mode and the launch animation plays (Batch 43).
 
 ## QA checklist
 

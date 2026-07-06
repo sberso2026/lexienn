@@ -18,6 +18,7 @@ import {
   LexiennLogoRedSwoosh,
   LexiennLogoStar,
 } from "@/components/launch/lexiennLogoParts";
+import { LexiennBrandLogo } from "@/components/brand/LexiennBrandLogo";
 import { ActionButton } from "@/components/ui/ActionButton";
 
 type Phase = "tap" | "animating" | "done";
@@ -97,7 +98,7 @@ export function LexiennLaunchScreen({ onComplete }: LexiennLaunchScreenProps) {
     >
       {phase === "tap" ? (
         <div className="flex flex-col items-center gap-4 px-6 text-center">
-          <LexiennLogoComplete className="h-24 w-24 opacity-90" />
+          <LexiennBrandLogo size="install" className="opacity-95" priority />
           <p className="text-sm text-slate-200">Tap to start Lexienn</p>
           <ActionButton
             variant="primary"

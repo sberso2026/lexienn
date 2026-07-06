@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { LexiennBrandLogo } from "@/components/brand/LexiennBrandLogo";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { getPageTitle } from "@/lib/navigation/navConfig";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
@@ -72,11 +73,23 @@ export function CompactHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--card-border)] bg-[var(--card)]/95 backdrop-blur-md">
       <div className="mx-auto flex h-[var(--header-height)] max-w-lg items-center justify-between gap-2 px-4 sm:max-w-2xl lg:max-w-3xl">
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--muted)]">
-            Lexienn
-          </p>
-          <h1 className="truncate text-base font-semibold leading-tight">{pageTitle}</h1>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <LexiennBrandLogo
+            size="header-mobile"
+            className="md:hidden"
+            priority
+          />
+          <LexiennBrandLogo
+            size="header-desktop"
+            className="hidden md:block"
+            priority
+          />
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--muted)]">
+              Lexienn
+            </p>
+            <h1 className="truncate text-base font-semibold leading-tight">{pageTitle}</h1>
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {showPair && (

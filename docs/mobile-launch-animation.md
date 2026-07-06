@@ -28,8 +28,8 @@ Lexienn shows an optional **Iron Man-style** logo assembly when opening from an 
 
 | Condition | Launch shown? |
 | --- | --- |
-| Opened from installed PWA icon | Yes (once per session) |
-| First browser visit ever | Yes (once, if animation enabled) |
+| Opened from installed PWA icon | Yes (once per session, standalone only) |
+| Mobile browser without install | No — install gate blocks app |
 | Animation disabled in Settings | No |
 | Already seen this session | No |
 | Route navigation | No |

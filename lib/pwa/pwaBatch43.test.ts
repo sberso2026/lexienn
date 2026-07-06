@@ -60,7 +60,8 @@ describe("PWA batch 43", () => {
       "public/icons/maskable-icon-512x512.png",
       "public/apple-touch-icon.png",
       "public/favicon.png",
-      "public/brand/lexienn-logo.png",
+      "public/brand/lexienn-logo-transparent.png",
+      "public/brand/lexienn-logo-icon.png",
     ]) {
       expect(existsSync(icon)).toBe(true);
     }

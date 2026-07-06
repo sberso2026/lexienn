@@ -19,6 +19,7 @@ import type { TranslationMode } from "@/lib/translator/translatorSchemas";
 import { OfflineStorageActions } from "@/components/settings/OfflineStorageActions";
 import { AppExperienceSettings } from "@/components/settings/AppExperienceSettings";
 import { MicDiagnosticsPanel } from "@/components/settings/MicDiagnosticsPanel";
+import { PwaDiagnosticsPanel } from "@/components/settings/PwaDiagnosticsPanel";
 import {
   getActiveOfflinePackId,
   loadDownloadedPackIds,
@@ -259,6 +260,10 @@ export function SettingsView() {
 
           <ExpandableSection summary="Microphone diagnostics">
             <MicDiagnosticsPanel />
+          </ExpandableSection>
+
+          <ExpandableSection summary="PWA diagnostics">
+            <PwaDiagnosticsPanel />
           </ExpandableSection>
 
           <ExpandableSection summary={DEV_LABELS.localAdminTools}>

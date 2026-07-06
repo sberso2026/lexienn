@@ -122,7 +122,7 @@ export function LexiennLogoComplete({ className }: { className?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/brand/logo-complete.png"
+      src="/brand/lexienn-logo-transparent.png"
       alt=""
       className={className}
       draggable={false}

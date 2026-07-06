@@ -861,7 +861,7 @@ describe("Lexienn MVP verification", () => {
 
   it("batch 43 PWA launch screen and installability wiring", () => {
     expect(existsSync("components/launch/LexiennLaunchScreen.tsx")).toBe(true);
-    expect(existsSync("components/pwa/InstallAppPrompt.tsx")).toBe(true);
+    expect(existsSync("components/pwa/MobileInstallGate.tsx")).toBe(true);
     expect(existsSync("public/sw.js")).toBe(true);
     expect(existsSync("docs/mobile-launch-animation.md")).toBe(true);
     const manifest = readFileSync("app/manifest.ts", "utf8");
@@ -869,7 +869,20 @@ describe("Lexienn MVP verification", () => {
     expect(manifest).toContain("#163a63");
     const layout = readFileSync("app/layout.tsx", "utf8");
     expect(layout).toContain("AppShell");
+    expect(readFileSync("components/layout/CompactHeader.tsx", "utf8")).toContain(
+      "LexiennBrandLogo",
+    );
     expect(existsSync("public/icons/icon-192x192.png")).toBe(true);
     expect(existsSync("public/apple-touch-icon.png")).toBe(true);
+  });
+
+  it("batch 44 mobile install gate blocks browser mode on mobile", () => {
+    const gate = readFileSync("components/pwa/MobileInstallGate.tsx", "utf8");
+    const shell = readFileSync("components/AppShell.tsx", "utf8");
+    expect(gate).toContain("Add to Home Screen");
+    expect(shell).toContain("shouldShowMobileInstallGate");
+    expect(readFileSync("lib/pwa/shouldShowMobileInstallGate.ts", "utf8")).toContain(
+      "isLocalhostDev",
+    );
   });
 });

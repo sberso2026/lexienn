@@ -1,13 +1,15 @@
 /* Lexienn minimal service worker — caches app shell and icons only. */
-const CACHE_NAME = "lexienn-shell-v1";
+const CACHE_NAME = "lexienn-shell-v2";
 const SHELL_ASSETS = [
   "/",
   "/offline",
+  "/translator",
   "/manifest.webmanifest",
   "/favicon.png",
   "/apple-touch-icon.png",
-  "/brand/lexienn-logo.png",
-  "/brand/logo-complete.png",
+  "/brand/lexienn-logo-transparent.png",
+  "/brand/lexienn-logo-icon.png",
+  "/brand/lexienn-logo-mark.png",
   "/icons/icon-192x192.png",
   "/icons/icon-512x512.png",
   "/icons/maskable-icon-192x192.png",
