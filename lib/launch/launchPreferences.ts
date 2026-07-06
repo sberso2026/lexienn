@@ -11,6 +11,9 @@ export const DEFAULT_LAUNCH_PREFERENCES: LaunchPreferences = {
 };
 
 const SESSION_SEEN_KEY = "lexienn_launch_seen_session";
+export const HAS_SEEN_LAUNCH_KEY = "lexienn_has_seen_launch";
+
+export const MAX_BOOT_SPLASH_MS = 400;
 
 export function loadLaunchPreferences(): LaunchPreferences {
   if (typeof window === "undefined") return DEFAULT_LAUNCH_PREFERENCES;
@@ -69,4 +72,25 @@ export function clearLaunchSessionSeen(): void {
 export function prefersReducedMotion(): boolean {
   if (typeof window === "undefined") return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+export function hasSeenLaunchBefore(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    return (
+      window.localStorage.getItem(HAS_SEEN_LAUNCH_KEY) === "true" ||
+      window.localStorage.getItem("lexienn_launch_shown_ever") === "true"
+    );
+  } catch {
+    return true;
+  }
+}
+
+export function markHasSeenLaunchBefore(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(HAS_SEEN_LAUNCH_KEY, "true");
+  } catch {
+    // ignore
+  }
 }

@@ -12,6 +12,11 @@ import {
   resolveAppBootState,
   shouldRenderSignInPanel,
 } from "@/lib/app/appBoot";
+import {
+  hasSeenLaunchBefore,
+  MAX_BOOT_SPLASH_MS,
+} from "@/lib/launch/launchPreferences";
+import { logPerf } from "@/lib/request/perfLog";
 import { shouldShowLaunchScreen } from "@/lib/launch/shouldShowLaunchScreen";
 import { shouldShowMobileInstallGate } from "@/lib/pwa/shouldShowMobileInstallGate";
 
@@ -29,6 +34,7 @@ export function AppShell({ children }: AppShellProps) {
   const [appContentVisible, setAppContentVisible] = useState(false);
 
   useEffect(() => {
+    const bootStarted = performance.now();
     const auth = resolveAppBootState();
     setBootState(auth);
 
@@ -46,7 +52,12 @@ export function AppShell({ children }: AppShellProps) {
     const launch = shouldShowLaunchScreen();
     setShowLaunch(launch);
     if (!launch) {
-      setAppContentVisible(true);
+      const splashMs = hasSeenLaunchBefore() ? 0 : MAX_BOOT_SPLASH_MS;
+      const timer = window.setTimeout(() => {
+        setAppContentVisible(true);
+        logPerf("boot_ready", { durationMs: Math.round(performance.now() - bootStarted) });
+      }, splashMs);
+      return () => window.clearTimeout(timer);
     }
   }, []);
 

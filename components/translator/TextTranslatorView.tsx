@@ -13,12 +13,15 @@ import { VoiceSourceBadge } from "@/components/voice/VoiceSourceBadge";
 import { TranslationSourceBadge } from "@/components/ui/TranslationSourceBadge";
 import { ValidationStatusBadge } from "@/components/ui/ValidationStatusBadge";
 import { ConfidenceBadge } from "@/components/ui/ConfidenceBadge";
+import { useActiveRequest } from "@/hooks/useActiveRequest";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import {
   resolveLanguageSelection,
   buildTranslationTargetPayload,
   getLanguageOptionByValue,
 } from "@/lib/languages/languageOptions";
+import { buildTranslationRequestKey } from "@/lib/request/requestKeys";
+import { logPerf } from "@/lib/request/perfLog";
 import type { TranslationMode, TranslatorResponse } from "@/lib/translator/translatorSchemas";
 import {
   TranslatorApiError,
@@ -36,8 +39,17 @@ const translationModes: Array<{ value: TranslationMode; label: string }> = [
   { value: "speak_to_local", label: "Local" },
 ];
 
+type RequestUiState =
+  | "ready"
+  | "translating"
+  | "from_cache"
+  | "cancelled"
+  | "error";
+
 export function TextTranslatorView() {
   const { preferences } = useUserPreferences();
+  const { abortActiveRequest, beginRequest, isActiveRequest, isAbortError } =
+    useActiveRequest();
   const [sourceLanguage, setSourceLanguage] = useState(preferences.default_source_language);
   const [targetLanguageSelection, setTargetLanguageSelection] = useState(
     preferences.default_target_language,
@@ -48,7 +60,7 @@ export function TextTranslatorView() {
   );
   const [sentence, setSentence] = useState("");
   const [result, setResult] = useState<TranslatorResponse | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requestState, setRequestState] = useState<RequestUiState>("ready");
   const [formError, setFormError] = useState<string | null>(null);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [autoplayRequestId, setAutoplayRequestId] = useState(0);
@@ -57,6 +69,7 @@ export function TextTranslatorView() {
   const targetResolved = resolveLanguageSelection(targetLanguageSelection);
   const isUnavailable = result?.source === "unavailable";
   const hasTranslation = Boolean(result && !isUnavailable && result.translated_text);
+  const isSubmitting = requestState === "translating";
   const modeLabel =
     translationModes.find((m) => m.value === translationMode)?.label ?? "Natural";
 
@@ -80,7 +93,10 @@ export function TextTranslatorView() {
   }, [preferences]);
 
   useEffect(() => () => stopVoicePlayback(), []);
-  useEffect(() => stopVoicePlayback(), [targetLanguageSelection]);
+  useEffect(() => {
+    stopVoicePlayback();
+    abortActiveRequest();
+  }, [targetLanguageSelection, sourceLanguage, translationMode, userContext, abortActiveRequest]);
 
   useEffect(() => {
     if (autoplayRequestId === 0 || !result?.translated_text || isUnavailable) return;
@@ -89,12 +105,21 @@ export function TextTranslatorView() {
     });
   }, [result, isUnavailable, autoplayRequestId]);
 
+  const handleClear = useCallback(() => {
+    abortActiveRequest();
+    setSentence("");
+    setResult(null);
+    setFormError(null);
+    setRequestState("ready");
+    setAutoplayBlocked(false);
+    stopVoicePlayback();
+  }, [abortActiveRequest]);
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError(null);
-    setResult(null);
     setAutoplayBlocked(false);
-    setIsSubmitting(true);
+    setRequestState("translating");
 
     const targetFields = buildTranslationTargetPayload(targetLanguageSelection);
     const payload = {
@@ -110,22 +135,39 @@ export function TextTranslatorView() {
     const parsed = translatorRequestSchema.safeParse(payload);
     if (!parsed.success) {
       setFormError(parsed.error.issues[0]?.message ?? "Invalid request.");
-      setIsSubmitting(false);
+      setRequestState("ready");
       return;
     }
 
+    const requestKey = buildTranslationRequestKey(parsed.data);
+    const signal = beginRequest(requestKey);
+    const startedAt = Date.now();
+    logPerf("translation_start", { durationMs: 0 });
+
     try {
-      const response = await translateSentenceViaApi(parsed.data);
-      setAutoplayRequestId((id) => id + 1);
+      const { response, fromCache } = await translateSentenceViaApi(parsed.data, { signal });
+      if (!isActiveRequest(requestKey)) return;
+
       setResult(response);
+      setRequestState(fromCache ? "from_cache" : "ready");
+      if (!fromCache) {
+        setAutoplayRequestId((id) => id + 1);
+      }
+      logPerf("translation_applied", {
+        durationMs: Date.now() - startedAt,
+        fromCache,
+      });
     } catch (error) {
+      if (isAbortError(error) || !isActiveRequest(requestKey)) {
+        setRequestState("cancelled");
+        return;
+      }
       setFormError(
         error instanceof TranslatorApiError
           ? error.message
           : "Could not translate. Try again.",
       );
-    } finally {
-      setIsSubmitting(false);
+      setRequestState("error");
     }
   }
 
@@ -150,6 +192,13 @@ export function TextTranslatorView() {
   const toName =
     getLanguageOptionByValue(targetLanguageSelection)?.display_label ?? "Target";
 
+  const submitLabel =
+    requestState === "translating"
+      ? "Translating…"
+      : requestState === "from_cache"
+        ? "Translate"
+        : "Translate";
+
   return (
     <div className="space-y-3">
       <CompactCard>
@@ -165,8 +214,9 @@ export function TextTranslatorView() {
             languageHint={sourceLanguage}
             userContext={userContext}
             inputTarget="translator"
-            disabled={isSubmitting}
             compact
+            showClear={sentence.trim().length > 0 || Boolean(result)}
+            onClear={handleClear}
           />
 
           <div className="grid grid-cols-2 gap-2">
@@ -201,14 +251,21 @@ export function TextTranslatorView() {
             </select>
           </div>
 
+          {requestState === "from_cache" && (
+            <p className="text-[10px] font-medium text-[var(--muted)]" role="status">
+              Loaded from recent cache
+            </p>
+          )}
+
           {formError && <CompactAlert variant="error">{formError}</CompactAlert>}
 
           <ActionButton
             type="submit"
             fullWidth
             disabled={isSubmitting || sentence.trim().length === 0}
+            aria-busy={isSubmitting}
           >
-            {isSubmitting ? "Translating…" : "Translate"}
+            {submitLabel}
           </ActionButton>
         </form>
       </CompactCard>
@@ -240,9 +297,7 @@ export function TextTranslatorView() {
               </p>
 
               <div className="mt-3 flex items-center gap-2">
-                {isPlaying && (
-                  <StatusChip label="Playing" variant="info" />
-                )}
+                {isPlaying && <StatusChip label="Playing" variant="info" />}
                 {autoplayBlocked && (
                   <StatusChip label="Tap slow replay" variant="warning" />
                 )}

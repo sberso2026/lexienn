@@ -1,7 +1,9 @@
 "use client";
 
+import { useRef } from "react";
 import { VoiceInputButton } from "@/components/speech/VoiceInputButton";
 import { VoiceInputStatus } from "@/components/speech/VoiceInputStatus";
+import { IconButton } from "@/components/ui/IconButton";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { fieldInputClassName } from "@/components/ui/FormField";
 import type { SpeechInputTarget } from "@/lib/speech/speechInputSchemas";
@@ -23,6 +25,16 @@ interface VoiceInputTextAreaProps {
   disabled?: boolean;
   compact?: boolean;
   showPrivacyNote?: boolean;
+  showClear?: boolean;
+  onClear?: () => void;
+}
+
+function ClearIcon() {
+  return (
+    <svg aria-hidden className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
 }
 
 export function VoiceInputTextArea({
@@ -41,7 +53,10 @@ export function VoiceInputTextArea({
   disabled = false,
   compact = false,
   showPrivacyNote = false,
+  showClear = false,
+  onClear,
 }: VoiceInputTextAreaProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const voice = useVoiceInput({
     languageHint,
     userContext,
@@ -57,7 +72,15 @@ export function VoiceInputTextArea({
     void voice.startListening();
   };
 
-  const inputClass = `${fieldInputClassName(Boolean(error))} resize-y ${compact ? "pr-12 text-base" : ""}`;
+  const handleClear = () => {
+    onClear?.();
+    textareaRef.current?.focus();
+  };
+
+  const clearVisible = showClear && Boolean(onClear);
+  const inputClass = `${fieldInputClassName(Boolean(error))} resize-y ${
+    compact ? `${clearVisible ? "pr-20" : "pr-12"} text-base` : clearVisible ? "pr-14" : ""
+  }`;
 
   return (
     <div className="space-y-2">
@@ -75,6 +98,7 @@ export function VoiceInputTextArea({
 
       <div className="relative">
         <textarea
+          ref={textareaRef}
           id={id}
           name={id}
           rows={rows}
@@ -86,7 +110,19 @@ export function VoiceInputTextArea({
           aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
           disabled={disabled}
         />
-        <div className={`absolute ${compact ? "right-1.5 top-1.5" : "right-2 top-2"}`}>
+        <div
+          className={`absolute flex items-center gap-0.5 ${compact ? "right-1.5 top-1.5" : "right-2 top-2"}`}
+        >
+          {clearVisible && (
+            <IconButton
+              icon={<ClearIcon />}
+              label="Clear previous entry"
+              size="sm"
+              variant="ghost"
+              className="!min-h-9 !w-9"
+              onClick={handleClear}
+            />
+          )}
           <VoiceInputButton
             state={voice.state}
             disabled={disabled}

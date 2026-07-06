@@ -402,7 +402,7 @@ export async function generateMissingPhraseOnline(
 
   try {
     const toResolved = resolveLanguageSelection(request.to_language_id);
-    const response = await translateSentenceViaApi({
+    const { response } = await translateSentenceViaApi({
       input_text: request.requested_text,
       source_language: request.from_language_id,
       target_language: request.to_language_id,

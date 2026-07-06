@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ActionButton } from "@/components/ui/ActionButton";
 import { CompactAlert } from "@/components/ui/CompactAlert";
 import { CompactCard } from "@/components/ui/CompactCard";
@@ -16,6 +16,7 @@ import {
   generateDictionaryEntryViaApi,
 } from "@/lib/dictionary/dictionaryApiClient";
 import {
+  clearDictionaryResult,
   loadDictionaryResult,
   saveDictionaryResult,
 } from "@/lib/dictionary/resultStorage";
@@ -25,7 +26,9 @@ import {
   saveDictionaryLookupFormFromQuery,
   type StoredDictionaryLookupForm,
 } from "@/lib/dictionary/lookupFormStorage";
+import { useActiveRequest } from "@/hooks/useActiveRequest";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
+import { buildDictionaryRequestKey } from "@/lib/request/requestKeys";
 import {
   encodeLanguageSelection,
   resolveLanguageSelection,
@@ -84,10 +87,21 @@ export function DictionaryLookupForm({
 }: DictionaryLookupFormProps) {
   const router = useRouter();
   const { preferences } = useUserPreferences();
+  const { abortActiveRequest, beginRequest, isActiveRequest, isAbortError } =
+    useActiveRequest();
   const [form, setForm] = useState<FormState>(() => toFormState(null, preferences));
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleClear = useCallback(() => {
+    abortActiveRequest();
+    setForm((prev) => ({ ...prev, input_text: "" }));
+    setFieldErrors({});
+    setFormError(null);
+    setIsSubmitting(false);
+    clearDictionaryResult();
+  }, [abortActiveRequest]);
 
   useEffect(() => {
     const saved = loadDictionaryLookupForm();
@@ -164,6 +178,9 @@ export function DictionaryLookupForm({
     }
 
     void (async () => {
+      const requestKey = buildDictionaryRequestKey(result.data);
+      const signal = beginRequest(requestKey);
+
       try {
         saveDictionaryLookupForm({
           input_text: form.input_text,
@@ -175,7 +192,11 @@ export function DictionaryLookupForm({
           output_mode: form.output_mode,
         });
 
-        const response = await generateDictionaryEntryViaApi(result.data);
+        const { response } = await generateDictionaryEntryViaApi(result.data, {
+          signal,
+        });
+        if (!isActiveRequest(requestKey)) return;
+
         saveDictionaryLookupFormFromQuery(response.query);
         saveDictionaryResult({
           query: response.query,
@@ -191,6 +212,9 @@ export function DictionaryLookupForm({
         });
         router.push(`/dictionary/result?${params.toString()}`);
       } catch (error) {
+        if (isAbortError(error) || !isActiveRequest(requestKey)) {
+          return;
+        }
         if (error instanceof DictionaryApiError) {
           setFormError(error.message);
         } else {
@@ -216,8 +240,9 @@ export function DictionaryLookupForm({
           languageHint={form.source_language}
           userContext={form.user_context}
           inputTarget="dictionary"
-          disabled={isSubmitting}
           compact
+          showClear={form.input_text.trim().length > 0 || isSubmitting}
+          onClear={handleClear}
         />
 
         <div className="grid grid-cols-2 gap-2">
@@ -282,7 +307,7 @@ export function DictionaryLookupForm({
         <div className="flex items-center gap-2 pt-1">
           <ActionButton
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || form.input_text.trim().length === 0}
             aria-busy={isSubmitting}
             fullWidth
           >

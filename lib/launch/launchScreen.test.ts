@@ -135,9 +135,15 @@ describe("shouldShowLaunchScreen", () => {
     expect(shouldShowLaunchScreen()).toBe(false);
   });
 
-  it("shows when standalone and animation enabled", () => {
+  it("shows when standalone and animation enabled on first launch", () => {
     installBrowserGlobals({ standalone: true });
     expect(shouldShowLaunchScreen()).toBe(true);
+  });
+
+  it("does not show after launch has been seen before", () => {
+    installBrowserGlobals({ standalone: true });
+    window.localStorage.setItem("lexienn_has_seen_launch", "true");
+    expect(shouldShowLaunchScreen()).toBe(false);
   });
 });
 

@@ -1,5 +1,6 @@
 import {
   clearLaunchSessionSeen,
+  hasSeenLaunchBefore,
   hasSeenLaunchThisSession,
   loadLaunchPreferences,
   prefersReducedMotion,
@@ -21,6 +22,7 @@ export function markLaunchShownEver(): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(LAUNCH_EVER_KEY, "true");
+    window.localStorage.setItem("lexienn_has_seen_launch", "true");
   } catch {
     // ignore
   }
@@ -28,6 +30,7 @@ export function markLaunchShownEver(): void {
 
 export function shouldShowLaunchScreen(): boolean {
   if (typeof window === "undefined") return false;
+  if (hasSeenLaunchBefore()) return false;
   const prefs = loadLaunchPreferences();
   if (!prefs.animationEnabled) return false;
   if (hasSeenLaunchThisSession()) return false;

@@ -25,8 +25,8 @@ interface LexiennLaunchScreenProps {
   onComplete: () => void;
 }
 
-const ANIMATION_MS = 2400;
-const MAX_WAIT_MS = 3000;
+const ANIMATION_MS = 1400;
+const MAX_WAIT_MS = 1800;
 
 export function LexiennLaunchScreen({ onComplete }: LexiennLaunchScreenProps) {
   const reducedMotion = shouldUseReducedMotionLaunch();

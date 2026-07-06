@@ -248,17 +248,20 @@ describe("offline local store and service", () => {
     });
 
     vi.spyOn(translatorApiClient, "translateSentenceViaApi").mockResolvedValue({
-      original_text: saved.requested_text,
-      translated_text: "Nasaan ang botika?",
-      source_language: "en",
-      target_language: "tl",
-      natural_translation: "Nasaan ang botika?",
-      pronunciation_simple: "na-sa-an ang bo-ti-ka",
-      usage_note: "Use in towns and cities.",
-      confidence_score: 0.82,
-      validation_status: "ai_generated",
-      source: "ai",
-      reliability_label: "AI generated",
+      response: {
+        original_text: saved.requested_text,
+        translated_text: "Nasaan ang botika?",
+        source_language: "en",
+        target_language: "tl",
+        natural_translation: "Nasaan ang botika?",
+        pronunciation_simple: "na-sa-an ang bo-ti-ka",
+        usage_note: "Use in towns and cities.",
+        confidence_score: 0.82,
+        validation_status: "ai_generated",
+        source: "ai",
+        reliability_label: "AI generated",
+      },
+      fromCache: false,
     });
 
     await generateMissingPhraseOnline(saved);
@@ -280,16 +283,19 @@ describe("offline local store and service", () => {
     });
 
     vi.spyOn(translatorApiClient, "translateSentenceViaApi").mockResolvedValue({
-      original_text: saved.requested_text,
-      translated_text: "Nasaan ang botika?",
-      source_language: "en",
-      target_language: "tl",
-      natural_translation: "Nasaan ang botika?",
-      pronunciation_simple: "na-sa-an ang bo-ti-ka",
-      confidence_score: 0.82,
-      validation_status: "ai_generated",
-      source: "ai",
-      reliability_label: "AI generated",
+      response: {
+        original_text: saved.requested_text,
+        translated_text: "Nasaan ang botika?",
+        source_language: "en",
+        target_language: "tl",
+        natural_translation: "Nasaan ang botika?",
+        pronunciation_simple: "na-sa-an ang bo-ti-ka",
+        confidence_score: 0.82,
+        validation_status: "ai_generated",
+        source: "ai",
+        reliability_label: "AI generated",
+      },
+      fromCache: false,
     });
 
     const generated = await generateMissingPhraseOnline(saved);

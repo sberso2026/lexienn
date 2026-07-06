@@ -7,6 +7,7 @@ import { DictionaryResultCard } from "@/components/dictionary/DictionaryResultCa
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { CompactAlert } from "@/components/ui/CompactAlert";
+import { useActiveRequest } from "@/hooks/useActiveRequest";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { buildDictionaryQueryFromSearchParams } from "@/lib/dictionary/buildDictionaryQueryFromParams";
 import {
@@ -18,6 +19,7 @@ import {
   saveDictionaryResult,
   type StoredDictionaryResult,
 } from "@/lib/dictionary/resultStorage";
+import { buildDictionaryRequestKey, dictionaryQueriesMatch } from "@/lib/request/requestKeys";
 
 function paramsMatchResult(
   searchParams: URLSearchParams,
@@ -39,44 +41,62 @@ function paramsMatchResult(
 export function DictionaryResultView() {
   const searchParams = useSearchParams();
   const { preferences } = useUserPreferences();
+  const { beginRequest, isActiveRequest, isAbortError, abortActiveRequest } =
+    useActiveRequest();
   const [result, setResult] = useState<StoredDictionaryResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [fromCache, setFromCache] = useState(false);
 
   const inputFromUrl = searchParams.get("input")?.trim() ?? "";
 
   useEffect(() => {
-    let cancelled = false;
+    return () => abortActiveRequest();
+  }, [abortActiveRequest, inputFromUrl]);
 
+  useEffect(() => {
     async function loadResult() {
       setFetchError(null);
+      setFromCache(false);
 
       if (inputFromUrl) {
         setLoading(true);
         const query = buildDictionaryQueryFromSearchParams(searchParams, preferences);
         if (!query) {
-          if (!cancelled) {
-            setResult(null);
-            setLoading(false);
-            setFetchError("Invalid dictionary lookup parameters.");
-          }
+          setResult(null);
+          setLoading(false);
+          setFetchError("Invalid dictionary lookup parameters.");
           return;
         }
 
-        try {
-          const response = await generateDictionaryEntryViaApi(query);
-          if (cancelled) return;
+        const stored = loadDictionaryResult();
+        if (stored && dictionaryQueriesMatch(stored.query, query)) {
+          setResult(stored);
+          setLoading(false);
+          return;
+        }
 
-          const stored: StoredDictionaryResult = {
+        const requestKey = buildDictionaryRequestKey(query);
+        const signal = beginRequest(requestKey);
+
+        try {
+          const { response, fromCache: cached } = await generateDictionaryEntryViaApi(
+            query,
+            { signal },
+          );
+          if (!isActiveRequest(requestKey)) return;
+
+          const next: StoredDictionaryResult = {
             query: response.query,
             entry: response.entry,
             source: response.source,
             diagnostics: response.diagnostics,
           };
-          saveDictionaryResult(stored);
-          setResult(stored);
+          saveDictionaryResult(next);
+          setResult(next);
+          setFromCache(cached);
         } catch (error) {
-          if (cancelled) return;
+          if (isAbortError(error) || !isActiveRequest(requestKey)) return;
           setResult(null);
           setFetchError(
             error instanceof DictionaryApiError
@@ -84,31 +104,27 @@ export function DictionaryResultView() {
               : "Failed to load dictionary result.",
           );
         } finally {
-          if (!cancelled) setLoading(false);
+          if (isActiveRequest(requestKey)) {
+            setLoading(false);
+          }
         }
         return;
       }
 
       const stored = loadDictionaryResult();
-      if (!cancelled) {
-        if (stored && !paramsMatchResult(searchParams, stored)) {
-          setResult(null);
-        } else {
-          setResult(stored);
-        }
-        setLoading(false);
+      if (stored && !paramsMatchResult(searchParams, stored)) {
+        setResult(null);
+      } else {
+        setResult(stored);
       }
+      setLoading(false);
     }
 
     void loadResult();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [inputFromUrl, searchParams, preferences]);
+  }, [inputFromUrl, searchParams, preferences, beginRequest, isActiveRequest, isAbortError]);
 
   if (loading) {
-    return <LoadingState title="Loading result" label="Loading dictionary result…" />;
+    return <LoadingState title="Looking up" label="Looking up…" />;
   }
 
   if (fetchError) {
@@ -121,7 +137,7 @@ export function DictionaryResultView() {
           href="/dictionary"
           className="inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)]"
         >
-          Back to search
+          Try again
         </Link>
       </div>
     );
@@ -145,11 +161,18 @@ export function DictionaryResultView() {
   }
 
   return (
-    <DictionaryResultCard
-      query={result.query}
-      entry={result.entry}
-      source={result.source}
-      diagnostics={result.diagnostics}
-    />
+    <>
+      {fromCache && (
+        <p className="mb-2 text-[10px] font-medium text-[var(--muted)]" role="status">
+          Loaded from recent cache
+        </p>
+      )}
+      <DictionaryResultCard
+        query={result.query}
+        entry={result.entry}
+        source={result.source}
+        diagnostics={result.diagnostics}
+      />
+    </>
   );
 }

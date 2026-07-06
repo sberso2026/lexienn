@@ -1,10 +1,11 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isNavItemActive, MAIN_NAV_ITEMS } from "@/lib/navigation/navConfig";
 
-export function MobileBottomNav() {
+export const MobileBottomNav = memo(function MobileBottomNav() {
   const pathname = usePathname();
 
   return (
@@ -37,4 +38,4 @@ export function MobileBottomNav() {
       </ul>
     </nav>
   );
-}
+});

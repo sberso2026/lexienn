@@ -268,7 +268,7 @@ export function CameraTranslatorView() {
         return;
       }
 
-      const response = await translateSentenceViaApi(parsed.data);
+      const { response } = await translateSentenceViaApi(parsed.data);
       setTranslationResult(response);
       setAutoplayRequestId((id) => id + 1);
     } catch (error) {
