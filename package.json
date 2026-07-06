@@ -11,6 +11,7 @@
     "test": "vitest run",
     "generate:icons": "node scripts/process-brand-logo.mjs && node scripts/generate-pwa-icons.mjs",
     "process:brand": "node scripts/process-brand-logo.mjs",
+    "verify:production-pwa": "node scripts/verify-production-pwa.mjs",
     "verify:lexienn": "node scripts/verify-lexienn-mvp.mjs"
   },
   "dependencies": {
