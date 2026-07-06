@@ -83,12 +83,9 @@ export function coerceAiDictionaryResultPayload(raw: unknown): unknown {
     word: pickString("word", "input_text", "inputText"),
     sourceLanguage: pickString("sourceLanguage", "source_language"),
     targetLanguage: pickString("targetLanguage", "target_language"),
-    partOfSpeech: pickString(
-      "partOfSpeech",
-      "part_of_speech",
-      "entry_type",
-      "entryType",
-    ) ?? "word",
+    partOfSpeech:
+      pickString("partOfSpeech", "part_of_speech", "entry_type", "entryType") ??
+      "word",
     generalMeaning: pickString(
       "generalMeaning",
       "general_meaning",
@@ -107,6 +104,7 @@ export function coerceAiDictionaryResultPayload(raw: unknown): unknown {
       "target_meaning",
       "target_language_meaning",
       "targetMeaning",
+      "translation",
     ),
     sampleSentences:
       pickArray("sampleSentences", "sample_sentences", "examples") ?? [],

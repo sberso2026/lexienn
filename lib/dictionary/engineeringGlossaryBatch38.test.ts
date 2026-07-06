@@ -59,25 +59,29 @@ describe("batch 38 engineering glossary fallback", () => {
     vi.stubEnv("AI_PROVIDER", "openai");
     vi.stubEnv("AI_MODEL", "gpt-4o-mini");
 
-    const aiSpy = vi.spyOn(aiService, "generateDictionaryEntryWithAi").mockResolvedValue({
-      id: "ai-entry",
-      input_text: "xyzzyplugh999",
-      source_language: "en",
-      target_language: "tl",
-      entry_type: "word" as const,
-      general_meaning_en: "Test meaning",
-      detailed_meaning_en: "Test detailed",
-      target_meaning: "test target",
-      profession_meanings: [],
-      examples: [],
-      pronunciation: { simple: "test" },
-      usage_notes: [],
-      related_terms: [],
-      common_mistakes: [],
-      confidence: { score: 0.7, level: "medium" as const },
-      validation_status: "ai_generated_unverified" as const,
-      audio_type: "synthetic_tts" as const,
-      is_mock_data: false,
+    const aiSpy = vi.spyOn(aiService, "generateDictionaryEntryWithAiDetailed").mockResolvedValue({
+      ok: true,
+      attempts: 1,
+      entry: {
+        id: "ai-entry",
+        input_text: "xyzzyplugh999",
+        source_language: "en",
+        target_language: "tl",
+        entry_type: "word" as const,
+        general_meaning_en: "Test meaning",
+        detailed_meaning_en: "Test detailed",
+        target_meaning: "test target",
+        profession_meanings: [],
+        examples: [],
+        pronunciation: { simple: "test" },
+        usage_notes: [],
+        related_terms: [],
+        common_mistakes: [],
+        confidence: { score: 0.7, level: "medium" as const },
+        validation_status: "ai_generated_unverified" as const,
+        audio_type: "synthetic_tts" as const,
+        is_mock_data: false,
+      },
     });
     vi.spyOn(aiService, "isAiDictionaryConfigured").mockReturnValue(true);
 

@@ -373,4 +373,29 @@ export const ENGINEERING_GLOSSARY_EXTENDED_ENTRIES: GlossarySeedEntry[] = [
     tl_example: "Nakamarka sa drawing ng footing ang lap splice length.",
     related_terms: ["rebar", "development length", "reinforcement", "footing", "beam"],
   }),
+  engEntry({
+    id: "prod-glossary-microcracking",
+    input_key: "microcracking",
+    general_meaning_en:
+      "Microcracking refers to very small cracks that form within a material and may not be easily visible without magnification or inspection.",
+    detailed_meaning_en:
+      "Microcracks may appear in concrete, welds, coatings, composites, or brittle materials. They can indicate early-stage damage even when not visible to the naked eye.",
+    technical_meaning_en:
+      "In concrete, welds, coatings, composites, or brittle materials, microcracking can indicate early-stage damage, shrinkage, thermal stress, fatigue, poor curing, overloading, or material degradation. It may reduce durability and allow moisture or chemicals to enter.",
+    target_meaning: "maliliit na bitak / microcracking",
+    en_example: "Microcracking was observed near the repaired concrete surface.",
+    tl_example: "May nakitang maliliit na bitak malapit sa inayos na ibabaw ng kongkreto.",
+    related_terms: [
+      "crack",
+      "hairline crack",
+      "shrinkage crack",
+      "fatigue",
+      "concrete",
+      "durability",
+      "inspection",
+    ],
+    common_mistakes: [
+      "Treating visible microcracking as purely cosmetic without checking durability or structural implications.",
+    ],
+  }),
 ];

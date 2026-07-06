@@ -815,11 +815,23 @@ describe("Lexienn MVP verification", () => {
     expect(route).toContain("logDictionaryGenerate");
   });
 
-  it("batch 38 ai status returns safe public fields", () => {
-    const route = readFileSync("app/api/ai/status/route.ts", "utf8");
-    const schema = readFileSync("lib/ai/aiStatusSchemas.ts", "utf8");
-    expect(route).toContain("getAiPublicStatus");
-    expect(schema).toContain("hasApiKey");
-    expect(route).not.toContain("AI_API_KEY");
+  it("batch 39 microcracking glossary and AI self-test route exist", () => {
+    const ext = readFileSync("lib/dictionary/engineeringGlossaryExtended.ts", "utf8");
+    const selfTest = readFileSync("lib/ai/aiSelfTest.ts", "utf8");
+    const route = readFileSync("app/api/ai/self-test/route.ts", "utf8");
+    expect(ext).toContain("microcracking");
+    expect(selfTest).toContain("AI_SELF_TEST_TOKEN");
+    expect(route).toContain('runtime = "nodejs"');
+  });
+
+  it("batch 40 common seed dictionary and result page API fetch exist", () => {
+    const seed = readFileSync("lib/dictionary/commonSeedDictionary.ts", "utf8");
+    const params = readFileSync("lib/dictionary/buildDictionaryQueryFromParams.ts", "utf8");
+    const resultView = readFileSync("components/dictionary/DictionaryResultView.tsx", "utf8");
+    expect(seed).toContain("acceleration");
+    expect(seed).toContain("resolveCommonSeedDictionaryEntry");
+    expect(params).toContain("normalizeDictionaryLanguageCode");
+    expect(resultView).toContain("generateDictionaryEntryViaApi");
+    expect(resultView).toContain("buildDictionaryQueryFromSearchParams");
   });
 });

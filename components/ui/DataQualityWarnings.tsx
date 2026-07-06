@@ -7,6 +7,7 @@ const LOW_CONFIDENCE_THRESHOLD = 0.6;
 const TRUSTED_SOURCES: DictionaryResolutionSource[] = [
   "curated_dictionary",
   "domain_glossary",
+  "seed_dictionary",
 ];
 
 interface DataQualityWarningsProps {

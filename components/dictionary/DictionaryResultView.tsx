@@ -6,8 +6,16 @@ import { useEffect, useState } from "react";
 import { DictionaryResultCard } from "@/components/dictionary/DictionaryResultCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { CompactAlert } from "@/components/ui/CompactAlert";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
+import { buildDictionaryQueryFromSearchParams } from "@/lib/dictionary/buildDictionaryQueryFromParams";
+import {
+  DictionaryApiError,
+  generateDictionaryEntryViaApi,
+} from "@/lib/dictionary/dictionaryApiClient";
 import {
   loadDictionaryResult,
+  saveDictionaryResult,
   type StoredDictionaryResult,
 } from "@/lib/dictionary/resultStorage";
 
@@ -30,40 +38,92 @@ function paramsMatchResult(
 
 export function DictionaryResultView() {
   const searchParams = useSearchParams();
+  const { preferences } = useUserPreferences();
   const [result, setResult] = useState<StoredDictionaryResult | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [mismatched, setMismatched] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const inputFromUrl = searchParams.get("input")?.trim() ?? "";
 
   useEffect(() => {
-    const stored = loadDictionaryResult();
-    if (stored && !paramsMatchResult(searchParams, stored)) {
-      setMismatched(true);
-      setResult(null);
-    } else {
-      setMismatched(false);
-      setResult(stored);
-    }
-    setLoaded(true);
-  }, [searchParams]);
+    let cancelled = false;
 
-  if (!loaded) {
+    async function loadResult() {
+      setFetchError(null);
+
+      if (inputFromUrl) {
+        setLoading(true);
+        const query = buildDictionaryQueryFromSearchParams(searchParams, preferences);
+        if (!query) {
+          if (!cancelled) {
+            setResult(null);
+            setLoading(false);
+            setFetchError("Invalid dictionary lookup parameters.");
+          }
+          return;
+        }
+
+        try {
+          const response = await generateDictionaryEntryViaApi(query);
+          if (cancelled) return;
+
+          const stored: StoredDictionaryResult = {
+            query: response.query,
+            entry: response.entry,
+            source: response.source,
+            diagnostics: response.diagnostics,
+          };
+          saveDictionaryResult(stored);
+          setResult(stored);
+        } catch (error) {
+          if (cancelled) return;
+          setResult(null);
+          setFetchError(
+            error instanceof DictionaryApiError
+              ? error.message
+              : "Failed to load dictionary result.",
+          );
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+        return;
+      }
+
+      const stored = loadDictionaryResult();
+      if (!cancelled) {
+        if (stored && !paramsMatchResult(searchParams, stored)) {
+          setResult(null);
+        } else {
+          setResult(stored);
+        }
+        setLoading(false);
+      }
+    }
+
+    void loadResult();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [inputFromUrl, searchParams, preferences]);
+
+  if (loading) {
     return <LoadingState title="Loading result" label="Loading dictionary result…" />;
   }
 
-  if (mismatched) {
+  if (fetchError) {
     return (
-      <EmptyState
-        title="Result expired or mismatched"
-        description="This result does not match the current link. Run a new lookup from the dictionary page."
-        action={
-          <Link
-            href="/dictionary"
-            className="inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)]"
-          >
-            Back to search
-          </Link>
-        }
-      />
+      <div className="space-y-4">
+        <CompactAlert variant="error">
+          <strong>Lookup failed.</strong> {fetchError}
+        </CompactAlert>
+        <Link
+          href="/dictionary"
+          className="inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)]"
+        >
+          Back to search
+        </Link>
+      </div>
     );
   }
 

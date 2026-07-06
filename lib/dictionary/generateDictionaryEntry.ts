@@ -1,6 +1,5 @@
-import { shouldShowInternalDebugUi } from "@/lib/debug/shouldShowInternalDebugUi";
+import { isServerDeveloperDiagnosticsEnabled } from "@/lib/debug/serverDiagnostics";
 import { enrichEntryWithProfessionContext } from "@/lib/dictionary/professionEngine";
-
 import {
 
   resolveDictionaryFromSources,
@@ -41,8 +40,7 @@ export async function generateDictionaryEntry(
 
   const { entry, source, diagnostics } = await resolveDictionaryFromSources(query);
 
-  const includeDiagnostics = shouldShowInternalDebugUi();
-
+  const includeDiagnostics = isServerDeveloperDiagnosticsEnabled();
 
 
   if (!shouldEnrichWithProfessionContext(source)) {

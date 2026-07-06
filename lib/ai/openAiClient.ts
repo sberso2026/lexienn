@@ -1,4 +1,5 @@
 import { getAiBaseUrl, getAiConfig, getAiTimeoutMs } from "@/lib/ai/config";
+import type { OpenAiChatCompletionResult, OpenAiErrorCode } from "@/lib/ai/aiErrors";
 
 export type OpenAiChatMessage = {
   role: "system" | "user" | "assistant";
@@ -30,23 +31,27 @@ function createTimeoutSignal(timeoutMs: number): AbortSignal {
   return controller.signal;
 }
 
-function logOpenAiDiagnostic(message: string): void {
-  if (process.env.NODE_ENV === "production") return;
-  console.warn("[openai]", message);
+function logOpenAiSafe(event: string, details: Record<string, unknown>): void {
+  console.info(`[openai] ${event}`, details);
 }
 
-export async function requestOpenAiChatCompletion(
+export async function requestOpenAiChatCompletionDetailed(
   body: OpenAiChatRequest,
   options: { timeoutMs?: number } = {},
-): Promise<string | null> {
+): Promise<OpenAiChatCompletionResult> {
   const config = getAiConfig();
-  if (!config.isConfigured) return null;
+  if (!config.apiKey.length) {
+    return { ok: false, errorCode: "missing_api_key" };
+  }
+  if (!config.modelConfigured) {
+    return { ok: false, errorCode: "unknown_provider_error" };
+  }
 
   const timeoutMs = options.timeoutMs ?? getAiTimeoutMs();
+  const baseUrl = getAiBaseUrl();
   let response: Response;
 
   try {
-    const baseUrl = getAiBaseUrl();
     response = await fetch(`${baseUrl}/v1/chat/completions`, {
       method: "POST",
       headers: {
@@ -58,26 +63,45 @@ export async function requestOpenAiChatCompletion(
     });
   } catch (error) {
     const name = error instanceof Error ? error.name : "network_error";
-    if (name === "TimeoutError" || name === "AbortError") {
-      logOpenAiDiagnostic(`request timed out after ${timeoutMs}ms`);
-    } else {
-      logOpenAiDiagnostic(
-        `request failed: ${error instanceof Error ? error.message : "network error"}`,
-      );
-    }
-    return null;
+    const errorCode: OpenAiErrorCode =
+      name === "TimeoutError" || name === "AbortError"
+        ? "provider_timeout"
+        : "unknown_provider_error";
+    logOpenAiSafe("request_failed", { errorCode, timeoutMs });
+    return { ok: false, errorCode };
   }
 
   if (!response.ok) {
-    logOpenAiDiagnostic(`request failed with status ${response.status}`);
-    return null;
+    logOpenAiSafe("http_error", {
+      errorCode: "provider_http_error",
+      httpStatus: response.status,
+      timeoutMs,
+    });
+    return {
+      ok: false,
+      errorCode: "provider_http_error",
+      httpStatus: response.status,
+    };
   }
 
   try {
     const payload = (await response.json()) as OpenAiChatResponse;
-    return payload.choices?.[0]?.message?.content ?? null;
+    const content = payload.choices?.[0]?.message?.content;
+    if (!content || !content.trim()) {
+      logOpenAiSafe("empty_content", { errorCode: "provider_invalid_json" });
+      return { ok: false, errorCode: "provider_invalid_json" };
+    }
+    return { ok: true, content };
   } catch {
-    logOpenAiDiagnostic("response was not valid JSON");
-    return null;
+    logOpenAiSafe("response_parse_failed", { errorCode: "provider_invalid_json" });
+    return { ok: false, errorCode: "provider_invalid_json" };
   }
+}
+
+export async function requestOpenAiChatCompletion(
+  body: OpenAiChatRequest,
+  options: { timeoutMs?: number } = {},
+): Promise<string | null> {
+  const result = await requestOpenAiChatCompletionDetailed(body, options);
+  return result.ok ? result.content : null;
 }

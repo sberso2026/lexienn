@@ -331,10 +331,14 @@ describe("dictionarySources resolution", () => {
     stubAiEnabled();
     vi.stubEnv("NODE_ENV", "development");
     vi.spyOn(aiService, "isAiDictionaryConfigured").mockReturnValue(true);
-    vi.spyOn(aiService, "generateDictionaryEntryWithAi").mockResolvedValue({
-      ...mockAiEntry,
-      input_text: "serendipity",
-      validation_status: "ai_generated_unverified",
+    vi.spyOn(aiService, "generateDictionaryEntryWithAiDetailed").mockResolvedValue({
+      ok: true,
+      entry: {
+        ...mockAiEntry,
+        input_text: "serendipity",
+        validation_status: "ai_generated_unverified",
+      },
+      attempts: 1,
     });
 
     const result = await generateDictionaryEntry({
@@ -351,7 +355,12 @@ describe("dictionarySources resolution", () => {
     stubAiEnabled();
     vi.stubEnv("NODE_ENV", "development");
     vi.spyOn(aiService, "isAiDictionaryConfigured").mockReturnValue(true);
-    vi.spyOn(aiService, "generateDictionaryEntryWithAi").mockResolvedValue(null);
+    vi.spyOn(aiService, "generateDictionaryEntryWithAiDetailed").mockResolvedValue({
+      ok: false,
+      reason: "provider_invalid_json",
+      attempts: 2,
+      errorCode: "provider_invalid_json",
+    });
 
     const result = await generateDictionaryEntry({
       ...generalQuery,

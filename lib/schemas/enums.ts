@@ -44,6 +44,7 @@ export const audioTypeSchema = z.enum([
 export const dictionaryResolutionSourceSchema = z.enum([
   "curated_dictionary",
   "domain_glossary",
+  "seed_dictionary",
   "external_dictionary",
   "ai_generated",
   "unavailable",

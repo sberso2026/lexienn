@@ -4,6 +4,12 @@ import { dictionaryEntrySchema, dictionaryQuerySchema } from "@/lib/schemas";
 
 export const dictionaryGenerationSourceSchema = dictionaryResolutionSourceSchema;
 
+export const dictionaryResolutionStepSchema = z.object({
+  source: z.string(),
+  hit: z.boolean().optional(),
+  called: z.boolean().optional(),
+});
+
 export const dictionaryDiagnosticsSchema = z.object({
   dictionary_source: dictionaryResolutionSourceSchema,
   ai_enabled: z.boolean(),
@@ -12,6 +18,10 @@ export const dictionaryDiagnosticsSchema = z.object({
   used_ai: z.boolean(),
   used_fallback: z.boolean(),
   fallback_reason: z.string().optional(),
+  lookupKey: z.string().optional(),
+  resolutionSteps: z.array(dictionaryResolutionStepSchema).optional(),
+  aiConfigured: z.boolean().optional(),
+  aiErrorCode: z.string().nullable().optional(),
 });
 
 export const dictionaryGenerateResponseSchema = z.object({
@@ -26,6 +36,8 @@ export type DictionaryGenerateResponse = z.infer<
 >;
 
 export type DictionaryDiagnostics = z.infer<typeof dictionaryDiagnosticsSchema>;
+
+export type DictionaryResolutionStep = z.infer<typeof dictionaryResolutionStepSchema>;
 
 export const dictionaryGenerateErrorSchema = z.object({
   error: z.string(),

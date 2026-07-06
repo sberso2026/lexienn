@@ -67,7 +67,7 @@ describe("DictionaryAIGeneration-1", () => {
     vi.stubEnv("AI_PROVIDER", "openai");
     vi.stubEnv("AI_MODEL", "gpt-4o-mini");
 
-    const aiSpy = vi.spyOn(aiService, "generateDictionaryEntryWithAi");
+    const aiSpy = vi.spyOn(aiService, "generateDictionaryEntryWithAiDetailed");
 
     const result = await generateDictionaryEntry({
       ...query,
@@ -84,9 +84,11 @@ describe("DictionaryAIGeneration-1", () => {
     vi.stubEnv("AI_PROVIDER", "openai");
     vi.stubEnv("AI_MODEL", "gpt-4o-mini");
     vi.spyOn(aiService, "isAiDictionaryConfigured").mockReturnValue(true);
-    vi.spyOn(aiService, "generateDictionaryEntryWithAi").mockResolvedValue(
-      mapAiDictionaryResultToEntry(aiDictionaryResultSchema.parse(validAiJson), query),
-    );
+    vi.spyOn(aiService, "generateDictionaryEntryWithAiDetailed").mockResolvedValue({
+      ok: true,
+      entry: mapAiDictionaryResultToEntry(aiDictionaryResultSchema.parse(validAiJson), query),
+      attempts: 1,
+    });
 
     const result = await generateDictionaryEntry(query);
 
@@ -135,7 +137,12 @@ describe("DictionaryAIGeneration-1", () => {
     vi.stubEnv("AI_MODEL", "gpt-4o-mini");
     vi.stubEnv("NODE_ENV", "production");
     vi.spyOn(aiService, "isAiDictionaryConfigured").mockReturnValue(true);
-    vi.spyOn(aiService, "generateDictionaryEntryWithAi").mockResolvedValue(null);
+    vi.spyOn(aiService, "generateDictionaryEntryWithAiDetailed").mockResolvedValue({
+      ok: false,
+      reason: "provider_invalid_json",
+      attempts: 2,
+      errorCode: "provider_invalid_json",
+    });
 
     const result = await generateDictionaryEntry(query);
 

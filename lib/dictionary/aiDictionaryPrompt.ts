@@ -50,6 +50,8 @@ function getAiDictionaryResultSchemaBlock(): string {
     '  "generalMeaning": string (concise English meaning),',
     '  "detailedMeaning": string (expanded English explanation),',
     '  "definitionSummary": string (target-language meaning OR English definition summary for English-to-English),',
+    '  "translation": string (optional alias for target-language meaning; use definitionSummary if only one field),',
+    '  "entryType": string (optional alias for partOfSpeech),',
     '  "sampleSentences": string[] | { "text": string, "languageCode"?: string, "contextLabel"?: string }[],',
     '  "pronunciationText": string (sound-out guide),',
     '  "usageNotes": string[],',

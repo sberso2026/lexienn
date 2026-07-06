@@ -10,6 +10,7 @@ const SOURCE_VARIANTS: Record<
 > = {
   curated_dictionary: "success",
   domain_glossary: "accent",
+  seed_dictionary: "neutral",
   external_dictionary: "neutral",
   ai_generated: "info",
   unavailable: "neutral",

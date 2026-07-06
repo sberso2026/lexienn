@@ -9,6 +9,7 @@ export const runtime = "nodejs";
 const SMOKE_TEST_CASES = [
   { input_text: "house", label: "curated_dictionary" },
   { input_text: "tie beam", label: "domain_glossary" },
+  { input_text: "acceleration", label: "seed_dictionary" },
   { input_text: "footing", label: "domain_glossary" },
   { input_text: "dead load", label: "domain_glossary" },
   { input_text: "differential settlement", label: "domain_glossary" },
