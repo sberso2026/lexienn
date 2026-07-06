@@ -43,7 +43,7 @@ type RequestUiState = "ready" | "translating" | "from_cache" | "error";
 
 export function TextTranslatorView() {
   const { preferences } = useUserPreferences();
-  const { abortActiveRequest, beginRequest, isActiveRequest, isAbortError } =
+  const { abortActiveRequest, beginRequest, finishRequest, isActiveRequest, isAbortError } =
     useActiveRequest();
   const [sourceLanguage, setSourceLanguage] = useState(preferences.default_source_language);
   const [targetLanguageSelection, setTargetLanguageSelection] = useState(
@@ -79,6 +79,7 @@ export function TextTranslatorView() {
 
   const playRef = useRef(play);
   playRef.current = play;
+  const submitGenerationRef = useRef(0);
 
   useEffect(() => {
     setSourceLanguage(preferences.default_source_language);
@@ -101,6 +102,7 @@ export function TextTranslatorView() {
   }, [result, isUnavailable, autoplayRequestId]);
 
   const handleClear = useCallback(() => {
+    submitGenerationRef.current += 1;
     abortActiveRequest();
     setSentence("");
     setResult(null);
@@ -112,6 +114,7 @@ export function TextTranslatorView() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const generation = ++submitGenerationRef.current;
     setFormError(null);
     setAutoplayBlocked(false);
     setRequestState("translating");
@@ -141,7 +144,7 @@ export function TextTranslatorView() {
 
     try {
       const { response, fromCache } = await translateSentenceViaApi(parsed.data, { signal });
-      if (!isActiveRequest(requestKey)) return;
+      if (generation !== submitGenerationRef.current || !isActiveRequest(requestKey)) return;
 
       setResult(response);
       setRequestState(fromCache ? "from_cache" : "ready");
@@ -153,9 +156,10 @@ export function TextTranslatorView() {
         fromCache,
       });
     } catch (error) {
-      if (isAbortError(error) || !isActiveRequest(requestKey)) {
+      if (isAbortError(error) || generation !== submitGenerationRef.current) {
         return;
       }
+      if (!isActiveRequest(requestKey)) return;
       setFormError(
         error instanceof TranslatorApiError
           ? error.message
@@ -163,6 +167,8 @@ export function TextTranslatorView() {
       );
       setRequestState("error");
     } finally {
+      finishRequest(requestKey);
+      if (generation !== submitGenerationRef.current) return;
       setRequestState((state) => (state === "translating" ? "ready" : state));
     }
   }

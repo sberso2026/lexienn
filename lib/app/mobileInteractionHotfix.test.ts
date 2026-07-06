@@ -11,12 +11,16 @@ describe("mobile interaction hotfix", () => {
 
   it("resets translator loading state in finally after stale or aborted requests", () => {
     expect(translator).toContain("finally");
+    expect(translator).toContain("submitGenerationRef");
+    expect(translator).toContain("finishRequest");
     expect(translator).toContain('state === "translating" ? "ready" : state');
     expect(translator).not.toContain('"cancelled"');
   });
 
   it("resets dictionary submit loading state in finally", () => {
     expect(dictionaryForm).toContain("finally");
+    expect(dictionaryForm).toContain("submitGenerationRef");
+    expect(dictionaryForm).toContain("finishRequest");
     expect(dictionaryForm).toContain("setIsSubmitting(false)");
   });
 

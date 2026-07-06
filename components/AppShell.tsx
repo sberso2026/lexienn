@@ -1,8 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LexiennBootSplash } from "@/components/app/LexiennBootSplash";
+import { TapDiagnostics } from "@/components/app/TapDiagnostics";
 import { LexiennLaunchScreen } from "@/components/launch/LexiennLaunchScreen";
 import { MobileInstallGate } from "@/components/pwa/MobileInstallGate";
 import { ClientErrorReporter } from "@/components/pwa/ClientErrorReporter";
@@ -32,6 +33,7 @@ export function AppShell({ children }: AppShellProps) {
   const [installGateOpen, setInstallGateOpen] = useState(false);
   const [showLaunch, setShowLaunch] = useState(false);
   const [appContentVisible, setAppContentVisible] = useState(false);
+  const bootCompletedRef = useRef(false);
 
   useEffect(() => {
     const bootStarted = performance.now();
@@ -54,6 +56,7 @@ export function AppShell({ children }: AppShellProps) {
     if (!launch) {
       const splashMs = hasSeenLaunchBefore() ? 0 : MAX_BOOT_SPLASH_MS;
       const timer = window.setTimeout(() => {
+        bootCompletedRef.current = true;
         setAppContentVisible(true);
         logPerf("boot_ready", { durationMs: Math.round(performance.now() - bootStarted) });
       }, splashMs);
@@ -62,6 +65,7 @@ export function AppShell({ children }: AppShellProps) {
   }, []);
 
   const handleLaunchComplete = useCallback(() => {
+    bootCompletedRef.current = true;
     setShowLaunch(false);
     setAppContentVisible(true);
   }, []);
@@ -70,6 +74,9 @@ export function AppShell({ children }: AppShellProps) {
     setInstallGateOpen(false);
     const launch = shouldShowLaunchScreen();
     setShowLaunch(launch);
+    if (!launch) {
+      bootCompletedRef.current = true;
+    }
     setAppContentVisible(!launch);
   }, []);
 
@@ -77,6 +84,7 @@ export function AppShell({ children }: AppShellProps) {
     <>
       <ServiceWorkerRegister />
       <ClientErrorReporter />
+      {process.env.NODE_ENV === "development" && <TapDiagnostics />}
     </>
   );
 
@@ -113,7 +121,7 @@ export function AppShell({ children }: AppShellProps) {
     <>
       {shellOverlay}
       {launchActive && <LexiennLaunchScreen onComplete={handleLaunchComplete} />}
-      {!launchActive && !appContentVisible && <LexiennBootSplash />}
+      {!launchActive && !appContentVisible && !bootCompletedRef.current && <LexiennBootSplash />}
       {appContentVisible ? children : null}
     </>
   );

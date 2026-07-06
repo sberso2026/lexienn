@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import { ExpandableSection } from "@/components/ui/ExpandableSection";
 import { IconButton } from "@/components/ui/IconButton";
@@ -114,6 +114,7 @@ export function DictionaryResultCard({
   source,
   diagnostics,
 }: DictionaryResultCardProps) {
+  const router = useRouter();
   const enrichedEntry = useMemo(() => {
     if (!shouldEnrichWithProfessionContext(source)) {
       return entry;
@@ -380,16 +381,15 @@ export function DictionaryResultCard({
           label="Correct"
           onClick={() => setShowCorrectionForm((value) => !value)}
         />
-        <Link href="/dictionary">
-          <IconButton
-            icon={
-              <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
-              </svg>
-            }
-            label="New lookup"
-          />
-        </Link>
+        <IconButton
+          icon={
+            <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
+            </svg>
+          }
+          label="New lookup"
+          onClick={() => router.push("/dictionary")}
+        />
       </BottomActionBar>
     </>
   );

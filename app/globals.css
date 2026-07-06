@@ -128,14 +128,19 @@ body {
 }
 
 .mobile-app-content {
-  height: 100dvh;
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: calc(var(--app-header-offset-mobile) + var(--safe-area-top));
+  bottom: calc(var(--nav-height) + var(--safe-area-bottom));
+  z-index: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-top: calc(var(--app-header-offset-mobile) + var(--safe-area-top));
-  padding-bottom: calc(var(--nav-height) + var(--safe-area-bottom));
+  overscroll-behavior: contain;
 }
 
 .mobile-bottom-nav {
+  z-index: 50;
   padding-bottom: var(--safe-area-bottom);
 }
 
@@ -151,10 +156,14 @@ body {
   }
 
   .mobile-app-content {
+    position: static;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    z-index: auto;
     height: auto;
     overflow: visible;
-    padding-top: 0;
-    padding-bottom: 0;
   }
 
   .safe-bottom {

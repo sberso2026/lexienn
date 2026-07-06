@@ -54,7 +54,8 @@ describe("PWA app shell layout and navigation", () => {
     expect(mobileShell).toContain("mobile-app-content");
     expect(globals).toContain(".mobile-app-header");
     expect(globals).toContain("position: fixed");
-    expect(globals).toContain("padding-top: calc(var(--app-header-offset-mobile)");
+    expect(globals).toContain("top: calc(var(--app-header-offset-mobile) + var(--safe-area-top))");
+    expect(globals).toContain("bottom: calc(var(--nav-height) + var(--safe-area-bottom))");
   });
 
   it("CompactHeader mobile layout avoids overlapping absolute title positioning", () => {

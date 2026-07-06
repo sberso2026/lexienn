@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DictionaryResultCard } from "@/components/dictionary/DictionaryResultCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -41,20 +41,19 @@ function paramsMatchResult(
 export function DictionaryResultView() {
   const searchParams = useSearchParams();
   const { preferences } = useUserPreferences();
-  const { beginRequest, isActiveRequest, isAbortError, abortActiveRequest } =
+  const { beginRequest, finishRequest, isActiveRequest, isAbortError, abortActiveRequest } =
     useActiveRequest();
   const [result, setResult] = useState<StoredDictionaryResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
+  const loadGenerationRef = useRef(0);
 
   const inputFromUrl = searchParams.get("input")?.trim() ?? "";
 
   useEffect(() => {
-    return () => abortActiveRequest();
-  }, [abortActiveRequest, inputFromUrl]);
+    const generation = ++loadGenerationRef.current;
 
-  useEffect(() => {
     async function loadResult() {
       setFetchError(null);
       setFromCache(false);
@@ -63,6 +62,7 @@ export function DictionaryResultView() {
         setLoading(true);
         const query = buildDictionaryQueryFromSearchParams(searchParams, preferences);
         if (!query) {
+          if (generation !== loadGenerationRef.current) return;
           setResult(null);
           setLoading(false);
           setFetchError("Invalid dictionary lookup parameters.");
@@ -71,6 +71,7 @@ export function DictionaryResultView() {
 
         const stored = loadDictionaryResult();
         if (stored && dictionaryQueriesMatch(stored.query, query)) {
+          if (generation !== loadGenerationRef.current) return;
           setResult(stored);
           setLoading(false);
           return;
@@ -84,7 +85,7 @@ export function DictionaryResultView() {
             query,
             { signal },
           );
-          if (!isActiveRequest(requestKey)) return;
+          if (generation !== loadGenerationRef.current || !isActiveRequest(requestKey)) return;
 
           const next: StoredDictionaryResult = {
             query: response.query,
@@ -96,7 +97,8 @@ export function DictionaryResultView() {
           setResult(next);
           setFromCache(cached);
         } catch (error) {
-          if (isAbortError(error) || !isActiveRequest(requestKey)) return;
+          if (isAbortError(error) || generation !== loadGenerationRef.current) return;
+          if (!isActiveRequest(requestKey)) return;
           setResult(null);
           setFetchError(
             error instanceof DictionaryApiError
@@ -104,12 +106,16 @@ export function DictionaryResultView() {
               : "Failed to load dictionary result.",
           );
         } finally {
-          setLoading(false);
+          finishRequest(requestKey);
+          if (generation === loadGenerationRef.current) {
+            setLoading(false);
+          }
         }
         return;
       }
 
       const stored = loadDictionaryResult();
+      if (generation !== loadGenerationRef.current) return;
       if (stored && !paramsMatchResult(searchParams, stored)) {
         setResult(null);
       } else {
@@ -119,7 +125,12 @@ export function DictionaryResultView() {
     }
 
     void loadResult();
-  }, [inputFromUrl, searchParams, preferences, beginRequest, isActiveRequest, isAbortError]);
+
+    return () => {
+      loadGenerationRef.current += 1;
+      abortActiveRequest();
+    };
+  }, [inputFromUrl, searchParams, preferences, beginRequest, finishRequest, isActiveRequest, isAbortError, abortActiveRequest]);
 
   if (loading) {
     return <LoadingState title="Looking up" label="Looking up…" />;

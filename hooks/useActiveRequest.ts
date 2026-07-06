@@ -25,11 +25,21 @@ export function useActiveRequest() {
 
   const isActiveRequest = useCallback((key: string) => requestKeyRef.current === key, []);
 
+  const finishRequest = useCallback((key: string) => {
+    if (requestKeyRef.current !== key) return;
+    const controller = controllerRef.current;
+    if (controller) {
+      controllerRef.current = null;
+    }
+    requestKeyRef.current = null;
+  }, []);
+
   useEffect(() => () => controllerRef.current?.abort(), []);
 
   return {
     abortActiveRequest,
     beginRequest,
+    finishRequest,
     isActiveRequest,
     isAbortError: (error: unknown) =>
       error instanceof RequestAbortError ||

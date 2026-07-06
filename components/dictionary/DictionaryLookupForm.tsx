@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ActionButton } from "@/components/ui/ActionButton";
 import { CompactAlert } from "@/components/ui/CompactAlert";
 import { CompactCard } from "@/components/ui/CompactCard";
@@ -87,14 +86,16 @@ export function DictionaryLookupForm({
 }: DictionaryLookupFormProps) {
   const router = useRouter();
   const { preferences } = useUserPreferences();
-  const { abortActiveRequest, beginRequest, isActiveRequest, isAbortError } =
+  const { abortActiveRequest, beginRequest, finishRequest, isActiveRequest, isAbortError } =
     useActiveRequest();
   const [form, setForm] = useState<FormState>(() => toFormState(null, preferences));
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitGenerationRef = useRef(0);
 
   const handleClear = useCallback(() => {
+    submitGenerationRef.current += 1;
     abortActiveRequest();
     setForm((prev) => ({ ...prev, input_text: "" }));
     setFieldErrors({});
@@ -178,6 +179,7 @@ export function DictionaryLookupForm({
     }
 
     void (async () => {
+      const generation = ++submitGenerationRef.current;
       const requestKey = buildDictionaryRequestKey(result.data);
       const signal = beginRequest(requestKey);
 
@@ -195,7 +197,7 @@ export function DictionaryLookupForm({
         const { response } = await generateDictionaryEntryViaApi(result.data, {
           signal,
         });
-        if (!isActiveRequest(requestKey)) return;
+        if (generation !== submitGenerationRef.current || !isActiveRequest(requestKey)) return;
 
         saveDictionaryLookupFormFromQuery(response.query);
         saveDictionaryResult({
@@ -212,16 +214,20 @@ export function DictionaryLookupForm({
         });
         router.push(`/dictionary/result?${params.toString()}`);
       } catch (error) {
-        if (isAbortError(error) || !isActiveRequest(requestKey)) {
+        if (isAbortError(error) || generation !== submitGenerationRef.current) {
           return;
         }
+        if (!isActiveRequest(requestKey)) return;
         if (error instanceof DictionaryApiError) {
           setFormError(error.message);
         } else {
           setFormError("Could not generate a dictionary result. Please try again.");
         }
       } finally {
-        setIsSubmitting(false);
+        finishRequest(requestKey);
+        if (generation === submitGenerationRef.current) {
+          setIsSubmitting(false);
+        }
       }
     })();
   }
@@ -314,16 +320,15 @@ export function DictionaryLookupForm({
           >
             {isSubmitting ? "Defining…" : "Define"}
           </ActionButton>
-          <Link href="/translator" className="shrink-0">
-            <IconButton
-              icon={
-                <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h6m-6 4h8M17 8l2 2-2 2" />
-                </svg>
-              }
-              label="Switch to Translate"
-            />
-          </Link>
+          <IconButton
+            icon={
+              <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h6m-6 4h8M17 8l2 2-2 2" />
+              </svg>
+            }
+            label="Switch to Translate"
+            onClick={() => router.push("/translator")}
+          />
         </div>
       </form>
     </CompactCard>
