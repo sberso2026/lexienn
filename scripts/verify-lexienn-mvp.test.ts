@@ -402,14 +402,28 @@ describe("Lexienn MVP verification", () => {
     const status = readFileSync("components/speech/VoiceInputStatus.tsx", "utf8");
     const hook = readFileSync("hooks/useVoiceInput.ts", "utf8");
     const client = readFileSync("lib/speech/speechToTextClient.ts", "utf8");
-    expect(hook).toContain("Microphone access was blocked");
-    expect(hook).toContain("Voice input is not supported in this browser");
-    expect(client).toContain("Please type manually");
+    const preflight = readFileSync("lib/speech/requestMicPermission.ts", "utf8");
+    expect(hook).toContain("requestMicPermissionPreflight");
+    expect(hook).not.toContain("Microphone access was blocked");
+    expect(preflight).toContain("getUserMedia({ audio: true })");
+    expect(client).toContain("micPermissionPreflightPassed");
     expect(status).toContain("Use transcript");
-    expect(status).toContain("Type manually");
+    expect(status).toContain("Continue typing");
     expect(status).toContain("Try again");
-    expect(hook).toContain("permission_denied");
+    expect(readFileSync("lib/speech/micPermissionMessages.ts", "utf8")).toContain(
+      "permission_denied",
+    );
     expect(hook).toContain("unsupported");
+  });
+
+  it("batch 42 mic permission classifier and platform detection exist", () => {
+    const classifier = readFileSync("lib/speech/classifyMicError.ts", "utf8");
+    const platform = readFileSync("lib/platform/detectClientPlatform.ts", "utf8");
+    const diagnostics = readFileSync("components/settings/MicDiagnosticsPanel.tsx", "utf8");
+    expect(classifier).toContain("mic_permission_denied");
+    expect(classifier).toContain("NotAllowedError");
+    expect(platform).toContain("isStandalonePwa");
+    expect(diagnostics).toContain("runMicDiagnosticsTest");
   });
 
   it("batch 30 mobile bottom nav uses compact Define/Translate labels", () => {

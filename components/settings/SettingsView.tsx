@@ -17,6 +17,7 @@ import { DEV_LABELS } from "@/lib/ui/developerLabels";
 import { mockUserContextProfiles } from "@/lib/mock";
 import type { TranslationMode } from "@/lib/translator/translatorSchemas";
 import { OfflineStorageActions } from "@/components/settings/OfflineStorageActions";
+import { MicDiagnosticsPanel } from "@/components/settings/MicDiagnosticsPanel";
 import {
   getActiveOfflinePackId,
   loadDownloadedPackIds,
@@ -251,6 +252,10 @@ export function SettingsView() {
                 </CompactAlert>
               </div>
             )}
+          </ExpandableSection>
+
+          <ExpandableSection summary="Microphone diagnostics">
+            <MicDiagnosticsPanel />
           </ExpandableSection>
 
           <ExpandableSection summary={DEV_LABELS.localAdminTools}>
