@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { logVoiceDiagnostic } from "@/lib/app/voiceDiagnostics";
+import { logVoiceDiagnostic, updateVoiceDebugSnapshot } from "@/lib/app/voiceDiagnostics";
 import {
   AUDIO_PLAYBACK_ERROR_MESSAGE,
   AutoplayBlockedError,
@@ -24,7 +24,13 @@ import { requestVoiceSpeech, VoiceApiError } from "@/lib/voice/voiceApiClient";
 import { getOfflineEntryAudio } from "@/lib/offline/offlineAudioCache";
 import type { VoiceAudioType, VoiceSpeed } from "@/lib/voice/voiceSchemas";
 
-export type VoiceAudioState = "audio_idle" | "audio_loading" | "audio_playing" | "audio_error";
+export type VoiceAudioState =
+  | "audio_idle"
+  | "audio_loading"
+  | "audio_playing"
+  | "audio_blocked"
+  | "audio_unavailable"
+  | "audio_error";
 
 export type VoicePlaybackState = {
   isPlaying: boolean;
@@ -133,7 +139,7 @@ export function useVoicePlayback(options: UseVoicePlaybackOptions) {
       if (disabled || !effectiveText.trim()) {
         setState((current) => ({
           ...current,
-          audioState: "audio_error",
+          audioState: "audio_unavailable",
           statusMessage: OFFLINE_UNAVAILABLE_MESSAGE,
           audioType: "unavailable",
           isPlaying: false,
@@ -151,14 +157,30 @@ export function useVoicePlayback(options: UseVoicePlaybackOptions) {
         canPlay: true,
       });
 
-      const failPlayback = (message: string, autoplayBlocked = false): VoicePlayResult => {
+      const failPlayback = (
+        message: string,
+        options?: { autoplayBlocked?: boolean; unavailable?: boolean },
+      ): VoicePlayResult => {
         if (generation !== playGenerationRef.current) return { success: false };
+        const autoplayBlocked = options?.autoplayBlocked ?? false;
+        const unavailable = options?.unavailable ?? false;
         logVoiceDiagnostic("audio_error", {
-          code: autoplayBlocked ? "autoplay_blocked" : "playback_failed",
+          code: autoplayBlocked ? "autoplay_blocked" : unavailable ? "unavailable" : "playback_failed",
+        });
+        updateVoiceDebugSnapshot({
+          audioPlaybackState: autoplayBlocked
+            ? "blocked"
+            : unavailable
+              ? "unavailable"
+              : "error",
         });
         setState({
           isPlaying: false,
-          audioState: "audio_error",
+          audioState: autoplayBlocked
+            ? "audio_blocked"
+            : unavailable
+              ? "audio_unavailable"
+              : "audio_error",
           audioType: "unavailable",
           statusMessage: message,
           canPlay: true,
@@ -188,7 +210,7 @@ export function useVoicePlayback(options: UseVoicePlaybackOptions) {
               if (error instanceof AutoplayBlockedError) {
                 return failPlayback(
                   "Tap Play again. Your browser blocked automatic playback.",
-                  true,
+                  { autoplayBlocked: true },
                 );
               }
               if (error instanceof AudioPlaybackTimeoutError) {
@@ -272,7 +294,7 @@ export function useVoicePlayback(options: UseVoicePlaybackOptions) {
                 if (error instanceof AutoplayBlockedError) {
                   return failPlayback(
                     "Tap Repeat Slowly to play audio. Your browser blocked automatic playback.",
-                    true,
+                    { autoplayBlocked: true },
                   );
                 }
                 if (error instanceof AudioPlaybackTimeoutError) {
@@ -315,7 +337,9 @@ export function useVoicePlayback(options: UseVoicePlaybackOptions) {
             }
 
             if (response.audio_type === "unavailable") {
-              return failPlayback(response.warning_message ?? OFFLINE_UNAVAILABLE_MESSAGE);
+              return failPlayback(response.warning_message ?? OFFLINE_UNAVAILABLE_MESSAGE, {
+                unavailable: true,
+              });
             }
           } catch (error) {
             if (generation !== playGenerationRef.current) return { success: false };
@@ -326,9 +350,9 @@ export function useVoicePlayback(options: UseVoicePlaybackOptions) {
         }
 
         if (!isBrowserSpeechSupported()) {
-          return failPlayback(
-            offlineMode ? OFFLINE_UNAVAILABLE_MESSAGE : "Voice unavailable on this device.",
-          );
+          return failPlayback("Voice unavailable for this language or browser.", {
+            unavailable: true,
+          });
         }
 
         const voiceLanguageCode = resolveVoiceLanguageCode(resolved);
@@ -350,13 +374,14 @@ export function useVoicePlayback(options: UseVoicePlaybackOptions) {
         if (generation !== playGenerationRef.current) return { success: false };
 
         if (!browserResult.success) {
-          return failPlayback(
-            offlineMode ? OFFLINE_UNAVAILABLE_MESSAGE : "Voice unavailable on this device.",
-          );
+          return failPlayback("Voice unavailable for this language or browser.", {
+            unavailable: true,
+          });
         }
 
         logVoiceDiagnostic("audio_play_end");
         logVoiceDiagnostic("audio_request_end");
+        updateVoiceDebugSnapshot({ audioPlaybackState: "idle" });
         setState({
           isPlaying: false,
           audioState: "audio_idle",
@@ -371,7 +396,7 @@ export function useVoicePlayback(options: UseVoicePlaybackOptions) {
         if (error instanceof AutoplayBlockedError) {
           return failPlayback(
             "Tap Repeat Slowly to play audio. Your browser blocked automatic playback.",
-            true,
+            { autoplayBlocked: true },
           );
         }
 

@@ -348,9 +348,13 @@ export function TextTranslatorView() {
                 />
               </div>
 
-              {(statusMessage || audioState === "audio_error") && (
+              {(statusMessage || audioState === "audio_error" || audioState === "audio_unavailable") && (
                 <p
-                  className={`mt-2 text-[10px] ${audioState === "audio_error" ? "text-red-600" : "text-[var(--muted)]"}`}
+                  className={`mt-2 text-[10px] ${
+                    audioState === "audio_error" || audioState === "audio_unavailable"
+                      ? "text-red-600"
+                      : "text-[var(--muted)]"
+                  }`}
                   role="status"
                 >
                   {statusMessage}

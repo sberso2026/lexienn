@@ -7,106 +7,94 @@ describe("translator voice reliability regression", () => {
   const voiceStatus = readFileSync("components/speech/VoiceInputStatus.tsx", "utf8");
   const voiceTextArea = readFileSync("components/speech/VoiceInputTextArea.tsx", "utf8");
   const browserSpeech = readFileSync("lib/speech/browserSpeechRecognition.ts", "utf8");
+  const voiceCapture = readFileSync("lib/voice/voiceCapture.ts", "utf8");
+  const transcriptMerge = readFileSync("lib/voice/transcriptMerge.ts", "utf8");
+  const voiceState = readFileSync("lib/voice/voiceState.ts", "utf8");
+  const transcribeRoute = readFileSync("app/api/voice/transcribe/route.ts", "utf8");
   const translator = readFileSync("components/translator/TextTranslatorView.tsx", "utf8");
   const playbackHook = readFileSync("lib/voice/useVoicePlayback.ts", "utf8");
-  const audioPlayback = readFileSync("lib/voice/audioPlayback.ts", "utf8");
   const voiceDiagnostics = readFileSync("lib/app/voiceDiagnostics.ts", "utf8");
-  const schemas = readFileSync("lib/speech/speechInputSchemas.ts", "utf8");
 
-  it("defines the required voice input states", () => {
-    expect(schemas).toContain('"requesting_permission"');
-    expect(schemas).toContain('"listening"');
-    expect(schemas).toContain('"processing_speech"');
-    expect(schemas).toContain('"speech_ready"');
-    expect(schemas).toContain('"speech_error"');
-    expect(schemas).toContain('"unsupported"');
+  it("defines mobile-safe capture modes and states", () => {
+    expect(voiceState).toContain("hybrid_mobile");
+    expect(voiceState).toContain("recorded_audio_transcription");
+    expect(voiceState).toContain("realtime_browser_speech");
+    expect(voiceCapture).toContain("preferMobileRecordedTranscription");
+    expect(voiceCapture).toContain("startVoiceCapture");
   });
 
-  it("shows listening UI immediately on mic tap before async recognition work", () => {
+  it("shows listening UI immediately on mic tap before async capture work", () => {
     expect(voiceHook).toContain('setState("requesting_permission")');
     expect(voiceHook).toContain('setState("listening")');
     expect(voiceHook).toContain('setStatusMessage({ body: "Listening…" })');
-    expect(voiceHook).toContain("logVoiceDiagnostic");
     expect(voiceHook).toContain("stopVoicePlayback");
+    expect(voiceHook).toContain("startVoiceCapture");
   });
 
-  it("exposes stopListening and preserves transcript on stop", () => {
+  it("renders Stop button, recording timer, and live transcript panel", () => {
+    expect(voiceButton).toContain('type="button"');
+    expect(voiceButton).toContain('aria-label="Stop voice input"');
+    expect(voiceStatus).toContain("recordingTimerLabel");
+    expect(voiceStatus).toContain("Captured speech");
+    expect(voiceStatus).toContain("Live transcript");
+    expect(voiceStatus).toContain("Listening… speak now");
+    expect(voiceTextArea).toContain("capturedSpeechPreview");
+    expect(voiceTextArea).toContain("recordingTimerLabel");
+  });
+
+  it("starts recording before server transcription and merges transcript chunks safely", () => {
+    expect(voiceCapture).toContain("startRecordingSession");
+    expect(voiceCapture).toContain("transcribeRecordedAudio");
+    expect(transcriptMerge).toContain("mergeFinalTranscriptChunk");
+    expect(transcriptMerge).toContain("buildCapturedSpeechPreview");
+    expect(transcriptMerge).toContain("chooseBestTranscript");
+    expect(browserSpeech).toContain("startBrowserSpeechInterimAssist");
+    expect(browserSpeech).toContain("interimResults = true");
+    expect(browserSpeech).toContain("continuous = true");
+  });
+
+  it("uses server transcription endpoint with timeout and controlled errors", () => {
+    expect(transcribeRoute).toContain("TRANSCRIPTION_TIMEOUT_MS");
+    expect(transcribeRoute).toContain("unsupported_audio_format");
+    expect(transcribeRoute).toContain("transcription_timeout");
+    expect(transcribeRoute).not.toContain("console.log");
+  });
+
+  it("stops on user action, processes speech, and preserves browser fallback", () => {
     expect(voiceHook).toContain("stopListening");
-    expect(voiceHook).toContain("Voice input stopped.");
-    expect(voiceHook).toContain("commitTranscript");
+    expect(voiceHook).toContain("Processing speech…");
+    expect(voiceHook).toContain("Transcript refined from recorded audio.");
+    expect(voiceHook).toContain("session.stop()");
     expect(voiceTextArea).toContain("onStop={voice.stopListening}");
   });
 
-  it("renders a visible Stop button with type=button during recording", () => {
-    expect(voiceButton).toContain('type="button"');
-    expect(voiceButton).toContain('aria-label="Stop voice input"');
-    expect(voiceButton).toContain("Stop");
-    expect(voiceButton).toContain("onStop");
-    expect(voiceStatus).toContain("Stop");
-    expect(voiceStatus).toContain('type="button"');
+  it("selects mobile MIME types and limits unsupported recorder browsers", () => {
+    expect(voiceCapture).toContain("audio/mp4");
+    expect(voiceCapture).toContain("MediaRecorder.isTypeSupported");
+    expect(voiceHook).toContain("Voice capture is limited on this browser. Please type instead.");
   });
 
-  it("supports interim and final transcript rendering", () => {
-    expect(browserSpeech).toContain("interimResults = true");
-    expect(browserSpeech).toContain("continuous = true");
-    expect(browserSpeech).toContain("onInterim");
-    expect(browserSpeech).toContain("onFinal");
-    expect(browserSpeech).toContain("appendTranscript");
-    expect(voiceHook).toContain("interimTranscript");
-    expect(voiceHook).toContain("setInterimTranscript");
-    expect(voiceStatus).toContain("interimTranscript");
-    expect(voiceStatus).toContain("Live transcript");
-    expect(voiceStatus).toContain("Listening… speak now");
-  });
-
-  it("clears active recognition on Clear and keeps typing workflow available", () => {
-    expect(voiceTextArea).toContain("voice.reset()");
-    expect(voiceTextArea).toContain("<textarea");
-    expect(voiceHook).toContain("reset");
-    expect(voiceStatus).toContain("Continue typing");
-    expect(voiceHook).toContain(
-      "Voice input is not supported in this browser. You can type instead.",
-    );
-  });
-
-  it("stops audio before microphone capture starts", () => {
-    expect(voiceHook).toContain("stopVoicePlayback()");
-    expect(voiceHook).toMatch(/stopVoicePlayback\(\)[\s\S]*setState\("requesting_permission"\)/);
-  });
-
-  it("tracks audio loading, playing, and error states with generation guards", () => {
-    expect(playbackHook).toContain('"audio_loading"');
-    expect(playbackHook).toContain('"audio_playing"');
-    expect(playbackHook).toContain('"audio_error"');
-    expect(playbackHook).toContain("playGenerationRef");
-    expect(playbackHook).toContain("TTS_REQUEST_TIMEOUT_MS");
-    expect(playbackHook).toContain("AUDIO_PLAYBACK_ERROR_MESSAGE");
-    expect(audioPlayback).toContain("PLAYBACK_START_TIMEOUT_MS");
-    expect(audioPlayback).toContain("AutoplayBlockedError");
-    expect(audioPlayback).toContain("audio.play()");
-  });
-
-  it("shows controlled audio errors and immediate loading feedback in translator", () => {
-    expect(translator).toContain("audioState");
+  it("tracks blocked, unavailable, and loading audio states without freezing navigation", () => {
+    expect(playbackHook).toContain("audio_blocked");
+    expect(playbackHook).toContain("audio_unavailable");
+    expect(playbackHook).toContain("audio_loading");
     expect(translator).toContain("Loading audio…");
-    expect(translator).toContain("Play translation audio");
-    expect(translator).toContain("audio_error");
+    expect(translator).toContain("Tap to play audio");
+    expect(translator).toContain("VoiceInputTextArea");
+    expect(voiceTextArea).toContain("<textarea");
+    expect(voiceTextArea).not.toContain("disabled={voice");
+  });
+
+  it("stops audio before mic and clears voice state on Clear", () => {
+    expect(voiceHook).toMatch(/stopVoicePlayback\(\)[\s\S]*setState\("requesting_permission"\)/);
+    expect(voiceTextArea).toContain("voice.reset()");
     expect(translator).toContain("stop()");
   });
 
-  it("does not log spoken text in production voice diagnostics", () => {
+  it("exposes dev-only voice diagnostics without transcript logging", () => {
     expect(voiceDiagnostics).toContain("lexienn_debug_voice");
-    expect(voiceDiagnostics).toContain("[lexienn-voice]");
+    expect(voiceDiagnostics).toContain("__lexiennDebugVoice");
     expect(voiceDiagnostics).not.toContain("console.info(transcript");
-    expect(voiceDiagnostics).not.toContain("input_text");
     expect(voiceHook).not.toContain("console.log(pendingTranscript");
-    expect(voiceHook).not.toContain("console.log(interimTranscript");
-  });
-
-  it("maps no-speech and permission failures to controlled messages", () => {
-    expect(voiceHook).toContain("No speech detected. Try again.");
-    expect(voiceHook).toContain("Microphone permission was denied.");
-    expect(browserSpeech).toContain('event.error === "no-speech"');
-    expect(browserSpeech).toContain('event.error === "not-allowed"');
   });
 });

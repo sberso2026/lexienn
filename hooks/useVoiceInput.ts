@@ -1,7 +1,11 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-import { logVoiceDiagnostic } from "@/lib/app/voiceDiagnostics";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  installVoiceDiagnostics,
+  logVoiceDiagnostic,
+  updateVoiceDebugSnapshot,
+} from "@/lib/app/voiceDiagnostics";
 import { detectClientPlatform } from "@/lib/platform/detectClientPlatform";
 import {
   micErrorCodeToVoiceInputState,
@@ -10,18 +14,18 @@ import {
   type MicUserMessage,
 } from "@/lib/speech/micPermissionMessages";
 import { requestMicPermissionPreflight } from "@/lib/speech/requestMicPermission";
-import {
-  startBrowserSpeechSession,
-  isBrowserSpeechRecognitionSupported,
-} from "@/lib/speech/browserSpeechRecognition";
-import {
-  SpeechToTextApiError,
-  isBrowserOnline,
-  transcribeSpeechInput,
-} from "@/lib/speech/speechToTextClient";
+import { isBrowserSpeechRecognitionSupported } from "@/lib/speech/browserSpeechRecognition";
+import { SpeechToTextApiError, isBrowserOnline } from "@/lib/speech/speechToTextClient";
 import type { SpeechInputTarget, VoiceInputState } from "@/lib/speech/speechInputSchemas";
 import type { UserContext } from "@/lib/schemas";
 import { stopVoicePlayback } from "@/lib/voice/audioPlayback";
+import {
+  isMediaRecorderSupported,
+  preferMobileRecordedTranscription,
+  startVoiceCapture,
+  type VoiceCaptureSession,
+} from "@/lib/voice/voiceCapture";
+import { VoiceTranscribeApiError } from "@/lib/voice/voiceTranscribeClient";
 
 export type UseVoiceInputOptions = {
   languageHint: string;
@@ -39,13 +43,34 @@ function mapSpeechErrorMessage(error: unknown): MicUserMessage {
   if (message.includes("No speech was detected")) {
     return { body: "No speech detected. Try again." };
   }
-  if (message.includes("cancelled")) {
+  if (message.includes("limited on this browser")) {
+    return { body: "Voice capture is limited on this browser. Please type instead." };
+  }
+  if (message.includes("cancelled") || message.includes("stopped")) {
     return { body: "Voice input stopped." };
   }
   if (message.includes("not supported")) {
     return { body: "Voice input is not supported in this browser. You can type instead." };
   }
+  if (error instanceof VoiceTranscribeApiError) {
+    if (error.code === "transcription_provider_unavailable") {
+      return { body: "High-reliability mobile transcription is not configured yet." };
+    }
+    if (error.code === "transcription_timeout") {
+      return { body: "Speech processing timed out. Try again or type instead." };
+    }
+    if (error.code === "unsupported_audio_format") {
+      return { body: "This browser audio format is not supported for transcription." };
+    }
+  }
   return { body: message };
+}
+
+function formatRecordingTimer(elapsedMs: number): string {
+  const totalSeconds = Math.floor(elapsedMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 export function useVoiceInput({
@@ -53,35 +78,47 @@ export function useVoiceInput({
   userContext,
   inputTarget,
   onTranscript,
-  timeoutMs = 20_000,
+  timeoutMs = 60_000,
 }: UseVoiceInputOptions) {
   const [state, setState] = useState<VoiceInputState>("idle");
   const [pendingTranscript, setPendingTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
+  const [capturedSpeechPreview, setCapturedSpeechPreview] = useState("");
+  const [recordingElapsedMs, setRecordingElapsedMs] = useState(0);
   const [statusMessage, setStatusMessage] = useState<MicUserMessage | null>(null);
+  const captureSessionRef = useRef<VoiceCaptureSession | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const sessionStopRef = useRef<(() => void) | null>(null);
-  const finalTranscriptRef = useRef("");
-  const firstInterimLoggedRef = useRef(false);
+  const stoppingRef = useRef(false);
 
   const isSupported =
     isBrowserOnline() &&
     typeof navigator !== "undefined" &&
-    (Boolean(navigator.mediaDevices?.getUserMedia) ||
+    (isMediaRecorderSupported() ||
+      Boolean(navigator.mediaDevices?.getUserMedia) ||
       isBrowserSpeechRecognitionSupported());
+
+  useEffect(() => {
+    installVoiceDiagnostics();
+    updateVoiceDebugSnapshot({
+      mediaRecorderSupported: isMediaRecorderSupported(),
+      speechRecognitionSupported: isBrowserSpeechRecognitionSupported(),
+    });
+  }, []);
 
   const reset = useCallback(() => {
     logVoiceDiagnostic("stop_tap", { code: "reset" });
+    stoppingRef.current = false;
     abortRef.current?.abort();
     abortRef.current = null;
-    sessionStopRef.current?.();
-    sessionStopRef.current = null;
-    finalTranscriptRef.current = "";
-    firstInterimLoggedRef.current = false;
+    captureSessionRef.current?.abort();
+    captureSessionRef.current = null;
     setState("idle");
     setPendingTranscript("");
     setInterimTranscript("");
+    setCapturedSpeechPreview("");
+    setRecordingElapsedMs(0);
     setStatusMessage(null);
+    updateVoiceDebugSnapshot({ voiceState: "idle", captureMode: null, selectedMimeType: null });
   }, []);
 
   const setMicFailure = useCallback((errorCode: Parameters<typeof getMicErrorMessage>[0]) => {
@@ -89,40 +126,75 @@ export function useVoiceInput({
     setState(micErrorCodeToVoiceInputState(errorCode));
     setStatusMessage(getMicErrorMessage(errorCode, platform));
     logVoiceDiagnostic("recognition_error", { code: errorCode });
+    updateVoiceDebugSnapshot({ voiceState: micErrorCodeToVoiceInputState(errorCode) });
   }, []);
 
   const commitTranscript = useCallback(
-    (text: string) => {
+    (text: string, refinedFromServer = false) => {
       const trimmed = text.trim();
       if (!trimmed) return;
-      finalTranscriptRef.current = trimmed;
       setPendingTranscript(trimmed);
-      setInterimTranscript(trimmed);
+      setCapturedSpeechPreview(trimmed);
+      setInterimTranscript("");
       onTranscript?.(trimmed);
       logVoiceDiagnostic("final_result");
+      if (refinedFromServer) {
+        setStatusMessage({ body: "Transcript refined from recorded audio." });
+      }
     },
     [onTranscript],
   );
 
   const stopListening = useCallback(() => {
+    if (stoppingRef.current) return;
+    stoppingRef.current = true;
     logVoiceDiagnostic("stop_tap");
-    sessionStopRef.current?.();
-    sessionStopRef.current = null;
-    abortRef.current?.abort();
-    abortRef.current = null;
+    setState("processing_speech");
+    setStatusMessage({ body: "Processing speech…" });
+    updateVoiceDebugSnapshot({ voiceState: "processing_speech" });
 
-    const captured = finalTranscriptRef.current.trim() || interimTranscript.trim();
-    if (captured) {
-      commitTranscript(captured);
-      setState("speech_ready");
-      setStatusMessage({ body: "Voice input stopped." });
-    } else {
-      setState("idle");
-      setInterimTranscript("");
-      setStatusMessage({ body: "Voice input stopped." });
-    }
-    logVoiceDiagnostic("recognition_end");
-  }, [commitTranscript, interimTranscript]);
+    void (async () => {
+      const session = captureSessionRef.current;
+      if (!session) {
+        stoppingRef.current = false;
+        setState("idle");
+        return;
+      }
+
+      logVoiceDiagnostic("transcription_start");
+      try {
+        const result = await session.stop();
+        logVoiceDiagnostic("transcription_end", { durationMs: result.durationMs });
+        commitTranscript(result.transcript, result.refinedFromServer);
+        setState("speech_ready");
+        if (!result.refinedFromServer) {
+          setStatusMessage({ body: "Voice input stopped." });
+        }
+        updateVoiceDebugSnapshot({
+          voiceState: "speech_ready",
+          captureMode: result.captureMode,
+          selectedMimeType: result.mimeType ?? session.selectedMimeType,
+        });
+      } catch (error) {
+        const preview = session.getPreview().capturedSpeechPreview;
+        if (preview.trim()) {
+          commitTranscript(preview);
+          setState("speech_ready");
+          setStatusMessage({ body: "Voice input stopped." });
+        } else {
+          setState("speech_error");
+          setStatusMessage(mapSpeechErrorMessage(error));
+          logVoiceDiagnostic("recognition_error", {
+            code: error instanceof Error ? error.name : "unknown",
+          });
+        }
+      } finally {
+        captureSessionRef.current = null;
+        abortRef.current = null;
+        stoppingRef.current = false;
+      }
+    })();
+  }, [commitTranscript]);
 
   const startListening = useCallback(() => {
     if (typeof window === "undefined") {
@@ -141,111 +213,108 @@ export function useVoiceInput({
       return;
     }
 
-    if (!navigator.mediaDevices?.getUserMedia && !isBrowserSpeechRecognitionSupported()) {
+    if (!isMediaRecorderSupported() && !isBrowserSpeechRecognitionSupported()) {
       setState("unsupported");
       setStatusMessage({
-        body: "Voice input is not supported in this browser. You can type instead.",
+        body: "Voice capture is limited on this browser. Please type instead.",
       });
       return;
     }
 
     abortRef.current?.abort();
-    sessionStopRef.current?.();
+    captureSessionRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-    sessionStopRef.current = null;
-    finalTranscriptRef.current = "";
-    firstInterimLoggedRef.current = false;
+    stoppingRef.current = false;
 
     setPendingTranscript("");
     setInterimTranscript("");
+    setCapturedSpeechPreview("");
+    setRecordingElapsedMs(0);
     setStatusMessage({ body: "Listening…" });
     setState("requesting_permission");
     logVoiceDiagnostic("ui_listening");
+    updateVoiceDebugSnapshot({ voiceState: "requesting_permission" });
 
     void (async () => {
       const platform = detectClientPlatform();
       setState("listening");
+      updateVoiceDebugSnapshot({ voiceState: "listening" });
 
       if (navigator.mediaDevices) {
         const preflight = await requestMicPermissionPreflight();
         if (controller.signal.aborted) return;
-
         if (!preflight.ok) {
           setMicFailure(preflight.errorCode);
           return;
         }
-      } else if (!isBrowserSpeechRecognitionSupported()) {
-        setState("unsupported");
-        setStatusMessage({
-          body: "Voice input is not supported in this browser. You can type instead.",
-        });
-        return;
       }
 
       setStatusMessage((current) =>
-        current?.body === "Listening…" ? { body: getMicPreflightHint(platform) } : current,
+        current?.body === "Listening…"
+          ? {
+              body: preferMobileRecordedTranscription()
+                ? "Listening… recording audio for reliable capture."
+                : getMicPreflightHint(platform),
+            }
+          : current,
       );
 
       try {
-        if (isBrowserSpeechRecognitionSupported()) {
-          const session = startBrowserSpeechSession({
+        const session = startVoiceCapture(
+          {
             languageHint,
-            timeoutMs,
-            signal: controller.signal,
-            onStarted: () => logVoiceDiagnostic("recognition_start"),
-            onInterim: (text) => {
-              if (!firstInterimLoggedRef.current && text.trim()) {
-                firstInterimLoggedRef.current = true;
-                logVoiceDiagnostic("first_interim");
-              }
-              setInterimTranscript(text);
+            userContext,
+            inputTarget,
+            maxDurationMs: timeoutMs,
+          },
+          {
+            onRecorderStart: () => logVoiceDiagnostic("recorder_start"),
+            onRecognitionStart: () => logVoiceDiagnostic("recognition_start"),
+            onInterim: ({ finalTranscript, interimTranscript: interim, capturedSpeechPreview: preview }) => {
+              if (interim.trim()) logVoiceDiagnostic("first_interim");
+              setFinalIfChanged(finalTranscript);
+              setInterimTranscript(interim);
+              setCapturedSpeechPreview(preview);
             },
-            onFinal: (text) => {
-              commitTranscript(text);
-            },
-          });
-          sessionStopRef.current = session.stop;
+            onTimer: (elapsedMs) => setRecordingElapsedMs(elapsedMs),
+          },
+          controller.signal,
+        );
 
-          const result = await session.promise;
-          if (controller.signal.aborted) return;
-
-          commitTranscript(result.transcript);
-          setState("speech_ready");
-          setStatusMessage(null);
-          logVoiceDiagnostic("recognition_end");
-          return;
-        }
-
-        setState("processing_speech");
-        const result = await transcribeSpeechInput({
-          language_hint: languageHint,
-          user_context: userContext,
-          input_target: inputTarget,
-          timeoutMs,
-          signal: controller.signal,
-          micPermissionPreflightPassed: true,
+        captureSessionRef.current = session;
+        updateVoiceDebugSnapshot({
+          captureMode: session.captureMode,
+          selectedMimeType: session.selectedMimeType,
         });
 
-        if (controller.signal.aborted) return;
+        await session.ready;
 
-        if (result.source === "unavailable") {
-          setState("unsupported");
-          setStatusMessage({
-            body:
-              result.unavailable_reason ??
-              result.warnings[0] ??
-              "Voice input is not supported in this browser. You can type instead.",
-          });
-          return;
+        if (controller.signal.aborted || captureSessionRef.current !== session) return;
+
+        if (session.completion) {
+          void session.completion
+            .then((result) => {
+              if (controller.signal.aborted || captureSessionRef.current !== session) return;
+              commitTranscript(result.transcript, result.refinedFromServer);
+              setState("speech_ready");
+              setStatusMessage(null);
+              captureSessionRef.current = null;
+            })
+            .catch((error) => {
+              if (controller.signal.aborted || captureSessionRef.current !== session) return;
+              const preview = session.getPreview().capturedSpeechPreview;
+              if (preview.trim()) {
+                commitTranscript(preview);
+                setState("speech_ready");
+                setStatusMessage({ body: "Voice input stopped." });
+              } else {
+                setState("speech_error");
+                setStatusMessage(mapSpeechErrorMessage(error));
+              }
+              captureSessionRef.current = null;
+            });
         }
-
-        commitTranscript(result.transcript);
-        setState("speech_ready");
-        setStatusMessage(
-          result.warnings.length > 0 ? { body: result.warnings.join(" ") } : null,
-        );
-        logVoiceDiagnostic("recognition_end");
       } catch (error) {
         if (controller.signal.aborted) return;
 
@@ -254,10 +323,6 @@ export function useVoiceInput({
             setMicFailure(error.micErrorCode);
             return;
           }
-          setState("speech_error");
-          setStatusMessage({ body: error.message });
-          logVoiceDiagnostic("recognition_error", { code: "speech_api_error" });
-          return;
         }
 
         setState("speech_error");
@@ -265,11 +330,15 @@ export function useVoiceInput({
         logVoiceDiagnostic("recognition_error", {
           code: error instanceof Error ? error.name : "unknown",
         });
-      } finally {
-        sessionStopRef.current = null;
       }
     })();
   }, [commitTranscript, inputTarget, languageHint, setMicFailure, timeoutMs, userContext]);
+
+  function setFinalIfChanged(finalTranscript: string) {
+    setPendingTranscript((previous) =>
+      previous === finalTranscript ? previous : finalTranscript,
+    );
+  }
 
   const applyTranscript = useCallback(() => {
     if (!pendingTranscript.trim()) return;
@@ -278,17 +347,8 @@ export function useVoiceInput({
   }, [onTranscript, pendingTranscript, reset]);
 
   const dismiss = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-    sessionStopRef.current?.();
-    sessionStopRef.current = null;
-    finalTranscriptRef.current = "";
-    firstInterimLoggedRef.current = false;
-    setState("idle");
-    setPendingTranscript("");
-    setInterimTranscript("");
-    setStatusMessage(null);
-  }, []);
+    reset();
+  }, [reset]);
 
   const isRecording =
     state === "requesting_permission" ||
@@ -299,6 +359,8 @@ export function useVoiceInput({
     state,
     pendingTranscript,
     interimTranscript,
+    capturedSpeechPreview,
+    recordingTimerLabel: formatRecordingTimer(recordingElapsedMs),
     statusMessage,
     isSupported,
     isRecording,

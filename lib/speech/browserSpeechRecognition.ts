@@ -277,3 +277,112 @@ export async function transcribeWithBrowserSpeech(
   const session = startBrowserSpeechSession(options);
   return session.promise;
 }
+
+export type BrowserSpeechInterimAssist = {
+  stop: () => string;
+  abort: () => void;
+};
+
+/** Interim-only assist while MediaRecorder captures audio; does not auto-finish on pause. */
+export function startBrowserSpeechInterimAssist(
+  options: BrowserSpeechOptions & BrowserSpeechSessionCallbacks = {},
+): BrowserSpeechInterimAssist {
+  const Constructor = getSpeechRecognitionConstructor();
+  if (!Constructor) {
+    return { stop: () => "", abort: () => undefined };
+  }
+
+  const languageHint = options.languageHint ?? "en";
+  let recognition: BrowserSpeechRecognition | null = null;
+  let stopped = false;
+  let finalTranscript = "";
+  let restartAttempts = 0;
+  const maxRestarts = 6;
+
+  const startRecognition = () => {
+    if (stopped) return;
+    recognition = new Constructor();
+    recognition.lang = mapLanguageHintToBcp47(languageHint);
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+    recognition.continuous = true;
+
+    recognition.onstart = () => {
+      options.onStarted?.();
+    };
+
+    recognition.onresult = (event: BrowserSpeechRecognitionEvent) => {
+      let interim = "";
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const result = event.results[index];
+        const text = result?.[0]?.transcript ?? "";
+        if (!text) continue;
+        if (result.isFinal) {
+          finalTranscript = appendTranscript(finalTranscript, text);
+          options.onFinal?.(finalTranscript);
+        } else {
+          interim = appendTranscript(interim, text);
+        }
+      }
+      const combined = appendTranscript(finalTranscript, interim);
+      if (combined) options.onInterim?.(combined);
+    };
+
+    recognition.onerror = (event: BrowserSpeechRecognitionErrorEvent) => {
+      if (event.error === "aborted" || stopped) return;
+      if (event.error === "no-speech") return;
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") return;
+    };
+
+    recognition.onend = () => {
+      if (stopped) return;
+      if (restartAttempts >= maxRestarts) return;
+      restartAttempts += 1;
+      window.setTimeout(() => startRecognition(), 120);
+    };
+
+    try {
+      recognition.start();
+    } catch {
+      // ignore unsupported start races on mobile Safari
+    }
+  };
+
+  if (options.signal?.aborted) {
+    stopped = true;
+  } else {
+    options.signal?.addEventListener("abort", () => {
+      stopped = true;
+      try {
+        recognition?.abort();
+      } catch {
+        // ignore
+      }
+    });
+    startRecognition();
+  }
+
+  return {
+    stop: () => {
+      stopped = true;
+      try {
+        recognition?.stop();
+      } catch {
+        try {
+          recognition?.abort();
+        } catch {
+          // ignore
+        }
+      }
+      return finalTranscript.trim();
+    },
+    abort: () => {
+      stopped = true;
+      try {
+        recognition?.abort();
+      } catch {
+        // ignore
+      }
+    },
+  };
+}

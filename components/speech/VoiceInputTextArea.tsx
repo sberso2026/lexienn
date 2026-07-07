@@ -151,6 +151,8 @@ export function VoiceInputTextArea({
           state={voice.state}
           pendingTranscript={voice.pendingTranscript}
           interimTranscript={voice.interimTranscript}
+          capturedSpeechPreview={voice.capturedSpeechPreview}
+          recordingTimerLabel={voice.recordingTimerLabel}
           statusMessage={voice.statusMessage}
           onApplyTranscript={voice.applyTranscript}
           onTryAgain={voice.startListening}
