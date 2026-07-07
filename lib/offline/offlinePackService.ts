@@ -2,6 +2,16 @@ import { getAiConfig } from "@/lib/ai/config";
 import { resolveLanguageSelection } from "@/lib/languages/languageOptions";
 import { cacheOfflinePackAudio } from "@/lib/offline/cacheOfflinePackAudio";
 import { cacheSingleOfflineEntryAudio } from "@/lib/offline/cacheOfflinePackAudio";
+import type { PackDownloadSnapshot } from "@/lib/offline/offlinePackDownloadTypes";
+import {
+  downloadOfflineLanguagePairPackBrowser,
+  retryOfflinePackAudioDownload,
+  type PackDownloadRuntime,
+} from "@/lib/offline/offlinePackDownload";
+import {
+  getOfflinePackDownloadProgress,
+  removeOfflinePackDownloadProgress,
+} from "@/lib/offline/offlinePackDownloadProgress";
 import {
   buildPackWithMissingPhraseEntry,
   copyMissingPhraseText,
@@ -41,7 +51,6 @@ import {
   listOfflineFavoriteEntryIds,
   listOfflineMissingRequests,
   listOfflinePacks,
-  recordRecentPair,
   recordRecentPhrase,
   removeOfflineFavorite,
   removeOfflinePack,
@@ -229,65 +238,32 @@ export async function inspectOfflinePackAvailability(
 
 export async function downloadOfflineLanguagePairPack(
   request: OfflinePackGenerateRequest,
+  options?: {
+    onSnapshot?: (snapshot: PackDownloadSnapshot) => void;
+    runtime?: PackDownloadRuntime;
+    resume?: boolean;
+  },
 ): Promise<OfflineStoredPack> {
-  let generatedPack: OfflineStoredPack;
-
   if (typeof window !== "undefined") {
-    const response = await fetch("/api/offline-packs/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(request),
-    });
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as {
-        error?: string;
-        details?: string;
-      } | null;
-      const message = payload?.details
-        ? `${payload.error ?? "Could not download offline pack."} ${payload.details}`
-        : payload?.error ?? "Could not download offline pack.";
-      throw new Error(message);
-    }
-
-    const payload = (await response.json()) as { pack: OfflineStoredPack };
-    generatedPack = payload.pack;
-  } else {
-    const generated = await generateOfflineLanguagePairPack(request);
-    if (!generated) {
-      throw new Error(
-        "Pack unavailable. Connect online with AI enabled, or choose a curated English-to-target pair.",
-      );
-    }
-    generatedPack = generated.pack;
+    return downloadOfflineLanguagePairPackBrowser(request, options);
   }
 
-  await saveOfflinePack({ ...generatedPack, status: "text_ready" });
-  setActiveOfflinePairKey(generatedPack.pack_key);
-  await recordRecentPair({
-    pack_key: generatedPack.pack_key,
-    from_language_id: generatedPack.from_language_id,
-    to_language_id: generatedPack.to_language_id,
-    from_display_name: generatedPack.from_display_name,
-    to_display_name: generatedPack.to_display_name,
-    used_at: new Date().toISOString(),
-  });
+  const { downloadOfflineLanguagePairPackNode } = await import("@/lib/offline/offlinePackDownload");
+  return downloadOfflineLanguagePairPackNode(request);
+}
 
-  if (typeof window !== "undefined") {
-    await saveOfflinePack({ ...generatedPack, status: "audio_downloading" });
-    const audioResult = await cacheOfflinePackAudio(generatedPack, request.to_language);
-    await saveOfflinePack(audioResult.pack);
-    return audioResult.pack;
-  }
+export async function retryOfflinePackAudio(
+  request: OfflinePackGenerateRequest,
+  options?: {
+    onSnapshot?: (snapshot: PackDownloadSnapshot) => void;
+    runtime?: PackDownloadRuntime;
+  },
+): Promise<OfflineStoredPack> {
+  return retryOfflinePackAudioDownload(request, options);
+}
 
-  const finalPack: OfflineStoredPack = {
-    ...generatedPack,
-    status: "downloaded",
-    downloaded_at: generatedPack.downloaded_at ?? new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  await saveOfflinePack(finalPack);
-  return finalPack;
+export async function getOfflinePackDownloadState(packKey: string) {
+  return getOfflinePackDownloadProgress(packKey);
 }
 
 export async function updateOfflineLanguagePairPack(
@@ -337,6 +313,7 @@ export async function updateOfflineLanguagePairPack(
 
 export async function removeOfflineLanguagePairPack(packKey: string): Promise<void> {
   await removeOfflinePack(packKey);
+  await removeOfflinePackDownloadProgress(packKey);
   if (typeof window !== "undefined") {
     await removeOfflinePackAudio(packKey);
   }

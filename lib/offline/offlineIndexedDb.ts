@@ -1,5 +1,5 @@
 const DB_NAME = "lexienn_offline";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export function openOfflineDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -27,6 +27,12 @@ export function openOfflineDatabase(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains("offline_entry_audio")) {
         db.createObjectStore("offline_entry_audio", { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains("offline_pack_download_progress")) {
+        db.createObjectStore("offline_pack_download_progress", { keyPath: "pack_key" });
+      }
+      if (!db.objectStoreNames.contains("offline_pack_download_buffer")) {
+        db.createObjectStore("offline_pack_download_buffer", { keyPath: "pack_key" });
       }
     };
 

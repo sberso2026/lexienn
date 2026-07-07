@@ -6,14 +6,20 @@ import { CompactCard } from "@/components/ui/CompactCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { StatusChip } from "@/components/ui/StatusChip";
-import { ActionButton } from "@/components/ui/ActionButton";
+import { isTapDiagnosticsEnabled, installTapDiagnostics } from "@/lib/app/tapDiagnostics";
 import {
   buildOfflinePackCatalog,
-  getOfflineCatalogLink,
   type OfflinePackCatalogEntry,
 } from "@/lib/offline/offlinePackCatalog";
 
 function PackCard({ entry }: { entry: OfflinePackCatalogEntry }) {
+  const openParams = new URLSearchParams({
+    from: entry.from_language_id,
+    to: entry.to_language_id,
+  });
+  const downloadParams = new URLSearchParams(openParams);
+  downloadParams.set("download", "1");
+
   return (
     <li className="flex items-center justify-between gap-3 rounded-xl border border-[var(--card-border)] p-3">
       <div className="min-w-0 flex-1">
@@ -23,9 +29,20 @@ function PackCard({ entry }: { entry: OfflinePackCatalogEntry }) {
           <StatusChip label={entry.status.replace("_", " ")} variant="info" />
         </div>
       </div>
-      <Link href={getOfflineCatalogLink(entry.from_language_id, entry.to_language_id)}>
-        <ActionButton variant="secondary">Open</ActionButton>
-      </Link>
+      <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+        <Link
+          href={`/offline?${downloadParams.toString()}`}
+          className="inline-flex min-h-11 items-center justify-center rounded-xl border border-transparent bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white"
+        >
+          Download
+        </Link>
+        <Link
+          href={`/offline?${openParams.toString()}`}
+          className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-2.5 text-sm font-semibold text-[var(--foreground)]"
+        >
+          Open
+        </Link>
+      </div>
     </li>
   );
 }
@@ -66,6 +83,11 @@ export function PhrasePacksView() {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    if (!isTapDiagnosticsEnabled() || typeof window === "undefined") return;
+    installTapDiagnostics();
+  }, []);
+
   if (!loaded || !catalog) {
     return <LoadingState title="Loading" label="Loading packs…" />;
   }
@@ -81,8 +103,11 @@ export function PhrasePacksView() {
       <CompactCard>
         <div className="flex items-center justify-between gap-2">
           <StatusChip label={`${totalEntries} packs`} variant="neutral" />
-          <Link href="/offline">
-            <ActionButton variant="primary">Offline</ActionButton>
+          <Link
+            href="/offline"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-transparent bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white"
+          >
+            Offline
           </Link>
         </div>
       </CompactCard>

@@ -23,9 +23,13 @@ function clearLocalStorageKeys(keys: string[]): void {
 
 export async function clearDownloadedOfflinePacks(): Promise<number> {
   const { listOfflinePacks, removeOfflinePack } = await import("@/lib/offline/localOfflineStore");
+  const { removeOfflinePackDownloadProgress } = await import(
+    "@/lib/offline/offlinePackDownloadProgress"
+  );
   const packs = await listOfflinePacks();
   for (const pack of packs) {
     await removeOfflinePack(pack.pack_key);
+    await removeOfflinePackDownloadProgress(pack.pack_key);
     if (typeof window !== "undefined") {
       await removeOfflinePackAudio(pack.pack_key);
     }

@@ -385,6 +385,8 @@ export const indexedDbOfflinePackStore: OfflinePackStore = {
     await clearOfflineObjectStore("favorites");
     await clearOfflineObjectStore("missing_requests");
     await clearOfflineObjectStore("offline_entry_audio");
+    await clearOfflineObjectStore("offline_pack_download_progress");
+    await clearOfflineObjectStore("offline_pack_download_buffer");
   },
 
 };

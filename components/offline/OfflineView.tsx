@@ -24,8 +24,10 @@ import {
   getOfflineDefaultLanguages,
   USER_PREFERENCES_UPDATED_EVENT,
 } from "@/lib/settings/userPreferences";
+import { OfflinePackDownloadPanel } from "@/components/offline/OfflinePackDownloadPanel";
+import { useOfflinePackDownload } from "@/hooks/useOfflinePackDownload";
+import { mapPackDownloadErrorMessage } from "@/lib/offline/offlinePackDownloadTypes";
 import {
-  downloadOfflineLanguagePairPack,
   getRecentPairs,
   getRecentPhrases,
   getStorageEstimate,
@@ -59,7 +61,6 @@ export function OfflineView() {
   const [selectedCategory, setSelectedCategory] = useState<OfflineUiCategory>("emergency");
   const [isOnline, setIsOnline] = useState(true);
   const [storageWarning, setStorageWarning] = useState<string | undefined>();
-  const [isBusy, setIsBusy] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [missingCaptureInput, setMissingCaptureInput] = useState("");
@@ -72,7 +73,19 @@ export function OfflineView() {
     Awaited<ReturnType<typeof getRecentPairs>>
   >([]);
 
+  const {
+    snapshot: downloadSnapshot,
+    isRunning: isDownloadRunning,
+    showProgress,
+    startDownload,
+    resumeDownload,
+    retryAudio,
+    cancelDownload,
+    loadProgressForPair,
+  } = useOfflinePackDownload();
+
   const pairSelected = isLanguagePairSelected(fromLanguage, toLanguage);
+  const isBusy = isDownloadRunning;
 
   const applyInitialLanguages = useCallback(() => {
     const fromParam = searchParams.get("from");
@@ -267,47 +280,78 @@ export function OfflineView() {
     setMissingCaptureInput("");
   }
 
-  async function handleDownload() {
+  useEffect(() => {
+    void loadProgressForPair(fromLanguage, toLanguage);
+  }, [fromLanguage, loadProgressForPair, toLanguage]);
+
+  function buildDownloadRequest() {
+    const toResolved = resolveLanguageSelection(toLanguage);
+    const fromResolved = resolveLanguageSelection(fromLanguage);
+    return {
+      from_language: fromLanguage,
+      to_language: toLanguage,
+      to_dialect: toResolved.dialect_variant,
+      target_language_selection: toLanguage,
+      target_locale_tag: toResolved.locale_tag,
+      target_dialect_label: toResolved.dialect_label,
+      target_display_name: toResolved.display_label,
+      from_display_name: fromResolved.display_label,
+      user_context: "traveller" as const,
+      pack_tier: "lite" as const,
+      include_audio_manifest: true,
+    };
+  }
+
+  async function handleDownload(options?: { resume?: boolean }) {
     if (!pairSelected) return;
-    setIsBusy(true);
     setActionMessage(null);
     try {
-      const toResolved = resolveLanguageSelection(toLanguage);
-      const fromResolved = resolveLanguageSelection(fromLanguage);
-      const pack = await downloadOfflineLanguagePairPack({
-        from_language: fromLanguage,
-        to_language: toLanguage,
-        to_dialect: toResolved.dialect_variant,
-        target_language_selection: toLanguage,
-        target_locale_tag: toResolved.locale_tag,
-        target_dialect_label: toResolved.dialect_label,
-        target_display_name: toResolved.display_label,
-        from_display_name: fromResolved.display_label,
-        user_context: "traveller",
-        pack_tier: "lite",
-        include_audio_manifest: true,
-      });
+      const pack = await (options?.resume ? resumeDownload : startDownload)(
+        buildDownloadRequest(),
+      );
       setActiveOfflinePairKey(pack.pack_key);
       setActionMessage(
-        `Downloaded ${pack.from_display_name} → ${pack.to_display_name}. Text ready offline${
-          pack.audio_coverage_percent > 0
-            ? `; ${pack.audio_coverage_percent}% audio cached.`
-            : ". Audio downloading or unavailable until online."
-        }`,
+        pack.audio_coverage_percent > 0
+          ? `Downloaded ${pack.from_display_name} → ${pack.to_display_name}. ${pack.audio_coverage_percent}% audio cached.`
+          : `Text downloaded for ${pack.from_display_name} → ${pack.to_display_name}. Audio can be retried.`,
+      );
+      await refresh();
+    } catch (error) {
+      const code = (error as Error & { code?: string }).code;
+      setActionMessage(
+        code
+          ? mapPackDownloadErrorMessage(code as never)
+          : error instanceof Error
+            ? error.message
+            : "Could not download offline pack.",
+      );
+      await refresh();
+    }
+  }
+
+  const handleDownloadRef = useRef(handleDownload);
+  handleDownloadRef.current = handleDownload;
+
+  async function handleRetryAudio() {
+    if (!pairSelected) return;
+    setActionMessage(null);
+    try {
+      const pack = await retryAudio(buildDownloadRequest());
+      setActionMessage(
+        pack.audio_coverage_percent > 0
+          ? `Audio retry complete. ${pack.audio_coverage_percent}% audio cached.`
+          : "Audio retry finished. Some files may still be unavailable.",
       );
       await refresh();
     } catch (error) {
       setActionMessage(
-        error instanceof Error ? error.message : "Could not download offline pack.",
+        error instanceof Error ? error.message : "Could not retry audio download.",
       );
-    } finally {
-      setIsBusy(false);
     }
   }
 
   async function handleUpdate() {
     if (!pairSelected) return;
-    setIsBusy(true);
     setActionMessage(null);
     try {
       const toResolved = resolveLanguageSelection(toLanguage);
@@ -333,24 +377,44 @@ export function OfflineView() {
           ? error.message
           : "Update failed. Your existing local pack remains usable.",
       );
-    } finally {
-      setIsBusy(false);
     }
   }
 
   async function handleRemove() {
     if (!availability?.packKey) return;
-    setIsBusy(true);
     await removeOfflineLanguagePairPack(availability.packKey);
     setActionMessage("Offline pack removed from this device.");
     await refresh();
-    setIsBusy(false);
   }
 
   function handleRecentPairSelect(from: string, to: string) {
     setFromLanguage(from);
     setToLanguage(to);
   }
+
+  const autoDownloadRequested = searchParams.get("download") === "1";
+  const autoDownloadStartedRef = useRef(false);
+
+  useEffect(() => {
+    if (!loaded || !pairSelected || !autoDownloadRequested || autoDownloadStartedRef.current) {
+      return;
+    }
+    if (availability?.status === "missing" || downloadSnapshot.phase === "paused") {
+      autoDownloadStartedRef.current = true;
+      void handleDownloadRef.current({ resume: downloadSnapshot.phase === "paused" });
+    }
+  }, [
+    autoDownloadRequested,
+    availability?.status,
+    downloadSnapshot.phase,
+    loaded,
+    pairSelected,
+  ]);
+
+  const canRetryAudio =
+    Boolean(availability?.pack) &&
+    (availability?.status === "text_ready" ||
+      (availability?.pack?.audio_coverage_percent ?? 0) < 100);
 
   async function handleToggleFavorite(entryId: string) {
     if (!displayedPack) return;
@@ -395,10 +459,25 @@ export function OfflineView() {
         isOnline={isOnline}
         isBusy={isBusy}
         pairSelected={pairSelected}
-        onDownload={handleDownload}
-        onUpdate={handleUpdate}
-        onRemove={handleRemove}
+        downloadSnapshot={downloadSnapshot}
+        onDownload={() => void handleDownload()}
+        onResume={() => void handleDownload({ resume: true })}
+        onUpdate={() => void handleUpdate()}
+        onRemove={() => void handleRemove()}
       />
+
+      {(showProgress || downloadSnapshot.phase !== "idle") && (
+        <OfflinePackDownloadPanel
+          snapshot={downloadSnapshot}
+          isRunning={isDownloadRunning}
+          isOnline={isOnline}
+          canRetryAudio={canRetryAudio}
+          onCancel={cancelDownload}
+          onResume={() => void handleDownload({ resume: true })}
+          onRetry={() => void handleDownload({ resume: true })}
+          onRetryAudio={() => void handleRetryAudio()}
+        />
+      )}
 
       {(recentPairs.length > 0 || recentPhrases.length > 0) && (
         <SectionCard title="Recent offline" subtitle="Recently used phrases and language pairs.">

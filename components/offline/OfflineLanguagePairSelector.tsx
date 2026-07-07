@@ -5,6 +5,7 @@ import { ActionButton } from "@/components/ui/ActionButton";
 import { Badge } from "@/components/ui/StatusBadge";
 import { SectionCard } from "@/components/ui/SectionCard";
 import type { OfflinePackAvailability } from "@/lib/offline/offlinePackService";
+import type { PackDownloadSnapshot } from "@/lib/offline/offlinePackDownloadTypes";
 
 interface OfflineLanguagePairSelectorProps {
   fromLanguage: string;
@@ -15,7 +16,9 @@ interface OfflineLanguagePairSelectorProps {
   isOnline: boolean;
   isBusy: boolean;
   pairSelected: boolean;
+  downloadSnapshot: PackDownloadSnapshot;
   onDownload: () => void;
+  onResume: () => void;
   onUpdate: () => void;
   onRemove: () => void;
 }
@@ -29,7 +32,9 @@ export function OfflineLanguagePairSelector({
   isOnline,
   isBusy,
   pairSelected,
+  downloadSnapshot,
   onDownload,
+  onResume,
   onUpdate,
   onRemove,
 }: OfflineLanguagePairSelectorProps) {
@@ -39,6 +44,18 @@ export function OfflineLanguagePairSelector({
     status === "update_available" ||
     status === "text_ready" ||
     status === "audio_downloading";
+
+  const canResumeDownload =
+    downloadSnapshot.phase === "paused" ||
+    downloadSnapshot.phase === "failed" ||
+    downloadSnapshot.phase === "cancelled";
+
+  const showDownloadButton = !hasPack || canResumeDownload;
+  const downloadLabel = isBusy
+    ? "Downloading…"
+    : canResumeDownload
+      ? "Resume download"
+      : "Download pack";
 
   return (
     <SectionCard
@@ -92,19 +109,25 @@ export function OfflineLanguagePairSelector({
 
         {pairSelected && (
           <div className="grid gap-2 sm:grid-cols-3">
-            {!hasPack && (
+            {showDownloadButton && (
               <ActionButton
+                type="button"
                 variant="primary"
-                onClick={onDownload}
-                disabled={isBusy || !isOnline || !availability?.canGenerate}
+                onClick={canResumeDownload ? onResume : onDownload}
+                disabled={
+                  isBusy ||
+                  (!isOnline && !canResumeDownload) ||
+                  !availability?.canGenerate
+                }
                 aria-label="Download offline phrase pack"
               >
-                {isBusy ? "Downloading…" : "Download pack"}
+                {downloadLabel}
               </ActionButton>
             )}
 
             {status === "update_available" && (
               <ActionButton
+                type="button"
                 variant="primary"
                 onClick={onUpdate}
                 disabled={isBusy || !isOnline}
@@ -116,6 +139,7 @@ export function OfflineLanguagePairSelector({
 
             {hasPack && status === "downloaded" && (
               <ActionButton
+                type="button"
                 variant="secondary"
                 onClick={onUpdate}
                 disabled={isBusy || !isOnline}
@@ -127,6 +151,7 @@ export function OfflineLanguagePairSelector({
 
             {hasPack && (
               <ActionButton
+                type="button"
                 variant="secondary"
                 onClick={onRemove}
                 disabled={isBusy}
@@ -138,7 +163,7 @@ export function OfflineLanguagePairSelector({
           </div>
         )}
 
-        {pairSelected && !isOnline && status === "missing" && (
+        {pairSelected && !isOnline && status === "missing" && !canResumeDownload && (
           <p className="text-sm text-amber-800 dark:text-amber-200">
             No offline pack downloaded for this language pair.
           </p>

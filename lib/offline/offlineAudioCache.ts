@@ -17,6 +17,7 @@ export type OfflineEntryAudio = {
   duration_ms?: number;
   provider?: string;
   audio_base64: string;
+  audio_blob?: Blob;
   audio_mime_type: string;
   cached_at: string;
 };
@@ -27,11 +28,56 @@ function shouldUseMemoryCache(): boolean {
   return typeof indexedDB === "undefined";
 }
 
+function base64ToBlob(base64: string, mimeType: string): Blob | null {
+  if (typeof atob !== "function") return null;
+  try {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return new Blob([bytes], { type: mimeType });
+  } catch {
+    return null;
+  }
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== "string") {
+        reject(new Error("Could not read audio blob."));
+        return;
+      }
+      const commaIndex = result.indexOf(",");
+      resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Could not read audio blob."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+export async function normalizeOfflineEntryAudio(
+  record: OfflineEntryAudio,
+): Promise<OfflineEntryAudio> {
+  if (record.audio_base64) return record;
+  if (record.audio_blob) {
+    return {
+      ...record,
+      audio_base64: await blobToBase64(record.audio_blob),
+    };
+  }
+  return record;
+}
+
 export async function getOfflineEntryAudio(
   cacheKey: string,
 ): Promise<OfflineEntryAudio | null> {
   if (shouldUseMemoryCache()) {
-    return memoryCache.get(cacheKey) ?? null;
+    const cached = memoryCache.get(cacheKey);
+    return cached ? normalizeOfflineEntryAudio(cached) : null;
   }
 
   const result = await runOfflineTransaction<OfflineEntryAudio | undefined>(
@@ -40,7 +86,8 @@ export async function getOfflineEntryAudio(
     (store) => store.get(cacheKey),
   );
 
-  return result ?? null;
+  if (!result) return null;
+  return normalizeOfflineEntryAudio(result);
 }
 
 export async function saveOfflineEntryAudio(input: {
@@ -56,6 +103,7 @@ export async function saveOfflineEntryAudio(input: {
   audio_hash?: string;
 }): Promise<void> {
   const blobKey = buildOfflineEntryAudioKey(input.pack_key, input.entry_id);
+  const audioBlob = base64ToBlob(input.audio_base64, input.audio_mime_type);
   const record: OfflineEntryAudio = {
     id: blobKey,
     pack_key: input.pack_key,
@@ -67,17 +115,32 @@ export async function saveOfflineEntryAudio(input: {
     audio_hash: input.audio_hash,
     duration_ms: input.duration_ms,
     provider: input.provider ?? "openai",
-    audio_base64: input.audio_base64,
     audio_mime_type: input.audio_mime_type,
     cached_at: new Date().toISOString(),
+    audio_blob: audioBlob ?? undefined,
+    audio_base64: audioBlob ? "" : input.audio_base64,
   };
 
   if (shouldUseMemoryCache()) {
-    memoryCache.set(record.id, record);
+    memoryCache.set(record.id, {
+      ...record,
+      audio_base64: input.audio_base64,
+    });
     return;
   }
 
-  await runOfflineTransaction("offline_entry_audio", "readwrite", (store) => store.put(record));
+  try {
+    await runOfflineTransaction("offline_entry_audio", "readwrite", (store) => store.put(record));
+  } catch (error) {
+    if (!audioBlob) throw error;
+    await runOfflineTransaction("offline_entry_audio", "readwrite", (store) =>
+      store.put({
+        ...record,
+        audio_blob: undefined,
+        audio_base64: input.audio_base64,
+      }),
+    );
+  }
 }
 
 export async function removeOfflinePackAudio(packKey: string): Promise<void> {
@@ -109,4 +172,27 @@ export async function removeOfflinePackAudio(packKey: string): Promise<void> {
 
 export function clearOfflineAudioCacheForTests(): void {
   memoryCache.clear();
+}
+
+export async function probeOfflineStorageWritable(): Promise<void> {
+  if (shouldUseMemoryCache()) return;
+
+  const probeKey = "__lexienn_storage_probe__";
+  await runOfflineTransaction("offline_pack_download_progress", "readwrite", (store) =>
+    store.put({
+      pack_key: probeKey,
+      source_language: "probe",
+      target_language: "probe",
+      category: "probe",
+      total_items: 0,
+      completed_items: 0,
+      audio_completed_items: 0,
+      status: "idle",
+      updated_at: new Date().toISOString(),
+      include_audio: false,
+    }),
+  );
+  await runOfflineTransaction("offline_pack_download_progress", "readwrite", (store) =>
+    store.delete(probeKey),
+  );
 }
