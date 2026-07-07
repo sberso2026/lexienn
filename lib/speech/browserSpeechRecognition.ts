@@ -1,17 +1,26 @@
+type BrowserSpeechRecognitionResult = {
+  isFinal: boolean;
+  0: { transcript?: string; confidence?: number };
+  length: number;
+};
+
 type BrowserSpeechRecognition = {
   lang: string;
   interimResults: boolean;
   maxAlternatives: number;
   continuous: boolean;
+  onstart: (() => void) | null;
   onresult: ((event: BrowserSpeechRecognitionEvent) => void) | null;
   onerror: ((event: BrowserSpeechRecognitionErrorEvent) => void) | null;
   onend: (() => void) | null;
   start: () => void;
   stop: () => void;
+  abort: () => void;
 };
 
 type BrowserSpeechRecognitionEvent = {
-  results: ArrayLike<ArrayLike<{ transcript?: string; confidence?: number }>>;
+  resultIndex: number;
+  results: ArrayLike<BrowserSpeechRecognitionResult>;
 };
 
 type BrowserSpeechRecognitionErrorEvent = {
@@ -66,31 +75,57 @@ function mapLanguageHintToBcp47(languageHint: string): string {
   return map[normalized] ?? normalized;
 }
 
+function appendTranscript(previous: string, next: string): string {
+  const chunk = next.trim();
+  if (!chunk) return previous;
+  if (!previous) return chunk;
+  if (previous.endsWith(chunk)) return previous;
+  return `${previous} ${chunk}`.trim();
+}
+
 export type BrowserSpeechOptions = {
   languageHint?: string;
   timeoutMs?: number;
   signal?: AbortSignal;
 };
 
-export async function transcribeWithBrowserSpeech(
-  options: BrowserSpeechOptions = {},
-): Promise<BrowserSpeechResult> {
+export type BrowserSpeechSessionCallbacks = {
+  onStarted?: () => void;
+  onInterim?: (transcript: string) => void;
+  onFinal?: (transcript: string) => void;
+};
+
+export type BrowserSpeechSession = {
+  stop: () => void;
+  readonly promise: Promise<BrowserSpeechResult>;
+};
+
+export function startBrowserSpeechSession(
+  options: BrowserSpeechOptions & BrowserSpeechSessionCallbacks = {},
+): BrowserSpeechSession {
   const Constructor = getSpeechRecognitionConstructor();
   if (!Constructor) {
-    throw new Error("Browser speech recognition is not supported.");
+    return {
+      stop: () => undefined,
+      promise: Promise.reject(new Error("Browser speech recognition is not supported.")),
+    };
   }
 
   const timeoutMs = options.timeoutMs ?? 20_000;
   const languageHint = options.languageHint ?? "en";
+  let recognition: BrowserSpeechRecognition | null = null;
+  let settled = false;
+  let stoppedByUser = false;
+  let finalTranscript = "";
+  let timeoutId = 0;
 
-  return new Promise<BrowserSpeechResult>((resolve, reject) => {
-    const recognition = new Constructor();
+  const promise = new Promise<BrowserSpeechResult>((resolve, reject) => {
+    recognition = new Constructor();
     recognition.lang = mapLanguageHintToBcp47(languageHint);
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
-    recognition.continuous = false;
+    recognition.continuous = true;
 
-    let settled = false;
     const finish = (fn: () => void) => {
       if (settled) return;
       settled = true;
@@ -99,11 +134,31 @@ export async function transcribeWithBrowserSpeech(
       fn();
     };
 
+    const settleWithTranscript = () => {
+      const transcript = finalTranscript.trim();
+      if (!transcript) {
+        finish(() => reject(new Error("No speech was detected.")));
+        return;
+      }
+      finish(() =>
+        resolve({
+          transcript,
+          confidence_score: 0.8,
+          detected_language: languageHint,
+        }),
+      );
+    };
+
     const onAbort = () => {
+      stoppedByUser = true;
       try {
-        recognition.stop();
+        recognition?.abort();
       } catch {
         // ignore
+      }
+      if (finalTranscript.trim()) {
+        settleWithTranscript();
+        return;
       }
       finish(() => reject(new Error("Speech recognition was cancelled.")));
     };
@@ -114,52 +169,75 @@ export async function transcribeWithBrowserSpeech(
     }
     options.signal?.addEventListener("abort", onAbort);
 
-    const timeoutId = window.setTimeout(() => {
+    timeoutId = window.setTimeout(() => {
+      stoppedByUser = true;
       try {
-        recognition.stop();
+        recognition?.stop();
       } catch {
         // ignore
+      }
+      if (finalTranscript.trim()) {
+        settleWithTranscript();
+        return;
       }
       finish(() => reject(new Error("Speech recognition timed out.")));
     }, timeoutMs);
 
-    recognition.onresult = (event: BrowserSpeechRecognitionEvent) => {
-      const result = event.results[0]?.[0];
-      const transcript = result?.transcript?.trim() ?? "";
-      const confidence = typeof result?.confidence === "number" ? result.confidence : 0.75;
+    recognition.onstart = () => {
+      options.onStarted?.();
+    };
 
-      if (!transcript) {
-        finish(() => reject(new Error("No speech was detected.")));
-        return;
+    recognition.onresult = (event: BrowserSpeechRecognitionEvent) => {
+      let interim = "";
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const result = event.results[index];
+        const text = result?.[0]?.transcript ?? "";
+        if (!text) continue;
+        if (result.isFinal) {
+          finalTranscript = appendTranscript(finalTranscript, text);
+          options.onFinal?.(finalTranscript);
+        } else {
+          interim = appendTranscript(interim, text);
+        }
       }
 
-      finish(() =>
-        resolve({
-          transcript,
-          confidence_score: confidence,
-          detected_language: languageHint,
-        }),
-      );
+      const combined = appendTranscript(finalTranscript, interim);
+      if (combined) {
+        options.onInterim?.(combined);
+      }
     };
 
     recognition.onerror = (event: BrowserSpeechRecognitionErrorEvent) => {
+      if (event.error === "aborted") {
+        if (finalTranscript.trim()) {
+          settleWithTranscript();
+          return;
+        }
+        finish(() => reject(new Error("Speech recognition was cancelled.")));
+        return;
+      }
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
         finish(() => reject(new Error("Microphone permission denied.")));
         return;
       }
       if (event.error === "no-speech") {
+        if (finalTranscript.trim()) {
+          settleWithTranscript();
+          return;
+        }
         finish(() => reject(new Error("No speech was detected.")));
-        return;
-      }
-      if (event.error === "aborted") {
-        finish(() => reject(new Error("Speech recognition was cancelled.")));
         return;
       }
       finish(() => reject(new Error(`Speech recognition failed: ${event.error}`)));
     };
 
     recognition.onend = () => {
-      // onresult or onerror should settle; noop fallback
+      if (settled) return;
+      if (stoppedByUser || finalTranscript.trim()) {
+        settleWithTranscript();
+        return;
+      }
+      finish(() => reject(new Error("No speech was detected.")));
     };
 
     try {
@@ -174,4 +252,28 @@ export async function transcribeWithBrowserSpeech(
       );
     }
   });
+
+  return {
+    stop: () => {
+      if (settled) return;
+      stoppedByUser = true;
+      try {
+        recognition?.stop();
+      } catch {
+        try {
+          recognition?.abort();
+        } catch {
+          // ignore
+        }
+      }
+    },
+    promise,
+  };
+}
+
+export async function transcribeWithBrowserSpeech(
+  options: BrowserSpeechOptions = {},
+): Promise<BrowserSpeechResult> {
+  const session = startBrowserSpeechSession(options);
+  return session.promise;
 }

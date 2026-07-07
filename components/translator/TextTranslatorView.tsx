@@ -68,7 +68,7 @@ export function TextTranslatorView() {
   const modeLabel =
     translationModes.find((m) => m.value === translationMode)?.label ?? "Natural";
 
-  const { isPlaying, audioType, statusMessage, play } = useVoicePlayback({
+  const { isPlaying, audioState, audioType, statusMessage, play, stop } = useVoicePlayback({
     text: result?.translated_text ?? "",
     language: targetResolved.base_language,
     languageSelection: targetLanguageSelection,
@@ -91,8 +91,9 @@ export function TextTranslatorView() {
   useEffect(() => () => stopVoicePlayback(), []);
   useEffect(() => {
     stopVoicePlayback();
+    stop();
     abortActiveRequest();
-  }, [targetLanguageSelection, sourceLanguage, translationMode, userContext, abortActiveRequest]);
+  }, [targetLanguageSelection, sourceLanguage, translationMode, userContext, abortActiveRequest, stop]);
 
   useEffect(() => {
     if (autoplayRequestId === 0 || !result?.translated_text || isUnavailable) return;
@@ -109,8 +110,9 @@ export function TextTranslatorView() {
     setFormError(null);
     setRequestState("ready");
     setAutoplayBlocked(false);
+    stop();
     stopVoicePlayback();
-  }, [abortActiveRequest]);
+  }, [abortActiveRequest, stop]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -179,6 +181,11 @@ export function TextTranslatorView() {
   const repeatSlowly = useCallback(() => {
     setAutoplayBlocked(false);
     void play("slow");
+  }, [play]);
+
+  const replayAudio = useCallback(() => {
+    setAutoplayBlocked(false);
+    void play("normal");
   }, [play]);
 
   const copyTranslation = useCallback(async () => {
@@ -302,10 +309,24 @@ export function TextTranslatorView() {
               </p>
 
               <div className="mt-3 flex items-center gap-2">
+                {audioState === "audio_loading" && (
+                  <StatusChip label="Loading audio…" variant="info" />
+                )}
                 {isPlaying && <StatusChip label="Playing" variant="info" />}
                 {autoplayBlocked && (
-                  <StatusChip label="Tap slow replay" variant="warning" />
+                  <StatusChip label="Tap to play audio" variant="warning" />
                 )}
+                <IconButton
+                  icon={
+                    <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  }
+                  label="Play translation audio"
+                  disabled={audioState === "audio_loading" || isPlaying}
+                  onClick={replayAudio}
+                />
                 <IconButton
                   icon={
                     <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
@@ -313,7 +334,7 @@ export function TextTranslatorView() {
                     </svg>
                   }
                   label="Repeat slowly"
-                  disabled={isPlaying}
+                  disabled={audioState === "audio_loading" || isPlaying}
                   onClick={repeatSlowly}
                 />
                 <IconButton
@@ -327,8 +348,11 @@ export function TextTranslatorView() {
                 />
               </div>
 
-              {statusMessage && !autoplayBlocked && (
-                <p className="mt-2 text-[10px] text-[var(--muted)]" role="status">
+              {(statusMessage || audioState === "audio_error") && (
+                <p
+                  className={`mt-2 text-[10px] ${audioState === "audio_error" ? "text-red-600" : "text-[var(--muted)]"}`}
+                  role="status"
+                >
                   {statusMessage}
                 </p>
               )}

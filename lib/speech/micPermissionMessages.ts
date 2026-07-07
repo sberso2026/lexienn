@@ -84,7 +84,7 @@ export function getMicErrorMessage(
 
 export function micErrorCodeToVoiceInputState(
   code: MicErrorCode,
-): "permission_denied" | "unsupported" | "error" {
+): "permission_denied" | "unsupported" | "speech_error" {
   if (code === "mic_permission_denied") return "permission_denied";
   if (
     code === "mic_not_supported" ||
@@ -92,5 +92,5 @@ export function micErrorCodeToVoiceInputState(
   ) {
     return "unsupported";
   }
-  return "error";
+  return "speech_error";
 }

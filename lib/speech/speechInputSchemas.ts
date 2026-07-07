@@ -42,10 +42,11 @@ export type SpeechTranscribeResponse = z.infer<typeof speechTranscribeResponseSc
 
 export type VoiceInputState =
   | "idle"
+  | "requesting_permission"
   | "listening"
-  | "processing"
-  | "ready"
-  | "error"
+  | "processing_speech"
+  | "speech_ready"
+  | "speech_error"
   | "permission_denied"
   | "unsupported";
 

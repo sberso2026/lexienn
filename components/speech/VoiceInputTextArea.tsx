@@ -65,14 +65,15 @@ export function VoiceInputTextArea({
   });
 
   const handleSpeak = () => {
-    if (voice.state === "ready") {
+    if (voice.state === "speech_ready") {
       voice.applyTranscript();
       return;
     }
-    void voice.startListening();
+    voice.startListening();
   };
 
   const handleClear = () => {
+    voice.reset();
     onClear?.();
     textareaRef.current?.focus();
   };
@@ -125,8 +126,10 @@ export function VoiceInputTextArea({
           )}
           <VoiceInputButton
             state={voice.state}
+            isRecording={voice.isRecording}
             disabled={disabled}
             onSpeak={handleSpeak}
+            onStop={voice.stopListening}
             className="!min-h-9 !px-2"
           />
         </div>
@@ -147,10 +150,12 @@ export function VoiceInputTextArea({
         <VoiceInputStatus
           state={voice.state}
           pendingTranscript={voice.pendingTranscript}
+          interimTranscript={voice.interimTranscript}
           statusMessage={voice.statusMessage}
           onApplyTranscript={voice.applyTranscript}
-          onTryAgain={() => void voice.startListening()}
+          onTryAgain={voice.startListening}
           onDismiss={voice.dismiss}
+          onStop={voice.stopListening}
           showPrivacyNote={showPrivacyNote}
         />
       )}
