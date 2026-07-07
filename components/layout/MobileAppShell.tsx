@@ -19,6 +19,7 @@ export function MobileAppShell({ children }: MobileAppShellProps) {
         <OfflineIndicator />
         {children}
       </main>
+      <div id="mobile-app-chrome-root" className="mobile-app-chrome-root" />
       <MobileBottomNav />
     </div>
   );

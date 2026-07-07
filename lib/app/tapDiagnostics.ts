@@ -1,7 +1,15 @@
 /**
- * Development-only tap diagnostics for investigating interaction blockers.
- * Never loaded or exposed in production builds.
+ * Opt-in tap diagnostics for investigating interaction blockers.
+ * Enable with localStorage.lexienn_debug_taps = "1" or ?debugTap=1
+ * Never logs user text.
  */
+
+type ElementRect = {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+};
 
 type ElementSummary = {
   tag: string;
@@ -13,15 +21,42 @@ type ElementSummary = {
   pointerEvents: string;
   zIndex: string;
   position: string;
+  rect: ElementRect;
 };
+
+export type LexiennTapDebugResult = {
+  route: string;
+  topElement: ElementSummary | null;
+  nearestInteractive: ElementSummary | null;
+  activeElement: ElementSummary | null;
+  overlaysAtPoint: ElementSummary[];
+  pointerBlockingElements: ElementSummary[];
+  disabledButtons: ElementSummary[];
+};
+
+export function isTapDiagnosticsEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  if (process.env.NODE_ENV === "development") return true;
+
+  try {
+    if (window.localStorage.getItem("lexienn_debug_taps") === "1") {
+      return true;
+    }
+  } catch {
+    // ignore storage access errors
+  }
+
+  return new URLSearchParams(window.location.search).get("debugTap") === "1";
+}
 
 function summarizeElement(element: Element | null): ElementSummary | null {
   if (!element || !(element instanceof HTMLElement)) return null;
   const style = window.getComputedStyle(element);
+  const rect = element.getBoundingClientRect();
   return {
     tag: element.tagName.toLowerCase(),
     id: element.id || null,
-    className: element.className,
+    className: typeof element.className === "string" ? element.className : "",
     role: element.getAttribute("role"),
     disabled:
       (element instanceof HTMLButtonElement ||
@@ -33,6 +68,12 @@ function summarizeElement(element: Element | null): ElementSummary | null {
     pointerEvents: style.pointerEvents,
     zIndex: style.zIndex,
     position: style.position,
+    rect: {
+      top: rect.top,
+      left: rect.left,
+      width: rect.width,
+      height: rect.height,
+    },
   };
 }
 
@@ -55,20 +96,28 @@ function findNearestInteractive(target: Element | null): ElementSummary | null {
   return null;
 }
 
-function listHighZIndexElements(): ElementSummary[] {
+function listElementsAtPoint(x: number, y: number): ElementSummary[] {
   const results: ElementSummary[] = [];
-  for (const element of document.querySelectorAll("body *")) {
-    if (!(element instanceof HTMLElement)) continue;
+  const seen = new Set<Element>();
+
+  for (const element of document.elementsFromPoint(x, y)) {
+    if (!(element instanceof HTMLElement) || seen.has(element)) continue;
+    seen.add(element);
     const style = window.getComputedStyle(element);
-    const zIndex = Number.parseInt(style.zIndex, 10);
-    if (!Number.isFinite(zIndex) || zIndex < 40) continue;
     if (style.pointerEvents === "none") continue;
-  if (style.display === "none" || style.visibility === "hidden") continue;
     const position = style.position;
-    if (position !== "fixed" && position !== "absolute" && position !== "sticky") continue;
+    if (
+      position !== "fixed" &&
+      position !== "absolute" &&
+      position !== "sticky" &&
+      position !== "relative"
+    ) {
+      continue;
+    }
     const summary = summarizeElement(element);
     if (summary) results.push(summary);
   }
+
   return results;
 }
 
@@ -95,6 +144,7 @@ function listDisabledButtons(): ElementSummary[] {
 function listPointerBlockingElements(): ElementSummary[] {
   const results: ElementSummary[] = [];
   const viewportArea = window.innerWidth * window.innerHeight;
+
   for (const element of document.querySelectorAll("body *")) {
     if (!(element instanceof HTMLElement)) continue;
     const style = window.getComputedStyle(element);
@@ -107,31 +157,26 @@ function listPointerBlockingElements(): ElementSummary[] {
     const summary = summarizeElement(element);
     if (summary) results.push(summary);
   }
+
   return results;
 }
-
-export type LexiennTapDebugResult = {
-  topElement: ElementSummary | null;
-  activeElement: ElementSummary | null;
-  overlays: ElementSummary[];
-  disabledButtons: ElementSummary[];
-  pointerBlockingElements: ElementSummary[];
-};
 
 export function debugTapAt(x: number, y: number): LexiennTapDebugResult {
   const topElement = document.elementFromPoint(x, y);
   return {
+    route: window.location.pathname,
     topElement: summarizeElement(topElement),
+    nearestInteractive: findNearestInteractive(topElement),
     activeElement: summarizeElement(document.activeElement),
-    overlays: listHighZIndexElements(),
-    disabledButtons: listDisabledButtons(),
+    overlaysAtPoint: listElementsAtPoint(x, y),
     pointerBlockingElements: listPointerBlockingElements(),
+    disabledButtons: listDisabledButtons(),
   };
 }
 
 export function installTapDiagnostics(): void {
-  if (process.env.NODE_ENV !== "development") return;
   if (typeof window === "undefined") return;
+  if (!isTapDiagnosticsEnabled()) return;
 
   const win = window as Window & {
     __lexiennDebugTap?: (x: number, y: number) => LexiennTapDebugResult;
@@ -149,13 +194,7 @@ export function installTapDiagnostics(): void {
     const target = event.target;
     if (!(target instanceof Element)) return;
 
-    const nearest = findNearestInteractive(target);
-    console.debug("[lexienn-tap]", {
-      route: window.location.pathname,
-      target: summarizeElement(target),
-      nearestInteractive: nearest,
-      elementFromPoint: summarizeElement(document.elementFromPoint(point.clientX, point.clientY)),
-    });
+    console.debug("[lexienn-tap]", debugTapAt(point.clientX, point.clientY));
   };
 
   document.addEventListener("click", logTap, true);

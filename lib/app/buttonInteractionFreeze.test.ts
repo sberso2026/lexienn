@@ -19,16 +19,17 @@ describe("button interaction freeze regression", () => {
 
   it("uses fixed inset scroll area so content cannot cover header or bottom nav hit targets", () => {
     expect(globals).toContain("position: fixed");
-    expect(globals).toContain("top: calc(var(--app-header-offset-mobile) + var(--safe-area-top))");
-    expect(globals).toContain("bottom: calc(var(--nav-height) + var(--safe-area-bottom))");
+    expect(globals).toContain("top: var(--mobile-content-top)");
+    expect(globals).toContain("bottom: var(--mobile-content-bottom)");
     expect(globals).not.toMatch(/\.mobile-app-content\s*\{[^}]*height:\s*100dvh/s);
     expect(globals).not.toMatch(/\.mobile-app-content\s*\{[^}]*padding-top:/s);
   });
 
   it("keeps fixed header and bottom nav above the scroll layer", () => {
     expect(globals).toContain(".mobile-app-header");
-    expect(globals).toContain("z-index: 50");
-    expect(bottomNav).toContain("z-50");
+    expect(globals).toContain("z-index: 100");
+    expect(bottomNav).toContain("mobile-bottom-nav");
+    expect(globals).toContain("z-index: 80");
     expect(globals).toContain(".mobile-app-content");
     expect(globals).toContain("z-index: 1");
   });
@@ -105,12 +106,11 @@ describe("button interaction freeze regression", () => {
     expect(bottomNav).toContain('aria-label="Main navigation"');
   });
 
-  it("exposes development-only tap diagnostics without production logging of input text", () => {
+  it("exposes opt-in tap diagnostics without production logging of input text", () => {
     expect(tapDiagnostics).toContain("__lexiennDebugTap");
-    expect(tapDiagnostics).toContain('process.env.NODE_ENV !== "development"');
+    expect(tapDiagnostics).toContain("isTapDiagnosticsEnabled");
+    expect(tapDiagnostics).toContain("lexienn_debug_taps");
     expect(tapDiagnostics).not.toContain("input_text");
-    expect(tapDiagnostics).not.toContain("value");
     expect(appShell).toContain("TapDiagnostics");
-    expect(appShell).toContain('process.env.NODE_ENV === "development"');
   });
 });

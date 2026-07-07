@@ -188,7 +188,7 @@ export function DictionaryResultCard({
 
   return (
     <>
-      <div className="space-y-4 pb-28 md:pb-6">
+      <div className="space-y-4 pb-4 md:pb-6">
         <header className="card-surface p-4 sm:p-5">
           <p className="text-2xl font-bold leading-tight tracking-tight text-[var(--foreground)] sm:text-3xl">
             {enrichedEntry.input_text}

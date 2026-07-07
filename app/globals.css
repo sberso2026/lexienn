@@ -26,7 +26,11 @@
   --header-height: 3rem;
   --header-mobile-rows: 4.75rem;
   --app-header-offset-mobile: 4.75rem;
-  --nav-height: 4rem;
+  --app-bottom-nav-height: 4rem;
+  --nav-height: var(--app-bottom-nav-height);
+  --result-action-bar-height: 3.75rem;
+  --mobile-content-top: calc(var(--app-header-offset-mobile) + var(--safe-area-top));
+  --mobile-content-bottom: calc(var(--app-bottom-nav-height) + var(--safe-area-bottom));
 }
 
 @media (prefers-color-scheme: dark) {
@@ -124,23 +128,80 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 50;
+  z-index: 100;
 }
 
 .mobile-app-content {
   position: fixed;
   left: 0;
   right: 0;
-  top: calc(var(--app-header-offset-mobile) + var(--safe-area-top));
-  bottom: calc(var(--nav-height) + var(--safe-area-bottom));
+  top: var(--mobile-content-top);
+  bottom: var(--mobile-content-bottom);
   z-index: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
 
+.mobile-app-content--with-result-actions {
+  bottom: calc(
+    var(--app-bottom-nav-height) + var(--result-action-bar-height) + var(--safe-area-bottom)
+  );
+}
+
+.result-action-bar-shell {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--app-bottom-nav-height) + var(--safe-area-bottom));
+  z-index: 90;
+  pointer-events: none;
+}
+
+.result-action-bar-buttons {
+  pointer-events: auto;
+  border-top: 1px solid var(--card-border);
+  background: color-mix(in srgb, var(--card) 95%, transparent);
+  backdrop-filter: blur(12px);
+  padding: 0.5rem;
+}
+
+.result-action-bar-shell button,
+.result-action-bar-shell a {
+  pointer-events: auto;
+}
+
+.result-action-bar-buttons {
+  margin-inline: auto;
+  display: flex;
+  max-width: 32rem;
+  align-items: center;
+  justify-content: space-around;
+  gap: 0.25rem;
+}
+
+@media (min-width: 640px) {
+  .result-action-bar-buttons {
+    max-width: 42rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .result-action-bar-buttons {
+    max-width: 48rem;
+  }
+}
+
+.mobile-app-chrome-root {
+  pointer-events: none;
+}
+
 .mobile-bottom-nav {
-  z-index: 50;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 80;
   padding-bottom: var(--safe-area-bottom);
 }
 
@@ -164,6 +225,23 @@ body {
     z-index: auto;
     height: auto;
     overflow: visible;
+  }
+
+  .mobile-app-content--with-result-actions {
+    bottom: auto;
+  }
+
+  .result-action-bar-shell {
+    position: static;
+    pointer-events: auto;
+  }
+
+  .result-action-bar-buttons {
+    pointer-events: auto;
+    border-top: 0;
+    background: transparent;
+    backdrop-filter: none;
+    padding: 0;
   }
 
   .safe-bottom {

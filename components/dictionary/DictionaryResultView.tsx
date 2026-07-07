@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DictionaryResultCard } from "@/components/dictionary/DictionaryResultCard";
+import { ResultPageHomeButton } from "@/components/dictionary/ResultPageHomeButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { CompactAlert } from "@/components/ui/CompactAlert";
 import { useActiveRequest } from "@/hooks/useActiveRequest";
+import { useResultPageChrome } from "@/hooks/useResultPageChrome";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { buildDictionaryQueryFromSearchParams } from "@/lib/dictionary/buildDictionaryQueryFromParams";
 import {
@@ -20,6 +22,7 @@ import {
   type StoredDictionaryResult,
 } from "@/lib/dictionary/resultStorage";
 import { buildDictionaryRequestKey, dictionaryQueriesMatch } from "@/lib/request/requestKeys";
+import { stopVoicePlayback } from "@/lib/voice/audioPlayback";
 
 function paramsMatchResult(
   searchParams: URLSearchParams,
@@ -39,6 +42,7 @@ function paramsMatchResult(
 }
 
 export function DictionaryResultView() {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { preferences } = useUserPreferences();
   const { beginRequest, finishRequest, isActiveRequest, isAbortError, abortActiveRequest } =
@@ -50,6 +54,22 @@ export function DictionaryResultView() {
   const loadGenerationRef = useRef(0);
 
   const inputFromUrl = searchParams.get("input")?.trim() ?? "";
+  const showResultChrome = Boolean(result) && !loading && !fetchError;
+
+  useResultPageChrome(showResultChrome);
+
+  const releaseResultInteractions = useCallback(() => {
+    loadGenerationRef.current += 1;
+    abortActiveRequest();
+    stopVoicePlayback();
+    setLoading(false);
+  }, [abortActiveRequest]);
+
+  useEffect(() => {
+    return () => {
+      releaseResultInteractions();
+    };
+  }, [pathname, releaseResultInteractions]);
 
   useEffect(() => {
     const generation = ++loadGenerationRef.current;
@@ -132,56 +152,56 @@ export function DictionaryResultView() {
     };
   }, [inputFromUrl, searchParams, preferences, beginRequest, finishRequest, isActiveRequest, isAbortError, abortActiveRequest]);
 
-  if (loading) {
-    return <LoadingState title="Looking up" label="Looking up…" />;
-  }
+  return (
+    <>
+      <ResultPageHomeButton onBeforeNavigate={releaseResultInteractions} />
 
-  if (fetchError) {
-    return (
-      <div className="space-y-4">
-        <CompactAlert variant="error">
-          <strong>Lookup failed.</strong> {fetchError}
-        </CompactAlert>
-        <Link
-          href="/dictionary"
-          className="inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)]"
-        >
-          Try again
-        </Link>
-      </div>
-    );
-  }
+      {loading && <LoadingState title="Looking up" label="Looking up…" />}
 
-  if (!result) {
-    return (
-      <EmptyState
-        title="No result found"
-        description="Submit a lookup from the dictionary page to see a structured result here."
-        action={
+      {!loading && fetchError && (
+        <div className="space-y-4">
+          <CompactAlert variant="error">
+            <strong>Lookup failed.</strong> {fetchError}
+          </CompactAlert>
           <Link
             href="/dictionary"
             className="inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)]"
           >
-            Back to search
+            Try again
           </Link>
-        }
-      />
-    );
-  }
-
-  return (
-    <>
-      {fromCache && (
-        <p className="mb-2 text-[10px] font-medium text-[var(--muted)]" role="status">
-          Loaded from recent cache
-        </p>
+        </div>
       )}
-      <DictionaryResultCard
-        query={result.query}
-        entry={result.entry}
-        source={result.source}
-        diagnostics={result.diagnostics}
-      />
+
+      {!loading && !fetchError && !result && (
+        <EmptyState
+          title="No result found"
+          description="Submit a lookup from the dictionary page to see a structured result here."
+          action={
+            <Link
+              href="/dictionary"
+              className="inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)]"
+            >
+              Back to search
+            </Link>
+          }
+        />
+      )}
+
+      {!loading && !fetchError && result && (
+        <>
+          {fromCache && (
+            <p className="mb-2 text-[10px] font-medium text-[var(--muted)]" role="status">
+              Loaded from recent cache
+            </p>
+          )}
+          <DictionaryResultCard
+            query={result.query}
+            entry={result.entry}
+            source={result.source}
+            diagnostics={result.diagnostics}
+          />
+        </>
+      )}
     </>
   );
 }

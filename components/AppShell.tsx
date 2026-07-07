@@ -84,7 +84,7 @@ export function AppShell({ children }: AppShellProps) {
     <>
       <ServiceWorkerRegister />
       <ClientErrorReporter />
-      {process.env.NODE_ENV === "development" && <TapDiagnostics />}
+      <TapDiagnostics />
     </>
   );
 
