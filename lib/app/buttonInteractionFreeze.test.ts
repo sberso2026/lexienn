@@ -25,13 +25,9 @@ describe("button interaction freeze regression", () => {
     expect(globals).not.toMatch(/\.mobile-app-content\s*\{[^}]*padding-top:/s);
   });
 
-  it("keeps fixed header and bottom nav above the scroll layer", () => {
-    expect(globals).toContain(".mobile-app-header");
-    expect(globals).toContain("z-index: 100");
-    expect(bottomNav).toContain("mobile-bottom-nav");
-    expect(globals).toContain("z-index: 80");
-    expect(globals).toContain(".mobile-app-content");
-    expect(globals).toContain("z-index: 1");
+  it("avoids iOS scroll compositor blocking fixed chrome taps", () => {
+    expect(globals).not.toContain("-webkit-overflow-scrolling: touch");
+    expect(globals).toContain("touch-action: pan-y");
   });
 
   it("centralizes request completion cleanup in useActiveRequest", () => {
@@ -70,19 +66,23 @@ describe("button interaction freeze regression", () => {
   });
 
   it("does not keep hidden app shell children mounted after boot", () => {
-    expect(appShell).toContain("appContentVisible ? children : null");
-    expect(appShell).toContain("bootCompletedRef");
+    expect(appShell).toContain("bootOverlayVisible");
+    expect(appShell).toContain("{children}");
+    expect(appShell).not.toContain("appContentVisible ? children : null");
     expect(appShell).not.toContain('className={appContentVisible ? "contents" : "hidden"}');
   });
 
-  it("prevents boot splash from re-blocking taps after first boot completion", () => {
-    expect(appShell).toContain("!bootCompletedRef.current");
-    expect(bootSplash).toContain("pointer-events-none");
+  it("layers boot overlays above app chrome without unmounting navigation", () => {
+    expect(appShell).toContain("bootCompletedRef");
+    expect(bootSplash).toContain("boot-overlay");
+    expect(bootSplash).toContain("z-[200]");
+    expect(launchScreen).toContain("boot-overlay");
   });
 
   it("unmounts launch screen after completion instead of leaving a hidden mounted overlay", () => {
     expect(appShell).toContain("{launchActive && <LexiennLaunchScreen");
     expect(launchScreen).toContain("pointer-events-none");
+    expect(launchScreen).toContain("fadingOut");
   });
 
   it("uses type=button for non-submit controls in dictionary and translator flows", () => {

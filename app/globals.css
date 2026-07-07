@@ -129,6 +129,8 @@ body {
   left: 0;
   right: 0;
   z-index: 100;
+  pointer-events: auto;
+  transform: translateZ(0);
 }
 
 .mobile-app-content {
@@ -139,8 +141,8 @@ body {
   bottom: var(--mobile-content-bottom);
   z-index: 1;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 .mobile-app-content--with-result-actions {
@@ -156,6 +158,7 @@ body {
   bottom: calc(var(--app-bottom-nav-height) + var(--safe-area-bottom));
   z-index: 90;
   pointer-events: none;
+  transform: translateZ(0);
 }
 
 .result-action-bar-buttons {
@@ -202,6 +205,9 @@ body {
   right: 0;
   bottom: 0;
   z-index: 80;
+  pointer-events: auto;
+  transform: translateZ(0);
+  touch-action: manipulation;
   padding-bottom: var(--safe-area-bottom);
 }
 

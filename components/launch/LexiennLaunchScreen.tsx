@@ -99,7 +99,7 @@ export function LexiennLaunchScreen({ onComplete }: LexiennLaunchScreenProps) {
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-[radial-gradient(circle_at_center,#1a3f6b_0%,#0b1f38_70%)] px-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] transition-opacity duration-300 ${
+      className={`boot-overlay fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[radial-gradient(circle_at_center,#1a3f6b_0%,#0b1f38_70%)] px-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] transition-opacity duration-300 ${
         fadingOut ? "pointer-events-none opacity-0" : "opacity-100"
       }`}
       role="dialog"

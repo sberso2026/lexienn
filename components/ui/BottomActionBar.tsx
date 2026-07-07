@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useLayoutEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 interface BottomActionBarProps {
@@ -52,7 +52,7 @@ export function BottomActionBar({
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [useMobileChrome, setUseMobileChrome] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setPortalRoot(document.getElementById(MOBILE_CHROME_ROOT_ID));
 
     const media = window.matchMedia("(max-width: 767px)");

@@ -221,6 +221,7 @@ export function DictionaryLookupForm({
         if (error instanceof DictionaryApiError) {
           setFormError(error.message);
         } else {
+          console.error("[dictionary.lookup] unexpected_error", error);
           setFormError("Could not generate a dictionary result. Please try again.");
         }
       } finally {

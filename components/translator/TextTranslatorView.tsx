@@ -166,6 +166,9 @@ export function TextTranslatorView() {
           : "Could not translate. Try again.",
       );
       setRequestState("error");
+      if (!(error instanceof TranslatorApiError)) {
+        console.error("[translator.translate] unexpected_error", error);
+      }
     } finally {
       finishRequest(requestKey);
       if (generation !== submitGenerationRef.current) return;

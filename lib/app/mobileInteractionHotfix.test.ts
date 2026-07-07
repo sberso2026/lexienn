@@ -30,8 +30,9 @@ describe("mobile interaction hotfix", () => {
     expect(finallyBlock).not.toMatch(/if \(isActiveRequest\(requestKey\)\)/);
   });
 
-  it("does not keep hidden app shell children mounted after boot", () => {
-    expect(appShell).toContain("appContentVisible ? children : null");
+  it("does not unmount navigation chrome when boot overlays are visible", () => {
+    expect(appShell).toContain("{children}");
+    expect(appShell).not.toContain("appContentVisible ? children : null");
     expect(appShell).not.toContain('className={appContentVisible ? "contents" : "hidden"}');
   });
 

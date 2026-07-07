@@ -86,9 +86,10 @@ describe("PWA app shell layout and navigation", () => {
     expect(home).toContain('redirect("/dictionary")');
   });
 
-  it("hides app content until launch completes in standalone PWA boot", () => {
+  it("hides app content behind boot overlays until launch completes in standalone PWA boot", () => {
     expect(appShell).toContain("appContentVisible");
-    expect(appShell).toContain("appContentVisible ? children : null");
+    expect(appShell).toContain("bootOverlayVisible");
+    expect(appShell).toContain("{children}");
     expect(appShell).not.toContain('aria-hidden={!appContentVisible}');
     expect(appShell).toContain("shouldShowMobileInstallGate");
     expect(appShell).toContain("shouldShowLaunchScreen");

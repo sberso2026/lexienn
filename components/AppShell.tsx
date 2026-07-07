@@ -25,15 +25,20 @@ interface AppShellProps {
   children: ReactNode;
 }
 
+/**
+ * Boot overlays are layered above app chrome; navigation/header/bottom nav stay
+ * mounted after the install gate so entry creation never unmounts interactive UI.
+ */
 export function AppShell({ children }: AppShellProps) {
+  const seenLaunchBefore = hasSeenLaunchBefore();
   const [bootState, setBootState] = useState<ReturnType<typeof resolveAppBootState>>({
     auth: "checking",
     showSignIn: false,
   });
   const [installGateOpen, setInstallGateOpen] = useState(false);
   const [showLaunch, setShowLaunch] = useState(false);
-  const [appContentVisible, setAppContentVisible] = useState(false);
-  const bootCompletedRef = useRef(false);
+  const [appContentVisible, setAppContentVisible] = useState(seenLaunchBefore);
+  const bootCompletedRef = useRef(seenLaunchBefore);
 
   useEffect(() => {
     const bootStarted = performance.now();
@@ -54,7 +59,7 @@ export function AppShell({ children }: AppShellProps) {
     const launch = shouldShowLaunchScreen();
     setShowLaunch(launch);
     if (!launch) {
-      const splashMs = hasSeenLaunchBefore() ? 0 : MAX_BOOT_SPLASH_MS;
+      const splashMs = seenLaunchBefore ? 0 : MAX_BOOT_SPLASH_MS;
       const timer = window.setTimeout(() => {
         bootCompletedRef.current = true;
         setAppContentVisible(true);
@@ -62,7 +67,7 @@ export function AppShell({ children }: AppShellProps) {
       }, splashMs);
       return () => window.clearTimeout(timer);
     }
-  }, []);
+  }, [seenLaunchBefore]);
 
   const handleLaunchComplete = useCallback(() => {
     bootCompletedRef.current = true;
@@ -116,13 +121,14 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   const launchActive = showLaunch && !appContentVisible;
+  const bootOverlayVisible = !launchActive && !appContentVisible && !bootCompletedRef.current;
 
   return (
     <>
       {shellOverlay}
+      {children}
       {launchActive && <LexiennLaunchScreen onComplete={handleLaunchComplete} />}
-      {!launchActive && !appContentVisible && !bootCompletedRef.current && <LexiennBootSplash />}
-      {appContentVisible ? children : null}
+      {bootOverlayVisible && <LexiennBootSplash />}
     </>
   );
 }

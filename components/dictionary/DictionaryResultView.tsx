@@ -75,73 +75,81 @@ export function DictionaryResultView() {
     const generation = ++loadGenerationRef.current;
 
     async function loadResult() {
-      setFetchError(null);
-      setFromCache(false);
+      try {
+        setFetchError(null);
+        setFromCache(false);
 
-      if (inputFromUrl) {
-        setLoading(true);
-        const query = buildDictionaryQueryFromSearchParams(searchParams, preferences);
-        if (!query) {
-          if (generation !== loadGenerationRef.current) return;
-          setResult(null);
-          setLoading(false);
-          setFetchError("Invalid dictionary lookup parameters.");
+        if (inputFromUrl) {
+          setLoading(true);
+          const query = buildDictionaryQueryFromSearchParams(searchParams, preferences);
+          if (!query) {
+            if (generation !== loadGenerationRef.current) return;
+            setResult(null);
+            setLoading(false);
+            setFetchError("Invalid dictionary lookup parameters.");
+            return;
+          }
+
+          const stored = loadDictionaryResult();
+          if (stored && dictionaryQueriesMatch(stored.query, query)) {
+            if (generation !== loadGenerationRef.current) return;
+            setResult(stored);
+            setLoading(false);
+            return;
+          }
+
+          const requestKey = buildDictionaryRequestKey(query);
+          const signal = beginRequest(requestKey);
+
+          try {
+            const { response, fromCache: cached } = await generateDictionaryEntryViaApi(
+              query,
+              { signal },
+            );
+            if (generation !== loadGenerationRef.current || !isActiveRequest(requestKey)) return;
+
+            const next: StoredDictionaryResult = {
+              query: response.query,
+              entry: response.entry,
+              source: response.source,
+              diagnostics: response.diagnostics,
+            };
+            saveDictionaryResult(next);
+            setResult(next);
+            setFromCache(cached);
+          } catch (error) {
+            if (isAbortError(error) || generation !== loadGenerationRef.current) return;
+            if (!isActiveRequest(requestKey)) return;
+            setResult(null);
+            setFetchError(
+              error instanceof DictionaryApiError
+                ? error.message
+                : "Failed to load dictionary result.",
+            );
+          } finally {
+            finishRequest(requestKey);
+            if (generation === loadGenerationRef.current) {
+              setLoading(false);
+            }
+          }
           return;
         }
 
         const stored = loadDictionaryResult();
-        if (stored && dictionaryQueriesMatch(stored.query, query)) {
-          if (generation !== loadGenerationRef.current) return;
-          setResult(stored);
-          setLoading(false);
-          return;
-        }
-
-        const requestKey = buildDictionaryRequestKey(query);
-        const signal = beginRequest(requestKey);
-
-        try {
-          const { response, fromCache: cached } = await generateDictionaryEntryViaApi(
-            query,
-            { signal },
-          );
-          if (generation !== loadGenerationRef.current || !isActiveRequest(requestKey)) return;
-
-          const next: StoredDictionaryResult = {
-            query: response.query,
-            entry: response.entry,
-            source: response.source,
-            diagnostics: response.diagnostics,
-          };
-          saveDictionaryResult(next);
-          setResult(next);
-          setFromCache(cached);
-        } catch (error) {
-          if (isAbortError(error) || generation !== loadGenerationRef.current) return;
-          if (!isActiveRequest(requestKey)) return;
+        if (generation !== loadGenerationRef.current) return;
+        if (stored && !paramsMatchResult(searchParams, stored)) {
           setResult(null);
-          setFetchError(
-            error instanceof DictionaryApiError
-              ? error.message
-              : "Failed to load dictionary result.",
-          );
-        } finally {
-          finishRequest(requestKey);
-          if (generation === loadGenerationRef.current) {
-            setLoading(false);
-          }
+        } else {
+          setResult(stored);
         }
-        return;
-      }
-
-      const stored = loadDictionaryResult();
-      if (generation !== loadGenerationRef.current) return;
-      if (stored && !paramsMatchResult(searchParams, stored)) {
+        setLoading(false);
+      } catch (error) {
+        console.error("[dictionary.result] unexpected_error", error);
+        if (generation !== loadGenerationRef.current) return;
         setResult(null);
-      } else {
-        setResult(stored);
+        setLoading(false);
+        setFetchError("Failed to load dictionary result.");
       }
-      setLoading(false);
     }
 
     void loadResult();
