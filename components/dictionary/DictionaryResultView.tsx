@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DictionaryResultCard } from "@/components/dictionary/DictionaryResultCard";
 import { ResultPageHomeButton } from "@/components/dictionary/ResultPageHomeButton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -22,143 +22,207 @@ import {
   type StoredDictionaryResult,
 } from "@/lib/dictionary/resultStorage";
 import { buildDictionaryRequestKey, dictionaryQueriesMatch } from "@/lib/request/requestKeys";
+import type { DictionaryQuery } from "@/lib/schemas";
+import type { UserPreferences } from "@/lib/settings/userPreferences";
 import { stopVoicePlayback } from "@/lib/voice/audioPlayback";
 
-function paramsMatchResult(
-  searchParams: URLSearchParams,
-  result: StoredDictionaryResult,
+function areDictionaryResultsEquivalent(
+  previous: StoredDictionaryResult | null,
+  next: StoredDictionaryResult | null,
 ): boolean {
-  const input = searchParams.get("input");
-  const target = searchParams.get("target");
-  const context = searchParams.get("context");
+  if (previous === next) return true;
+  if (!previous || !next) return false;
+  return dictionaryQueriesMatch(previous.query, next.query);
+}
 
-  if (!input && !target && !context) return true;
-
-  return (
-    (!input || input === result.query.input_text) &&
-    (!target || target === result.query.target_language) &&
-    (!context || context === result.query.user_context)
-  );
+function buildResultRequestKey(
+  searchParams: URLSearchParams,
+  preferences: UserPreferences,
+): string {
+  const query = buildDictionaryQueryFromSearchParams(searchParams, preferences);
+  if (!query) return "";
+  return buildDictionaryRequestKey(query);
 }
 
 export function DictionaryResultView() {
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { preferences } = useUserPreferences();
-  const { beginRequest, finishRequest, isActiveRequest, isAbortError, abortActiveRequest } =
-    useActiveRequest();
+  const activeRequest = useActiveRequest();
   const [result, setResult] = useState<StoredDictionaryResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
   const loadGenerationRef = useRef(0);
+  const hydratedRequestKeyRef = useRef<string | null>(null);
+
+  const searchParamsRef = useRef(searchParams);
+  const preferencesRef = useRef(preferences);
+  const activeRequestRef = useRef(activeRequest);
+
+  searchParamsRef.current = searchParams;
+  preferencesRef.current = preferences;
+  activeRequestRef.current = activeRequest;
 
   const inputFromUrl = searchParams.get("input")?.trim() ?? "";
-  const showResultChrome = Boolean(result) && !loading && !fetchError;
+  const sourceFromUrl = searchParams.get("source") ?? "";
+  const targetFromUrl = searchParams.get("target") ?? "";
+  const contextFromUrl = searchParams.get("context") ?? "";
+  const levelFromUrl = searchParams.get("level") ?? "";
+  const modeFromUrl = searchParams.get("mode") ?? "";
 
+  const requestKey = useMemo(() => {
+    const params = new URLSearchParams();
+    if (inputFromUrl) params.set("input", inputFromUrl);
+    if (sourceFromUrl) params.set("source", sourceFromUrl);
+    if (targetFromUrl) params.set("target", targetFromUrl);
+    if (contextFromUrl) params.set("context", contextFromUrl);
+    if (levelFromUrl) params.set("level", levelFromUrl);
+    if (modeFromUrl) params.set("mode", modeFromUrl);
+    const preferenceDefaults: Pick<
+      UserPreferences,
+      | "default_source_language"
+      | "default_target_language"
+      | "default_user_context"
+      | "default_explanation_level"
+    > = {
+      default_source_language: preferences.default_source_language,
+      default_target_language: preferences.default_target_language,
+      default_user_context: preferences.default_user_context,
+      default_explanation_level: preferences.default_explanation_level,
+    };
+    return buildResultRequestKey(params, preferenceDefaults as UserPreferences);
+  }, [
+    inputFromUrl,
+    sourceFromUrl,
+    targetFromUrl,
+    contextFromUrl,
+    levelFromUrl,
+    modeFromUrl,
+    preferences.default_source_language,
+    preferences.default_target_language,
+    preferences.default_user_context,
+    preferences.default_explanation_level,
+  ]);
+
+  const showResultChrome = Boolean(result) && !loading && !fetchError;
   useResultPageChrome(showResultChrome);
 
   const releaseResultInteractions = useCallback(() => {
     loadGenerationRef.current += 1;
-    abortActiveRequest();
+    activeRequestRef.current.abortActiveRequest();
     stopVoicePlayback();
-    setLoading(false);
-  }, [abortActiveRequest]);
+    setLoading((previous) => (previous ? false : previous));
+  }, []);
 
   useEffect(() => {
     return () => {
-      releaseResultInteractions();
+      loadGenerationRef.current += 1;
+      activeRequestRef.current.abortActiveRequest();
+      stopVoicePlayback();
     };
-  }, [pathname, releaseResultInteractions]);
+  }, []);
 
   useEffect(() => {
+    if (!requestKey) {
+      setFetchError((previous) => (previous === null ? previous : null));
+      setFromCache((previous) => (previous ? false : previous));
+      setLoading((previous) => (previous ? false : previous));
+      setResult((previous) => (previous === null ? previous : null));
+      return;
+    }
+
+    let cancelled = false;
     const generation = ++loadGenerationRef.current;
 
-    async function loadResult() {
-      try {
-        setFetchError(null);
-        setFromCache(false);
+    const query = buildDictionaryQueryFromSearchParams(
+      searchParamsRef.current,
+      preferencesRef.current,
+    ) as DictionaryQuery | null;
 
-        if (inputFromUrl) {
-          setLoading(true);
-          const query = buildDictionaryQueryFromSearchParams(searchParams, preferences);
-          if (!query) {
-            if (generation !== loadGenerationRef.current) return;
-            setResult(null);
-            setLoading(false);
-            setFetchError("Invalid dictionary lookup parameters.");
-            return;
-          }
+    if (!query) {
+      setResult((previous) => (previous === null ? previous : null));
+      setLoading((previous) => (previous ? false : previous));
+      setFetchError((previous) =>
+        previous === "Invalid dictionary lookup parameters."
+          ? previous
+          : "Invalid dictionary lookup parameters.",
+      );
+      return;
+    }
 
-          const stored = loadDictionaryResult();
-          if (stored && dictionaryQueriesMatch(stored.query, query)) {
-            if (generation !== loadGenerationRef.current) return;
-            setResult(stored);
-            setLoading(false);
-            return;
-          }
+    const resolvedQuery = query;
 
-          const requestKey = buildDictionaryRequestKey(query);
-          const signal = beginRequest(requestKey);
+    async function run() {
+      const { beginRequest, finishRequest, isActiveRequest, isAbortError } =
+        activeRequestRef.current;
 
-          try {
-            const { response, fromCache: cached } = await generateDictionaryEntryViaApi(
-              query,
-              { signal },
-            );
-            if (generation !== loadGenerationRef.current || !isActiveRequest(requestKey)) return;
+      setLoading((previous) => (previous ? previous : true));
+      setFetchError((previous) => (previous === null ? previous : null));
+      setFromCache((previous) => (previous ? false : previous));
 
-            const next: StoredDictionaryResult = {
-              query: response.query,
-              entry: response.entry,
-              source: response.source,
-              diagnostics: response.diagnostics,
-            };
-            saveDictionaryResult(next);
-            setResult(next);
-            setFromCache(cached);
-          } catch (error) {
-            if (isAbortError(error) || generation !== loadGenerationRef.current) return;
-            if (!isActiveRequest(requestKey)) return;
-            setResult(null);
-            setFetchError(
-              error instanceof DictionaryApiError
-                ? error.message
-                : "Failed to load dictionary result.",
-            );
-          } finally {
-            finishRequest(requestKey);
-            if (generation === loadGenerationRef.current) {
-              setLoading(false);
-            }
-          }
+      if (hydratedRequestKeyRef.current !== requestKey) {
+        const stored = loadDictionaryResult();
+        if (stored && dictionaryQueriesMatch(stored.query, resolvedQuery)) {
+          hydratedRequestKeyRef.current = requestKey;
+          if (cancelled || generation !== loadGenerationRef.current) return;
+          setResult((previous) =>
+            areDictionaryResultsEquivalent(previous, stored) ? previous : stored,
+          );
+          setLoading((previous) => (previous ? false : previous));
           return;
         }
+        hydratedRequestKeyRef.current = requestKey;
+      }
 
-        const stored = loadDictionaryResult();
-        if (generation !== loadGenerationRef.current) return;
-        if (stored && !paramsMatchResult(searchParams, stored)) {
-          setResult(null);
-        } else {
-          setResult(stored);
-        }
-        setLoading(false);
+      const apiRequestKey = buildDictionaryRequestKey(resolvedQuery);
+      const signal = beginRequest(apiRequestKey);
+
+      try {
+        const { response, fromCache: cached } = await generateDictionaryEntryViaApi(resolvedQuery, {
+          signal,
+        });
+        if (cancelled || generation !== loadGenerationRef.current) return;
+        if (!isActiveRequest(apiRequestKey)) return;
+
+        const next: StoredDictionaryResult = {
+          query: response.query,
+          entry: response.entry,
+          source: response.source,
+          diagnostics: response.diagnostics,
+        };
+        saveDictionaryResult(next);
+        setResult((previous) =>
+          areDictionaryResultsEquivalent(previous, next) ? previous : next,
+        );
+        setFromCache((previous) => (previous === cached ? previous : cached));
       } catch (error) {
-        console.error("[dictionary.result] unexpected_error", error);
-        if (generation !== loadGenerationRef.current) return;
-        setResult(null);
-        setLoading(false);
-        setFetchError("Failed to load dictionary result.");
+        if (cancelled || generation !== loadGenerationRef.current) return;
+        if (isAbortError(error) || !isActiveRequest(apiRequestKey)) return;
+        setResult((previous) => (previous === null ? previous : null));
+        const message =
+          error instanceof DictionaryApiError
+            ? error.message
+            : "Failed to load dictionary result.";
+        setFetchError((previous) => (previous === message ? previous : message));
+        if (!(error instanceof DictionaryApiError)) {
+          console.error("[dictionary.result] unexpected_error", error);
+        }
+      } finally {
+        finishRequest(apiRequestKey);
+        if (!cancelled && generation === loadGenerationRef.current) {
+          setLoading((previous) => (previous ? false : previous));
+        }
       }
     }
 
-    void loadResult();
+    void run();
 
     return () => {
+      cancelled = true;
       loadGenerationRef.current += 1;
-      abortActiveRequest();
+      activeRequestRef.current.abortActiveRequest();
     };
-  }, [inputFromUrl, searchParams, preferences, beginRequest, finishRequest, isActiveRequest, isAbortError, abortActiveRequest]);
+  }, [requestKey]);
 
   return (
     <>

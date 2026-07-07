@@ -58,7 +58,8 @@ describe("result page interaction freeze regression", () => {
     expect(dictionaryResult).toContain("abortActiveRequest");
     expect(dictionaryResult).toContain("stopVoicePlayback");
     expect(dictionaryResult).toContain("loadGenerationRef.current += 1");
-    expect(dictionaryResult).toContain("pathname");
+    expect(dictionaryResult).toContain("releaseResultInteractions");
+    expect(dictionaryResult).not.toContain("usePathname");
   });
 
   it("keeps bottom navigation outside the scroll layer and tappable", () => {

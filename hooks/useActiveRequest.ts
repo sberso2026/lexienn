@@ -34,6 +34,13 @@ export function useActiveRequest() {
     requestKeyRef.current = null;
   }, []);
 
+  const isAbortError = useCallback(
+    (error: unknown) =>
+      error instanceof RequestAbortError ||
+      (error instanceof DOMException && error.name === "AbortError"),
+    [],
+  );
+
   useEffect(() => () => controllerRef.current?.abort(), []);
 
   return {
@@ -41,8 +48,6 @@ export function useActiveRequest() {
     beginRequest,
     finishRequest,
     isActiveRequest,
-    isAbortError: (error: unknown) =>
-      error instanceof RequestAbortError ||
-      (error instanceof DOMException && error.name === "AbortError"),
+    isAbortError,
   };
 }

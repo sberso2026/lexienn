@@ -26,7 +26,7 @@ describe("mobile interaction hotfix", () => {
 
   it("always clears dictionary result loading overlay in finally", () => {
     const finallyBlock = dictionaryResult.slice(dictionaryResult.indexOf("} finally {"));
-    expect(finallyBlock).toContain("setLoading(false)");
+    expect(finallyBlock).toMatch(/setLoading\(\(previous\) => \(previous \? false : previous\)\)/);
     expect(finallyBlock).not.toMatch(/if \(isActiveRequest\(requestKey\)\)/);
   });
 

@@ -55,7 +55,7 @@ describe("button interaction freeze regression", () => {
     expect(dictionaryResult).toContain("loadGenerationRef");
     expect(dictionaryResult).toContain("generation === loadGenerationRef.current");
     const finallyBlock = dictionaryResult.slice(dictionaryResult.indexOf("} finally {"));
-    expect(finallyBlock).toContain("setLoading(false)");
+    expect(finallyBlock).toMatch(/setLoading\(\(previous\) => \(previous \? false : previous\)\)/);
     expect(finallyBlock).not.toMatch(/if \(isActiveRequest\(requestKey\)\)\s*\{\s*setLoading\(false\)/);
   });
 
