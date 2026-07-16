@@ -21,7 +21,7 @@ export function AppNav() {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`inline-flex min-h-9 items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
                     isActive
                       ? "bg-[var(--accent)] text-white"
                       : "text-[var(--muted)] hover:bg-[var(--background)] hover:text-[var(--foreground)]"

@@ -1,5 +1,10 @@
-import { redirect } from "next/navigation";
+import { HomeDashboard } from "@/components/home/HomeDashboard";
+import { PageContainer } from "@/components/layout/PageContainer";
 
 export default function HomePage() {
-  redirect("/dictionary");
+  return (
+    <PageContainer hideHeader>
+      <HomeDashboard />
+    </PageContainer>
+  );
 }

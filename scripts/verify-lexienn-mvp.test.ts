@@ -426,13 +426,13 @@ describe("Lexienn MVP verification", () => {
     expect(diagnostics).toContain("runMicDiagnosticsTest");
   });
 
-  it("batch 30 mobile bottom nav uses compact Define/Translate labels", () => {
+  it("batch 45A mobile bottom nav uses enterprise product labels", () => {
     const nav = readFileSync("components/layout/MobileBottomNav.tsx", "utf8");
     const config = readFileSync("lib/navigation/navConfig.tsx", "utf8");
     expect(nav).toContain("MAIN_NAV_ITEMS");
-    expect(config).toContain('label: "Home"');
-    expect(config).toContain('label: "Translate"');
-    expect(config).toContain('label: "Packs"');
+    for (const label of ["Define", "Translate", "Lens", "Library", "More"]) {
+      expect(config).toContain(`label: "${label}"`);
+    }
     expect(nav).toContain("md:hidden");
   });
 

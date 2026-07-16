@@ -1,52 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f6f9;
+  color-scheme: light;
+  --background: #f6f8fb;
   --foreground: #0f172a;
   --card: #ffffff;
   --card-border: #e2e8f0;
-  --border-subtle: #eef2f6;
+  --border-subtle: #edf1f5;
   --muted: #64748b;
-  --accent: #1e3a5f;
-  --accent-hover: #152a45;
-  --accent-soft: #eef2ff;
-  --accent-indigo: #4f46e5;
+  --accent: #163a63;
+  --accent-hover: #0f2d4d;
+  --accent-soft: #edf3f8;
+  --accent-indigo: #245f9b;
   --badge-success: #15803d;
   --badge-warning: #b45309;
   --badge-danger: #b91c1c;
-  --focus-ring: #4f46e5;
-  --shadow-card: 0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.06);
-  --shadow-elevated: 0 4px 12px -2px rgb(15 23 42 / 0.08), 0 2px 6px -2px rgb(15 23 42 / 0.04);
-  --radius-lg: 1rem;
-  --radius-xl: 1.25rem;
+  --focus-ring: #2b6cb0;
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04);
+  --shadow-elevated: 0 3px 10px -3px rgb(15 23 42 / 0.12);
+  --radius-lg: 0.75rem;
+  --radius-xl: 0.875rem;
   --badge-info: #1d4ed8;
   --space-compact: 0.75rem;
+  --space-page: 1rem;
+  --space-section: 1.25rem;
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --header-height: 3rem;
-  --header-mobile-rows: 4.75rem;
-  --app-header-offset-mobile: 4.75rem;
+  --header-mobile-rows: 5.75rem;
+  --app-header-offset-mobile: 5.75rem;
   --app-bottom-nav-height: 4rem;
   --nav-height: var(--app-bottom-nav-height);
   --result-action-bar-height: 3.75rem;
   --mobile-content-top: calc(var(--app-header-offset-mobile) + var(--safe-area-top));
   --mobile-content-bottom: calc(var(--app-bottom-nav-height) + var(--safe-area-bottom));
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0b1220;
-    --foreground: #f1f5f9;
-    --card: #111827;
-    --card-border: #1f2937;
-    --border-subtle: #1a2332;
-    --muted: #94a3b8;
-    --accent: #3b82f6;
-    --accent-hover: #60a5fa;
-    --accent-soft: #1e293b;
-    --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.3);
-    --shadow-elevated: 0 4px 12px -2px rgb(0 0 0 / 0.4);
-  }
 }
 
 html {
@@ -104,6 +91,14 @@ body {
   border: 1px solid var(--card-border);
   background: var(--card);
   box-shadow: var(--shadow-card);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
 }
 
 .safe-bottom {

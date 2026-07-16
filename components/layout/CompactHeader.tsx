@@ -33,18 +33,28 @@ function SpeakerIcon() {
   );
 }
 
+function DownloadIcon() {
+  return (
+    <svg aria-hidden className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14" />
+    </svg>
+  );
+}
+
 function HeaderStatusRow({
   showPair,
   fromLabel,
   toLabel,
   online,
   voiceReady,
+  offlineReady,
 }: {
   showPair: boolean;
   fromLabel: string;
   toLabel: string;
   online: boolean;
   voiceReady: boolean;
+  offlineReady: boolean;
 }) {
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -64,6 +74,9 @@ function HeaderStatusRow({
       >
         <StatusChip label="Voice" variant="info" icon={<SpeakerIcon />} />
       </span>
+      {offlineReady && (
+        <StatusChip label="Offline Ready" variant="success" icon={<DownloadIcon />} />
+      )}
     </div>
   );
 }
@@ -72,11 +85,16 @@ function HeaderBrandLink({ className }: { className?: string }) {
   return (
     <Link
       href={HOME_ROUTE}
-      className={`shrink-0 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] ${className ?? ""}`}
+      className={`inline-flex min-h-11 shrink-0 items-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] ${className ?? ""}`}
       aria-label="Go to Lexienn home"
     >
-      <LexiennBrandLogo size="header-mobile" className="md:hidden" priority />
-      <LexiennBrandLogo size="header-desktop" className="hidden md:block" priority />
+      <span className="flex items-center gap-2">
+        <LexiennBrandLogo size="header-mobile" className="md:hidden" priority />
+        <LexiennBrandLogo size="header-desktop" className="hidden md:block" priority />
+        <span className="text-sm font-bold tracking-tight text-[var(--accent)] md:text-base">
+          Lexienn
+        </span>
+      </span>
     </Link>
   );
 }
@@ -90,8 +108,12 @@ export function CompactHeader({ className = "" }: { className?: string }) {
   const pageTitle = getPageTitle(pathname);
   const showPair =
     pathname.startsWith("/dictionary") ||
-    pathname.startsWith("/translator") ||
-    pathname.startsWith("/offline");
+    pathname.startsWith("/translator");
+  const offlineReady =
+    pathname === "/" ||
+    pathname.startsWith("/library") ||
+    pathname.startsWith("/offline") ||
+    pathname.startsWith("/phrase-packs");
 
   useEffect(() => {
     setOnline(typeof navigator !== "undefined" ? navigator.onLine : true);
@@ -127,6 +149,7 @@ export function CompactHeader({ className = "" }: { className?: string }) {
       toLabel={toLabel}
       online={online}
       voiceReady={voiceReady}
+      offlineReady={offlineReady}
     />
   );
 
@@ -138,12 +161,10 @@ export function CompactHeader({ className = "" }: { className?: string }) {
         <div className="flex flex-col gap-1.5 py-2 md:hidden">
           <div className="flex min-w-0 items-center gap-2.5">
             <HeaderBrandLink />
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--muted)]">
-                LEXIENN
-              </p>
-              <h1 className="truncate text-base font-semibold leading-tight">{pageTitle}</h1>
-            </div>
+            <span aria-hidden className="h-5 w-px bg-[var(--card-border)]" />
+            <h1 className="min-w-0 flex-1 truncate text-sm font-semibold leading-tight text-[var(--foreground)]">
+              {pageTitle}
+            </h1>
           </div>
           {statusRow}
         </div>
@@ -151,12 +172,10 @@ export function CompactHeader({ className = "" }: { className?: string }) {
         <div className="hidden h-[var(--header-height)] items-center justify-between gap-2 md:flex">
           <div className="flex min-w-0 items-center gap-2.5">
             <HeaderBrandLink />
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--muted)]">
-                LEXIENN
-              </p>
-              <h1 className="truncate text-base font-semibold leading-tight">{pageTitle}</h1>
-            </div>
+            <span aria-hidden className="h-6 w-px bg-[var(--card-border)]" />
+            <h1 className="truncate text-base font-semibold leading-tight text-[var(--foreground)]">
+              {pageTitle}
+            </h1>
           </div>
           {statusRow}
         </div>

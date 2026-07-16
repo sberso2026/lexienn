@@ -87,10 +87,13 @@ function verifyFilesystem() {
   console.log("\n== Filesystem & route checks ==");
 
   const routes = [
-    ["home redirect", "app/page.tsx"],
+    ["home dashboard", "app/page.tsx"],
     ["/dictionary", "app/dictionary/page.tsx"],
     ["/dictionary/result", "app/dictionary/result/page.tsx"],
     ["/translator", "app/translator/page.tsx"],
+    ["/lens", "app/lens/page.tsx"],
+    ["/library", "app/library/page.tsx"],
+    ["/more", "app/more/page.tsx"],
     ["POST /api/translator/translate", "app/api/translator/translate/route.ts"],
     ["POST /api/ocr/extract", "app/api/ocr/extract/route.ts"],
     ["GET /api/ocr/status", "app/api/ocr/status/route.ts"],
@@ -159,6 +162,7 @@ function verifyFilesystem() {
     "hooks/useVoiceInput.ts",
     "lib/navigation/navConfig.tsx",
     "components/layout/CompactHeader.tsx",
+    "components/home/HomeDashboard.tsx",
     "components/ui/IconButton.tsx",
     "components/ui/CompactCard.tsx",
     "components/ui/StatusChip.tsx",

@@ -25,4 +25,4 @@ export function isAppBootChecking(resolution: AppBootResolution): boolean {
   return resolution.auth === "checking";
 }
 
-export const HOME_ROUTE = "/dictionary";
+export const HOME_ROUTE = "/";

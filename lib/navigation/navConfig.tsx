@@ -10,8 +10,8 @@ export type NavItem = {
 export const MAIN_NAV_ITEMS: NavItem[] = [
   {
     href: "/dictionary",
-    label: "Home",
-    shortLabel: "Home",
+    label: "Define",
+    shortLabel: "Define",
     icon: (
       <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
@@ -29,33 +29,34 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    href: "/offline",
-    label: "Offline",
-    shortLabel: "Offline",
+    href: "/lens",
+    label: "Lens",
+    shortLabel: "Lens",
     icon: (
       <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V6a2 2 0 012-2h2m8 0h2a2 2 0 012 2v2m0 8v2a2 2 0 01-2 2h-2M8 20H6a2 2 0 01-2-2v-2" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 9h8v6H8z" />
       </svg>
     ),
   },
   {
-    href: "/phrase-packs",
-    label: "Packs",
-    shortLabel: "Packs",
+    href: "/library",
+    label: "Library",
+    shortLabel: "Library",
     icon: (
       <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M4 7c0-2 1-3 3-3h4c2 0 3 1 3 3M4 7h16M8 11h8" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 4.5A2.5 2.5 0 017.5 2H20v18H7.5A2.5 2.5 0 005 22V4.5z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 18.5A2.5 2.5 0 017.5 16H20" />
       </svg>
     ),
   },
   {
-    href: "/settings",
-    label: "Settings",
-    shortLabel: "Settings",
+    href: "/more",
+    label: "More",
+    shortLabel: "More",
     icon: (
       <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h.01M12 12h.01M19 12h.01" />
       </svg>
     ),
   },
@@ -64,19 +65,33 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
 export function isNavItemActive(pathname: string, href: string): boolean {
   if (pathname === href) return true;
   if (href === "/dictionary") return pathname.startsWith("/dictionary");
-  if (href === "/settings") return pathname.startsWith("/settings");
+  if (href === "/library") {
+    return (
+      pathname.startsWith("/library") ||
+      pathname.startsWith("/offline") ||
+      pathname.startsWith("/phrase-packs")
+    );
+  }
+  if (href === "/more") {
+    return pathname.startsWith("/more") || pathname.startsWith("/settings");
+  }
   return pathname.startsWith(href);
 }
 
 export const PAGE_TITLES: Record<string, string> = {
+  "/": "Home",
   "/dictionary": "Define",
   "/translator": "Translate",
+  "/lens": "Lens",
+  "/library": "Library",
+  "/more": "More",
   "/offline": "Offline",
-  "/phrase-packs": "Packs",
+  "/phrase-packs": "Profession Packs",
   "/settings": "Settings",
 };
 
 export function getPageTitle(pathname: string): string {
+  if (pathname === "/") return PAGE_TITLES["/"];
   if (pathname.startsWith("/dictionary/result")) return "Result";
   for (const [path, title] of Object.entries(PAGE_TITLES)) {
     if (pathname === path || pathname.startsWith(`${path}/`)) return title;

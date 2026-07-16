@@ -190,9 +190,10 @@ describe("PWA batch 44", () => {
     }
   });
 
-  it("home route redirects to translator", () => {
+  it("home route renders the Lexienn dashboard", () => {
     const home = readFileSync("app/page.tsx", "utf8");
-    expect(home).toContain('redirect("/dictionary")');
+    expect(home).toContain("HomeDashboard");
+    expect(home).not.toContain("redirect(");
   });
 
   it("Android install button calls beforeinstallprompt prompt", () => {

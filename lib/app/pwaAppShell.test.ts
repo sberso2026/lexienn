@@ -65,7 +65,7 @@ describe("PWA app shell layout and navigation", () => {
     expect(mobileBlock).not.toContain("absolute");
     expect(header).toContain("truncate");
     expect(header).toContain("min-w-0");
-    expect(header).toContain("LEXIENN");
+    expect(header).toContain("Lexienn");
   });
 
   it("does not render sign-in before auth boot completes", () => {
@@ -77,13 +77,13 @@ describe("PWA app shell layout and navigation", () => {
     expect(launch).toContain("Opening Lexienn");
   });
 
-  it("links header home action to the dictionary route", () => {
+  it("links the Lexienn header brand to the home dashboard", () => {
     expect(header).toContain('aria-label="Go to Lexienn home"');
     expect(header).toContain(`href={HOME_ROUTE}`);
-    expect(HOME_ROUTE).toBe("/dictionary");
+    expect(HOME_ROUTE).toBe("/");
     expect(nav).toContain('href: "/dictionary"');
-    expect(nav).toContain('shortLabel: "Home"');
-    expect(home).toContain('redirect("/dictionary")');
+    expect(nav).toContain('shortLabel: "Define"');
+    expect(home).toContain("<HomeDashboard />");
   });
 
   it("hides app content behind boot overlays until launch completes in standalone PWA boot", () => {
