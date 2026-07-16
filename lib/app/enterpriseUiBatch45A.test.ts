@@ -62,9 +62,9 @@ describe("Batch 45A enterprise UI foundation", () => {
 
   it("hides developer diagnostics when the public Developer Mode flag is false", () => {
     vi.stubEnv("NEXT_PUBLIC_ENABLE_DEVELOPER_MODE", "false");
-    const morePage = readFileSync("app/more/page.tsx", "utf8");
+    const morePage = readFileSync("components/settings/MoreSettingsView.tsx", "utf8");
     expect(isDeveloperModeFeatureEnabled()).toBe(false);
-    expect(morePage).toContain("developerModeEnabled &&");
+    expect(morePage).toContain("isDeveloperModeFeatureEnabled() &&");
     expect(morePage).toContain("Developer Diagnostics");
   });
 

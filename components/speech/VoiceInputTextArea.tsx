@@ -80,7 +80,7 @@ export function VoiceInputTextArea({
 
   const clearVisible = showClear && Boolean(onClear);
   const inputClass = `${fieldInputClassName(Boolean(error))} resize-y ${
-    compact ? `${clearVisible ? "pr-20" : "pr-12"} text-base` : clearVisible ? "pr-14" : ""
+    compact ? `${clearVisible ? "pr-24" : "pr-14"} text-base` : clearVisible ? "pr-14" : ""
   }`;
 
   return (
@@ -120,7 +120,7 @@ export function VoiceInputTextArea({
               label="Clear previous entry"
               size="sm"
               variant="ghost"
-              className="!min-h-9 !w-9"
+              className="!min-h-11 !w-11"
               onClick={handleClear}
             />
           )}
@@ -130,7 +130,7 @@ export function VoiceInputTextArea({
             disabled={disabled}
             onSpeak={handleSpeak}
             onStop={voice.stopListening}
-            className="!min-h-9 !px-2"
+            className="!min-h-11 !px-3"
           />
         </div>
       </div>

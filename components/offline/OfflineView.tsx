@@ -433,6 +433,15 @@ export function OfflineView() {
       )}
 
       <div className="space-y-5">
+      <section>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
+          Library · Offline
+        </p>
+        <h2 className="mt-1 text-xl font-semibold tracking-tight">Offline Packs</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+          Download language pairs, audio, and essential phrases for dependable offline use.
+        </p>
+      </section>
       <OfflineStatusBanner
         isOnline={isOnline}
         packState={bannerState}

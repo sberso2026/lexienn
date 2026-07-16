@@ -93,6 +93,35 @@ body {
   box-shadow: var(--shadow-card);
 }
 
+.enterprise-card {
+  animation: enterprise-card-in 180ms ease-out both;
+}
+
+@keyframes enterprise-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+button,
+a {
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    transform 100ms ease;
+}
+
+button:active:not(:disabled),
+a:active {
+  transform: scale(0.985);
+}
+
 button,
 a,
 input,
@@ -378,8 +407,16 @@ textarea {
 @media (prefers-reduced-motion: reduce) {
   .launch-piece,
   .launch-alignment,
-  .launch-complete {
+  .launch-complete,
+  .enterprise-card {
     animation: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

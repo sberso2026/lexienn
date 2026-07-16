@@ -35,6 +35,7 @@ import {
 } from "@/lib/languages/languageOptions";
 import { mockUserContextProfiles } from "@/lib/mock";
 import { dictionaryQuerySchema } from "@/lib/schemas";
+import type { UserContext } from "@/lib/schemas";
 
 const explanationLevels = [
   { value: "simple", label: "Simple" },
@@ -49,6 +50,25 @@ const outputModes = [
   { value: "explain_and_translate", label: "Explain & translate" },
   { value: "speak_to_local", label: "Speak to local" },
 ] as const;
+
+const enterpriseContexts: Array<{
+  value: string;
+  label: string;
+  requestContext: UserContext;
+}> = [
+  { value: "general", label: "General", requestContext: "general" },
+  { value: "engineering", label: "Engineering", requestContext: "engineer" },
+  { value: "healthcare", label: "Healthcare", requestContext: "health_emergency" },
+  { value: "travel", label: "Travel", requestContext: "traveller" },
+  { value: "business", label: "Business", requestContext: "business_owner" },
+  { value: "legal", label: "Legal", requestContext: "custom" },
+  { value: "education", label: "Education", requestContext: "student" },
+  { value: "emergency", label: "Emergency", requestContext: "health_emergency" },
+];
+
+function contextSelectionFor(context: UserContext): string {
+  return enterpriseContexts.find((option) => option.requestContext === context)?.value ?? "general";
+}
 
 type FormState = StoredDictionaryLookupForm & {
   target_language_selection: string;
@@ -92,6 +112,9 @@ export function DictionaryLookupForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [contextSelection, setContextSelection] = useState(() =>
+    contextSelectionFor(form.user_context),
+  );
   const submitGenerationRef = useRef(0);
 
   const handleClear = useCallback(() => {
@@ -107,14 +130,18 @@ export function DictionaryLookupForm({
   useEffect(() => {
     const saved = loadDictionaryLookupForm();
     if (saved) {
-      setForm(toFormState(saved, preferences));
+      const next = toFormState(saved, preferences);
+      setForm(next);
+      setContextSelection(contextSelectionFor(next.user_context));
       return;
     }
 
     const result = loadDictionaryResult();
     if (result?.query) {
       saveDictionaryLookupFormFromQuery(result.query);
-      setForm(toFormState(result.query as StoredDictionaryLookupForm, preferences));
+      const next = toFormState(result.query as StoredDictionaryLookupForm, preferences);
+      setForm(next);
+      setContextSelection(contextSelectionFor(next.user_context));
     }
   }, [preferences]);
 
@@ -125,7 +152,9 @@ export function DictionaryLookupForm({
   }, [prefillText, onPrefillApplied]);
 
   const contextLabel =
-    mockUserContextProfiles.find((p) => p.context === form.user_context)?.label ?? "General";
+    enterpriseContexts.find((option) => option.value === contextSelection)?.label ??
+    mockUserContextProfiles.find((p) => p.context === form.user_context)?.label ??
+    "General";
   const levelLabel =
     explanationLevels.find((l) => l.value === form.explanation_level)?.label ?? "Normal";
 
@@ -234,14 +263,21 @@ export function DictionaryLookupForm({
   }
 
   return (
-    <CompactCard>
+    <CompactCard className="enterprise-card">
       <form onSubmit={handleSubmit} className="space-y-3" noValidate>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
+            Language intelligence
+          </p>
+          <h2 className="mt-1 text-lg font-semibold tracking-tight">Define a word or phrase</h2>
+        </div>
+
         <VoiceInputTextArea
           id="input_text"
           label="Word or phrase"
           value={form.input_text}
           onChange={(value) => updateField("input_text", value)}
-          placeholder="Speak or type word/phrase…"
+          placeholder="Search a word or phrase…"
           error={fieldErrors.input_text}
           required
           rows={2}
@@ -271,19 +307,24 @@ export function DictionaryLookupForm({
           />
         </div>
 
-        <ExpandableSection summary={`Options: ${contextLabel} · ${levelLabel}`}>
-          <SelectField
-            id="user_context"
-            label="Context"
-            value={form.user_context}
-            onChange={(value) =>
-              updateField("user_context", value as FormState["user_context"])
-            }
-            options={mockUserContextProfiles.map((profile) => ({
-              value: profile.context,
-              label: profile.label,
-            }))}
-          />
+        <SelectField
+          id="user_context"
+          label="Context"
+          value={contextSelection}
+          onChange={(value) => {
+            const selected =
+              enterpriseContexts.find((option) => option.value === value) ??
+              enterpriseContexts[0];
+            setContextSelection(selected.value);
+            updateField("user_context", selected.requestContext);
+          }}
+          options={enterpriseContexts.map((option) => ({
+            value: option.value,
+            label: option.label,
+          }))}
+        />
+
+        <ExpandableSection summary={`Options · ${levelLabel} · ${contextLabel}`}>
           <SelectField
             id="explanation_level"
             label="Level"

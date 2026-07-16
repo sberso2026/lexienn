@@ -21,13 +21,13 @@ export default function LensPage() {
           </p>
         </section>
 
-        <div className="grid grid-cols-3 gap-2" role="tablist" aria-label="Lens modes">
+        <div className="grid grid-cols-3 gap-2" role="tablist" aria-label="Lens sections">
           {lensModes.map((mode) => (
             <div
               key={mode.label}
               role="tab"
               aria-selected={mode.active}
-              className={`flex min-h-16 flex-col justify-center rounded-xl border px-3 py-2 ${
+              className={`flex min-h-16 flex-col justify-center rounded-xl border px-2 py-2 ${
                 mode.active
                   ? "border-[var(--accent)] bg-[var(--accent)] text-white"
                   : "border-[var(--card-border)] bg-[var(--card)] text-[var(--muted)]"
@@ -41,11 +41,16 @@ export default function LensPage() {
           ))}
         </div>
 
-        <section className="card-surface p-4" aria-labelledby="lens-scanner-title">
-          <h2 id="lens-scanner-title" className="mb-4 text-sm font-semibold">
-            Scan Text
-          </h2>
+        <section aria-labelledby="lens-scanner-title">
+          <h2 id="lens-scanner-title" className="sr-only">Scan Text</h2>
           <CameraTranslatorView />
+        </section>
+
+        <section className="card-surface enterprise-card p-4" aria-labelledby="lens-history-title">
+          <h2 id="lens-history-title" className="text-sm font-semibold">History</h2>
+          <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+            Recent scans will appear here after you save translated text to Library.
+          </p>
         </section>
       </div>
     </PageContainer>

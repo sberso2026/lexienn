@@ -30,13 +30,14 @@ import {
 import { translatorRequestSchema } from "@/lib/translator/translatorSchemas";
 import { stopVoicePlayback } from "@/lib/voice/audioPlayback";
 import { useVoicePlayback } from "@/lib/voice/useVoicePlayback";
+import { saveTranslatedPhrase } from "@/lib/storage/savedPhrasesStorage";
 
 const translationModes: Array<{ value: TranslationMode; label: string }> = [
-  { value: "direct", label: "Direct" },
   { value: "natural", label: "Natural" },
-  { value: "polite", label: "Polite" },
+  { value: "polite", label: "Formal" },
   { value: "simple", label: "Simple" },
-  { value: "speak_to_local", label: "Local" },
+  { value: "direct", label: "Technical" },
+  { value: "speak_to_local", label: "Emergency" },
 ];
 
 type RequestUiState = "ready" | "translating" | "from_cache" | "error";
@@ -60,6 +61,8 @@ export function TextTranslatorView() {
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [autoplayRequestId, setAutoplayRequestId] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [showExplanation, setShowExplanation] = useState(false);
 
   const targetResolved = resolveLanguageSelection(targetLanguageSelection);
   const isUnavailable = result?.source === "unavailable";
@@ -110,6 +113,8 @@ export function TextTranslatorView() {
     setFormError(null);
     setRequestState("ready");
     setAutoplayBlocked(false);
+    setSaveMessage(null);
+    setShowExplanation(false);
     stop();
     stopVoicePlayback();
   }, [abortActiveRequest, stop]);
@@ -164,7 +169,7 @@ export function TextTranslatorView() {
       if (!isActiveRequest(requestKey)) return;
       setFormError(
         error instanceof TranslatorApiError
-          ? error.message
+          ? "Translation is temporarily unavailable. Try again or use an offline pack."
           : "Could not translate. Try again.",
       );
       setRequestState("error");
@@ -199,6 +204,33 @@ export function TextTranslatorView() {
     }
   }, [result?.translated_text]);
 
+  const saveTranslation = useCallback(() => {
+    if (!result?.translated_text) return;
+    const outcome = saveTranslatedPhrase({
+      sourceText: result.original_text,
+      translatedText: result.translated_text,
+      sourceLanguage,
+      targetLanguage: targetResolved.base_language,
+      pronunciation: result.pronunciation_simple,
+    });
+    setSaveMessage(
+      outcome === "saved"
+        ? "Saved to Library."
+        : outcome === "duplicate"
+          ? "Already saved in Library."
+          : "Could not save this phrase.",
+    );
+  }, [result, sourceLanguage, targetResolved.base_language]);
+
+  const swapLanguages = useCallback(() => {
+    const nextSource = targetResolved.base_language;
+    setTargetLanguageSelection(sourceLanguage);
+    setSourceLanguage(nextSource);
+    setResult(null);
+    setFormError(null);
+    stopVoicePlayback();
+  }, [sourceLanguage, targetResolved.base_language]);
+
   const fromName =
     getLanguageOptionByValue(sourceLanguage)?.display_name ?? sourceLanguage;
   const toName =
@@ -213,8 +245,14 @@ export function TextTranslatorView() {
 
   return (
     <div className="space-y-3">
-      <CompactCard>
+      <CompactCard className="enterprise-card">
         <form className="space-y-3" onSubmit={handleSubmit} noValidate>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
+              Intelligent translation
+            </p>
+            <h2 className="mt-1 text-lg font-semibold tracking-tight">Translate naturally</h2>
+          </div>
           <VoiceInputTextArea
             id="translator_sentence"
             label="Sentence"
@@ -230,13 +268,25 @@ export function TextTranslatorView() {
             showClear={sentence.trim().length > 0 || Boolean(result)}
             onClear={handleClear}
           />
+          <p className="-mt-1 text-right text-[10px] text-[var(--muted)]" aria-live="polite">
+            {sentence.length} characters
+          </p>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-[1fr_2.75rem_1fr] items-end gap-2">
             <SearchableLanguageSelectField
               id="translator_source_language"
               label="From"
               value={sourceLanguage}
               onChange={setSourceLanguage}
+            />
+            <IconButton
+              icon={
+                <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h11l-3-3m3 3l-3 3M17 17H6l3 3m-3-3l3-3" />
+                </svg>
+              }
+              label="Swap source and target languages"
+              onClick={swapLanguages}
             />
             <SearchableLanguageSelectField
               id="translator_target_language"
@@ -246,21 +296,29 @@ export function TextTranslatorView() {
             />
           </div>
 
-          <div className="flex items-center justify-between gap-2">
-            <StatusChip label={`Mode: ${modeLabel}`} variant="accent" />
-            <select
-              id="translator_mode"
-              value={translationMode}
-              onChange={(e) => setTranslationMode(e.target.value as TranslationMode)}
-              className="min-h-9 rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-2 text-xs font-medium"
-              aria-label="Translation mode"
-            >
-              {translationModes.map((mode) => (
-                <option key={mode.value} value={mode.value}>
-                  {mode.label}
-                </option>
-              ))}
-            </select>
+          <div>
+            <p className="mb-2 text-xs font-medium text-[var(--muted)]">Translation mode</p>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Translation mode">
+              {translationModes.map((mode) => {
+                const selected = mode.value === translationMode;
+                return (
+                  <button
+                    key={mode.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setTranslationMode(mode.value)}
+                    className={`min-h-11 rounded-xl border px-3 text-xs font-semibold transition-colors ${
+                      selected
+                        ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                        : "border-[var(--card-border)] bg-[var(--card)] text-[var(--muted)]"
+                    }`}
+                  >
+                    {mode.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {requestState === "from_cache" && (
@@ -285,7 +343,7 @@ export function TextTranslatorView() {
       {isSubmitting && <LoadingState title="Translating" label="Translating…" />}
 
       {result && !isSubmitting && (
-        <CompactCard className={hasTranslation ? "pb-2" : ""}>
+        <CompactCard className={`enterprise-card ${hasTranslation ? "pb-2" : ""}`}>
           <div className="mb-2 flex flex-wrap items-center gap-1.5">
             <TranslationSourceBadge source={result.source} />
             {!isUnavailable && (
@@ -303,12 +361,19 @@ export function TextTranslatorView() {
 
           {hasTranslation && (
             <>
-              <p className="text-lg font-semibold leading-snug">{result.translated_text}</p>
+              <p className="break-words text-xl font-semibold leading-relaxed">{result.translated_text}</p>
               <p className="mt-1 text-xs text-[var(--muted)]">
-                {fromName} ⇄ {toName}
+                {fromName} → {toName}
               </p>
 
-              <div className="mt-3 flex items-center gap-2">
+              {result.pronunciation_simple && (
+                <p className="mt-3 rounded-xl bg-[var(--background)] px-3 py-2 text-sm text-[var(--muted)]">
+                  <span className="font-semibold text-[var(--foreground)]">Pronunciation:</span>{" "}
+                  {result.pronunciation_simple}
+                </p>
+              )}
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 {audioState === "audio_loading" && (
                   <StatusChip label="Loading audio…" variant="info" />
                 )}
@@ -346,7 +411,41 @@ export function TextTranslatorView() {
                   label={copied ? "Copied" : "Copy translation"}
                   onClick={() => void copyTranslation()}
                 />
+                <IconButton
+                  icon={
+                    <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                    </svg>
+                  }
+                  label="Save translation"
+                  onClick={saveTranslation}
+                />
+                <IconButton
+                  icon={
+                    <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                      <circle cx="12" cy="12" r="9" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 17h.01M9.2 9a3 3 0 115.7 1.2c0 1.8-2.9 2.1-2.9 3.8" />
+                    </svg>
+                  }
+                  label="Explain translation"
+                  active={showExplanation}
+                  onClick={() => setShowExplanation((value) => !value)}
+                />
               </div>
+
+              {showExplanation && (
+                <div className="mt-3 rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-3 text-sm leading-relaxed">
+                  {result.usage_note ||
+                    result.natural_translation ||
+                    `${modeLabel} translation from ${fromName} to ${toName}.`}
+                </div>
+              )}
+
+              {saveMessage && (
+                <p className="mt-2 text-xs text-[var(--muted)]" role="status" aria-live="polite">
+                  {saveMessage}
+                </p>
+              )}
 
               {(statusMessage || audioState === "audio_error" || audioState === "audio_unavailable") && (
                 <p

@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import { CompactAlert } from "@/components/ui/CompactAlert";
 import { CompactCard } from "@/components/ui/CompactCard";
 import { IconButton } from "@/components/ui/IconButton";
@@ -10,12 +11,14 @@ import { ConfidenceBadge } from "@/components/ui/ConfidenceBadge";
 import { VoiceSourceBadge } from "@/components/voice/VoiceSourceBadge";
 import type { TranslatorResponse } from "@/lib/translator/translatorSchemas";
 import type { VoiceAudioType } from "@/lib/voice/voiceSchemas";
+import { saveTranslatedPhrase } from "@/lib/storage/savedPhrasesStorage";
 
 interface CameraTranslationResultCardProps {
   result: TranslatorResponse;
   audioType: VoiceAudioType | null;
   isPlaying: boolean;
   statusMessage: string | null;
+  onPlay: () => void;
   onRepeatSlowly: () => void;
 }
 
@@ -24,13 +27,43 @@ export function CameraTranslationResultCard({
   audioType,
   isPlaying,
   statusMessage,
+  onPlay,
   onRepeatSlowly,
 }: CameraTranslationResultCardProps) {
   const isUnavailable = result.source === "unavailable";
   const hasTranslation = Boolean(!isUnavailable && result.translated_text);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  const copyTranslation = useCallback(async () => {
+    if (!result.translated_text) return;
+    try {
+      await navigator.clipboard.writeText(result.translated_text);
+      setFeedback("Copied translation.");
+    } catch {
+      setFeedback("Could not copy translation.");
+    }
+  }, [result.translated_text]);
+
+  const saveTranslation = useCallback(() => {
+    if (!result.translated_text) return;
+    const outcome = saveTranslatedPhrase({
+      sourceText: result.original_text,
+      translatedText: result.translated_text,
+      sourceLanguage: result.source_language,
+      targetLanguage: result.target_language,
+      pronunciation: result.pronunciation_simple,
+    });
+    setFeedback(
+      outcome === "saved"
+        ? "Saved to Library."
+        : outcome === "duplicate"
+          ? "Already saved in Library."
+          : "Could not save translation.",
+    );
+  }, [result]);
 
   return (
-    <CompactCard>
+    <CompactCard className="enterprise-card">
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
         <TranslationSourceBadge source={result.source} />
         {!isUnavailable && (
@@ -53,7 +86,7 @@ export function CameraTranslationResultCard({
             {result.original_text}
           </p>
 
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             {isPlaying && <StatusChip label="Playing" variant="info" />}
             <IconButton
               icon={
@@ -63,7 +96,7 @@ export function CameraTranslationResultCard({
               }
               label="Speak translation"
               disabled={isPlaying}
-              onClick={onRepeatSlowly}
+              onClick={onPlay}
             />
             <IconButton
               icon={
@@ -75,7 +108,36 @@ export function CameraTranslationResultCard({
               disabled={isPlaying}
               onClick={onRepeatSlowly}
             />
+            <IconButton
+              icon={
+                <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              }
+              label="Copy translation"
+              onClick={() => void copyTranslation()}
+            />
+            <IconButton
+              icon={
+                <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                </svg>
+              }
+              label="Save translation to Library"
+              onClick={saveTranslation}
+            />
           </div>
+          {result.pronunciation_simple && (
+            <p className="mt-3 text-sm text-[var(--muted)]">
+              <span className="font-semibold text-[var(--foreground)]">Pronunciation:</span>{" "}
+              {result.pronunciation_simple}
+            </p>
+          )}
+          {feedback && (
+            <p className="mt-2 text-xs text-[var(--muted)]" role="status" aria-live="polite">
+              {feedback}
+            </p>
+          )}
         </>
       )}
 

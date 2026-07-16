@@ -21,7 +21,7 @@ function PackCard({ entry }: { entry: OfflinePackCatalogEntry }) {
   downloadParams.set("download", "1");
 
   return (
-    <li className="flex items-center justify-between gap-3 rounded-xl border border-[var(--card-border)] p-3">
+    <li className="enterprise-card flex items-center justify-between gap-3 rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-3">
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{entry.pair_label}</p>
         <div className="mt-1.5 flex flex-wrap gap-1">
@@ -57,7 +57,7 @@ function PackSection({
   if (entries.length === 0) return null;
 
   return (
-    <CompactCard padding="sm">
+    <CompactCard padding="sm" className="enterprise-card">
       <h2 className="mb-2 text-sm font-semibold">{title}</h2>
       <ul className="space-y-2">
         {entries.map((entry) => (
@@ -99,8 +99,18 @@ export function PhrasePacksView() {
     catalog.missing.length;
 
   return (
-    <div className="space-y-3">
-      <CompactCard>
+    <div className="space-y-5">
+      <section>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
+          Library resources
+        </p>
+        <h2 className="mt-1 text-xl font-semibold tracking-tight">Offline Packs</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+          Download trusted language pairs for reliable use without internet.
+        </p>
+      </section>
+
+      <CompactCard className="enterprise-card">
         <div className="flex items-center justify-between gap-2">
           <StatusChip label={`${totalEntries} packs`} variant="neutral" />
           <Link

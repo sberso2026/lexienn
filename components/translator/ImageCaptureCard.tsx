@@ -34,6 +34,7 @@ export function ImageCaptureCard({
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isStartingCamera, setIsStartingCamera] = useState(false);
+  const [cameraSupported, setCameraSupported] = useState(true);
 
   const stopCameraStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -48,6 +49,10 @@ export function ImageCaptureCard({
     setCameraOpen(false);
     setIsStartingCamera(false);
   }, [stopCameraStream]);
+
+  useEffect(() => {
+    setCameraSupported(isCameraCaptureSupported());
+  }, []);
 
   useEffect(() => {
     return () => stopCameraStream();
@@ -141,59 +146,116 @@ export function ImageCaptureCard({
   }
 
   return (
-    <CompactCard padding="sm">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold">Scan</p>
+    <CompactCard padding="sm" className="enterprise-card">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold">Camera scanner</p>
+          <p className="mt-0.5 text-xs text-[var(--muted)]">Capture signs, labels, or documents</p>
+        </div>
         <PrivacyShieldButton note={CAMERA_PRIVACY_NOTE} />
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <ActionButton
-          variant="primary"
-          disabled={isBusy || isStartingCamera || cameraOpen}
-          onClick={() => void openCamera()}
-        >
-          {isStartingCamera ? "Opening…" : "Open Camera"}
-        </ActionButton>
-        <ActionButton
-          variant="secondary"
-          disabled={isBusy || cameraOpen}
-          onClick={() => uploadInputRef.current?.click()}
-        >
-          Upload Image
-        </ActionButton>
-        {previewUrl && (
-          <ActionButton variant="ghost" disabled={isBusy || cameraOpen} onClick={onClear}>
-            Remove
-          </ActionButton>
-        )}
-      </div>
-
-      {cameraError && (
-        <p className="mt-2 text-xs text-amber-800 dark:text-amber-200" role="status">
-          {cameraError}
-        </p>
-      )}
-
-      {cameraOpen && (
-        <div className="mt-3 space-y-2 rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-2">
+      <div className="relative overflow-hidden rounded-2xl bg-[#0f1d2b]">
+        {cameraOpen ? (
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className="max-h-64 w-full rounded-lg bg-black object-contain"
+            className="h-64 w-full bg-black object-cover sm:h-80"
           />
-          <div className="flex flex-wrap gap-2">
-            <ActionButton variant="primary" disabled={isBusy} onClick={capturePhoto}>
-              Capture
-            </ActionButton>
-            <ActionButton variant="secondary" disabled={isBusy} onClick={closeCamera}>
-              Cancel
-            </ActionButton>
+        ) : previewUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={previewUrl}
+            alt="Captured image preview"
+            className="h-64 w-full object-contain sm:h-80"
+          />
+        ) : (
+          <div className="flex h-64 items-center justify-center px-8 text-center text-sm text-white/65 sm:h-80">
+            Open the camera or import an image to begin.
           </div>
-        </div>
+        )}
+
+        {!previewUrl && (
+          <div className="pointer-events-none absolute inset-7 rounded-xl border-2 border-white/80">
+            <span className="absolute -left-0.5 -top-0.5 h-5 w-5 border-l-4 border-t-4 border-[#5ca8ed]" />
+            <span className="absolute -bottom-0.5 -right-0.5 h-5 w-5 border-b-4 border-r-4 border-[#5ca8ed]" />
+          </div>
+        )}
+
+        {!previewUrl && (
+          <p className="pointer-events-none absolute inset-x-0 bottom-5 text-center text-xs font-medium text-white">
+            Align text in the frame
+          </p>
+        )}
+      </div>
+
+      {!cameraSupported && (
+        <p className="mt-3 text-sm text-[var(--muted)]" role="status">
+          Import an image or type the text manually.
+        </p>
       )}
+      {cameraError && (
+        <p className="mt-3 text-sm text-amber-800" role="status">
+          {cameraError} Import an image or type the text manually.
+        </p>
+      )}
+
+      <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <ActionButton
+          variant="secondary"
+          disabled={isBusy || cameraOpen}
+          onClick={() => uploadInputRef.current?.click()}
+          aria-label="Import image from gallery"
+        >
+          Import
+        </ActionButton>
+
+        {cameraOpen ? (
+          <button
+            type="button"
+            onClick={capturePhoto}
+            disabled={isBusy}
+            aria-label="Capture image"
+            className="flex h-14 w-14 items-center justify-center rounded-full border-4 border-[var(--accent)] bg-white disabled:opacity-50"
+          >
+            <span className="h-10 w-10 rounded-full bg-[var(--accent)]" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void openCamera()}
+            disabled={isBusy || isStartingCamera || Boolean(previewUrl)}
+            aria-label="Open camera"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)] text-white disabled:opacity-50"
+          >
+            <svg aria-hidden className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h3l1.5-2h7L17 7h3v12H4V7z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+          </button>
+        )}
+
+        {cameraOpen ? (
+          <ActionButton variant="secondary" disabled={isBusy} onClick={closeCamera}>
+            Cancel
+          </ActionButton>
+        ) : previewUrl ? (
+          <ActionButton variant="ghost" disabled={isBusy} onClick={onClear}>
+            Remove
+          </ActionButton>
+        ) : (
+          <button
+            type="button"
+            disabled
+            aria-label="Flash control unavailable"
+            className="min-h-11 rounded-xl border border-[var(--card-border)] text-xs font-semibold text-[var(--muted)] opacity-60"
+          >
+            Flash
+          </button>
+        )}
+      </div>
 
       <input
         ref={cameraFallbackInputRef}
@@ -211,16 +273,6 @@ export function ImageCaptureCard({
         onChange={handleUploadFileChange}
       />
 
-      {previewUrl && !cameraOpen && (
-        <div className="mt-3 overflow-hidden rounded-xl border border-[var(--card-border)]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={previewUrl}
-            alt="Captured image preview"
-            className="max-h-56 w-full object-contain bg-[var(--background)]"
-          />
-        </div>
-      )}
     </CompactCard>
   );
 }

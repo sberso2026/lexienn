@@ -73,9 +73,11 @@ describe("result page interaction freeze regression", () => {
     expect(iconButton).toContain('type="button"');
     expect(dictionaryResultCard).not.toContain("<Link href=\"/dictionary\">\n          <IconButton");
     expect(dictionaryResultCard).toContain('label="Play audio"');
+    expect(dictionaryResultCard).toContain('label={copied ? "Copied" : "Copy"}');
     expect(dictionaryResultCard).toContain('label="Save"');
-    expect(dictionaryResultCard).toContain('label="Correct"');
-    expect(dictionaryResultCard).toContain('label="New lookup"');
+    expect(dictionaryResultCard).toContain('label="Explain"');
+    expect(dictionaryResultCard).toContain('label="Add to Library"');
+    expect(dictionaryResultCard).toContain("Suggest a correction");
   });
 
   it("scopes audio disabled state to the play button only", () => {

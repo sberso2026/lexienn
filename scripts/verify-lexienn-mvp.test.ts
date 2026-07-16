@@ -531,8 +531,8 @@ describe("Lexienn MVP verification", () => {
     expect(editor).toContain("showDeveloperDetails");
     expect(editor).toContain('summary="Developer details"');
     expect(capture).toContain("PrivacyShieldButton");
-    expect(capture).toContain("Open Camera");
-    expect(capture).toContain("Upload Image");
+    expect(capture).toContain('aria-label="Open camera"');
+    expect(capture).toContain('aria-label="Import image from gallery"');
     expect(capture).not.toContain("MVP");
   });
 

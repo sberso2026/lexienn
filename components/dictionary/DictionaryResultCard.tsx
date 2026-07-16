@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import { ExpandableSection } from "@/components/ui/ExpandableSection";
 import { IconButton } from "@/components/ui/IconButton";
-import { StatusChip } from "@/components/ui/StatusChip";
 import { useVoicePlayback } from "@/lib/voice/useVoicePlayback";
 import { DictionarySourceBadge } from "@/components/ui/DictionarySourceBadge";
 import { ConfidenceBadge } from "@/components/ui/ConfidenceBadge";
@@ -33,7 +32,6 @@ import { shouldShowInternalDebugUi } from "@/lib/debug/shouldShowInternalDebugUi
 import type { DictionaryDiagnostics } from "@/lib/dictionary/apiSchemas";
 import { isEnglishToEnglishQuery } from "@/lib/dictionary/normalizeDictionaryEntry";
 import type { DictionaryEntry, DictionaryQuery, DictionaryResolutionSource } from "@/lib/schemas";
-import { ValidationStatusBadge } from "@/components/ui/ValidationStatusBadge";
 import { DataQualityWarnings } from "@/components/ui/DataQualityWarnings";
 import { CorrectionForm } from "@/components/corrections/CorrectionForm";
 
@@ -130,8 +128,10 @@ export function DictionaryResultCard({
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [alreadySaved, setAlreadySaved] = useState(false);
   const [showCorrectionForm, setShowCorrectionForm] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const { isPlaying, audioType, play } = useVoicePlayback({
+  const { isPlaying, play } = useVoicePlayback({
     text: targetSpeech.text,
     language: targetSpeech.lang,
     languageSelection: targetSpeech.languageSelection,
@@ -186,37 +186,65 @@ export function DictionaryResultCard({
     setSaveMessage("Could not save. Please try again.");
   }, [enrichedEntry, query]);
 
+  const handleCopy = useCallback(async () => {
+    const text = [
+      enrichedEntry.input_text,
+      enrichedEntry.general_meaning_en,
+      !isEnglishToEnglishQuery(query) ? enrichedEntry.target_meaning : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+    }
+  }, [enrichedEntry, query]);
+
   return (
     <>
       <div className="space-y-4 pb-4 md:pb-6">
-        <header className="card-surface p-4 sm:p-5">
-          <p className="text-2xl font-bold leading-tight tracking-tight text-[var(--foreground)] sm:text-3xl">
-            {enrichedEntry.input_text}
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-            <LanguageBadge
-              language={sourceLang?.name ?? query.source_language}
+        <header className="card-surface enterprise-card p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="break-words text-2xl font-bold leading-tight tracking-tight text-[var(--foreground)] sm:text-3xl">
+                {enrichedEntry.input_text}
+              </p>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                {formatEnumLabel(enrichedEntry.entry_type)} ·{" "}
+                {sourceLang?.name ?? query.source_language}
+              </p>
+            </div>
+            <IconButton
+              icon={
+                <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M12 6v12M8 10H5a1 1 0 00-1 1v2a1 1 0 001 1h3l4 3V7L8 10z" />
+                </svg>
+              }
+              label="Play pronunciation"
+              disabled={source === "unavailable" || isPlaying}
+              active={isPlaying}
+              onClick={() => void play("normal")}
             />
-            <span className="text-[var(--muted)]" aria-hidden="true">
-              →
-            </span>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+            <LanguageBadge language={sourceLang?.name ?? query.source_language} />
+            <span className="text-[var(--muted)]" aria-hidden="true">→</span>
             <LanguageBadge
               language={targetLang?.name ?? query.target_language}
               dialect={dialect?.variant_label}
             />
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Badge label={formatEnumLabel(enrichedEntry.entry_type)} variant="accent" />
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
             <DictionarySourceBadge source={source} />
-            <ValidationStatusBadge status={enrichedEntry.validation_status} />
+            <Badge
+              label={contextProfile?.label ?? formatEnumLabel(query.user_context)}
+              variant="neutral"
+            />
             <ConfidenceBadge score={enrichedEntry.confidence.score} />
-            {audioType && <StatusChip label="Audio" variant="info" />}
           </div>
-          <p className="mt-2 text-xs text-[var(--muted)]">
-            {contextProfile?.label ?? formatEnumLabel(query.user_context)} ·{" "}
-            {formatEnumLabel(query.explanation_level)} ·{" "}
-            {formatEnumLabel(query.output_mode)}
-          </p>
         </header>
 
         <DataQualityWarnings
@@ -255,20 +283,19 @@ export function DictionaryResultCard({
               </p>
             </SectionCard>
 
-            <ExpandableSection summary="Detailed meaning">
-              <p className="text-sm leading-relaxed">{enrichedEntry.detailed_meaning_en}</p>
-            </ExpandableSection>
+            {showExplanation && (
+              <SectionCard title="Detailed explanation" padding="compact">
+                <p className="text-sm leading-relaxed">{enrichedEntry.detailed_meaning_en}</p>
+              </SectionCard>
+            )}
 
-            {(contextMeaning || query.user_context !== "general") && (
-              <ExpandableSection
-                summary={`${contextProfile?.label ?? "Profession"} meaning`}
+            {contextMeaning && (
+              <SectionCard
+                title={`${contextProfile?.label ?? "Professional"} meaning`}
+                padding="compact"
               >
-                {contextMeaning ? (
-                  <p className="text-sm leading-relaxed">{contextMeaning.meaning_en}</p>
-                ) : (
-                  <p className="text-sm text-[var(--muted)]">No profession-specific meaning.</p>
-                )}
-              </ExpandableSection>
+                <p className="text-sm leading-relaxed">{contextMeaning.meaning_en}</p>
+              </SectionCard>
             )}
 
             {!isDefinitionRequest && enrichedEntry.target_meaning && (
@@ -283,7 +310,7 @@ export function DictionaryResultCard({
             )}
 
             {enrichedEntry.examples.length > 0 && (
-              <ExpandableSection summary="Examples">
+              <SectionCard title="Examples" padding="compact">
                 <ul className="space-y-2">
                   {enrichedEntry.examples.map((example, index) => (
                     <li
@@ -294,7 +321,7 @@ export function DictionaryResultCard({
                     </li>
                   ))}
                 </ul>
-              </ExpandableSection>
+              </SectionCard>
             )}
 
             <SectionCard title="Pronunciation" padding="compact">
@@ -302,7 +329,7 @@ export function DictionaryResultCard({
             </SectionCard>
 
             {enrichedEntry.related_terms.length > 0 && (
-              <SectionCard title="Related" padding="compact">
+              <SectionCard title="Related terms" padding="compact">
                 <TagList items={enrichedEntry.related_terms} />
               </SectionCard>
             )}
@@ -330,10 +357,24 @@ export function DictionaryResultCard({
         )}
 
         {saveMessage && (
-          <p className="text-xs text-[var(--muted)]" role="status">
-            {saveMessage}
+          <p className="text-xs text-[var(--muted)]" role="status" aria-live="polite">
+            {copied ? "Copied to clipboard." : saveMessage}
           </p>
         )}
+        {copied && !saveMessage && (
+          <p className="text-xs text-[var(--muted)]" role="status" aria-live="polite">
+            Copied to clipboard.
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setShowCorrectionForm((value) => !value)}
+          className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--accent)]"
+          aria-expanded={showCorrectionForm}
+        >
+          {showCorrectionForm ? "Close correction form" : "Suggest a correction"}
+        </button>
 
         {showCorrectionForm && (
           <ResultCard title="Submit correction">
@@ -365,6 +406,15 @@ export function DictionaryResultCard({
         <IconButton
           icon={
             <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          }
+          label={copied ? "Copied" : "Copy"}
+          onClick={() => void handleCopy()}
+        />
+        <IconButton
+          icon={
+            <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
           }
@@ -375,20 +425,28 @@ export function DictionaryResultCard({
         <IconButton
           icon={
             <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M9.1 9a3 3 0 115.8 1c0 2-2.9 2-2.9 4" />
+              <circle cx="12" cy="12" r="9" />
             </svg>
           }
-          label="Correct"
-          onClick={() => setShowCorrectionForm((value) => !value)}
+          label="Explain"
+          active={showExplanation}
+          onClick={() => setShowExplanation((value) => !value)}
         />
         <IconButton
           icon={
             <svg aria-hidden className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 19.5A2.5 2.5 0 016.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
             </svg>
           }
-          label="New lookup"
-          onClick={() => router.push("/dictionary")}
+          label="Add to Library"
+          onClick={() => {
+            if (alreadySaved) {
+              router.push("/library");
+            } else {
+              handleSave();
+            }
+          }}
         />
       </BottomActionBar>
     </>

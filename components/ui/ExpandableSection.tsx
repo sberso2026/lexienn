@@ -24,7 +24,7 @@ export function ExpandableSection({
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="flex w-full min-h-10 items-center justify-between gap-2 rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-left text-sm font-medium touch-manipulation"
+        className="flex w-full min-h-11 items-center justify-between gap-2 rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-left text-sm font-medium touch-manipulation"
       >
         <span className="min-w-0 truncate">{summary}</span>
         <svg

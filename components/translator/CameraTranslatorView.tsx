@@ -196,7 +196,7 @@ export function CameraTranslatorView() {
       setIsEditing(true);
       setFormError(
         error instanceof OcrApiError
-          ? error.message
+          ? "Text extraction is unavailable. Import another image or type the text manually."
           : "Text extraction failed. Type the text manually.",
       );
     } finally {
@@ -274,7 +274,7 @@ export function CameraTranslatorView() {
     } catch (error) {
       setFormError(
         error instanceof TranslatorApiError
-          ? error.message
+          ? "Translation is temporarily unavailable. You can keep editing the extracted text."
           : "Could not translate this text.",
       );
     } finally {
@@ -285,6 +285,11 @@ export function CameraTranslatorView() {
   const repeatSlowly = useCallback(() => {
     setAutoplayBlocked(false);
     void play("slow");
+  }, [play]);
+
+  const replayAudio = useCallback(() => {
+    setAutoplayBlocked(false);
+    void play("normal");
   }, [play]);
 
   const displayStatusMessage = autoplayBlocked
@@ -356,6 +361,7 @@ export function CameraTranslatorView() {
           audioType={audioType}
           isPlaying={isPlaying}
           statusMessage={displayStatusMessage}
+          onPlay={replayAudio}
           onRepeatSlowly={repeatSlowly}
         />
       )}
