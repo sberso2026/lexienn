@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lexienn — Professional & Enterprise UI/UX</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy: #163A63;
+      --navy-deep: #0F2A4A;
+      --navy-soft: #1E4A7A;
+      --bg: #F6F8FB;
+      --card: #FFFFFF;
+      --border: #D8DEE8;
+      --border-soft: #E8EDF4;
+      --slate: #64748B;
+      --slate-light: #94A3B8;
+      --text: #1E293B;
+      --text-muted: #64748B;
+      --blue: #2B6CB0;
+      --blue-soft: #EBF3FB;
+      --green: #059669;
+      --green-bg: #ECFDF5;
+      --red: #C53030;
+      --red-soft: #FEE2E2;
+      --shadow: 0 1px 3px rgba(22, 58, 99, 0.06), 0 4px 12px rgba(22, 58, 99, 0.04);
+      --shadow-phone: 0 8px 32px rgba(22, 58, 99, 0.12), 0 2px 8px rgba(22, 58, 99, 0.06);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #EEF1F6;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .board {
+      width: 1920px;
+      min-height: 1280px;
+      margin: 0 auto;
+      padding: 48px 56px 40px;
+      background: linear-gradient(180deg, #F8FAFC 0%, #EEF1F6 100%);
+    }
+
+    /* Header */
+    .board-header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .board-header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+
+    .board-header .subtitle {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--slate);
+      letter-spacing: 0.04em;
+    }
+
+    /* Phone grid */
+    .phone-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 28px 24px;
+      margin-bottom: 36px;
+    }
+
+    .phone-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .screen-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--navy);
+      opacity: 0.75;
+    }
+
+    /* iPhone frame */
+    .iphone {
+      width: 280px;
+      height: 568px;
+      background: #1a1a1a;
+      border-radius: 36px;
+      padding: 10px;
+      box-shadow: var(--shadow-phone);
+      position: relative;
+    }
+
+    .iphone::before {
+      content: "";
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 72px;
+      height: 18px;
+      background: #0a0a0a;
+      border-radius: 12px;
+      z-index: 20;
+    }
+
+    .iphone-screen {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      border-radius: 28px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .status-bar {
+      height: 28px;
+      padding: 10px 18px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--navy);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .status-bar.light { color: #fff; }
+    .status-icons { display: flex; gap: 4px; align-items: center; font-size: 9px; }
+
+    /* App chrome */
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px 10px;
+      flex-shrink: 0;
+    }
+
+    .logo-mark {
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .app-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--navy);
+      letter-spacing: -0.01em;
+    }
+
+    .app-body {
+      flex: 1;
+      overflow: hidden;
+      padding: 0 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .bottom-nav {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 6px 4px 10px;
+      background: var(--card);
+      border-top: 1px solid var(--border-soft);
+      flex-shrink: 0;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      font-size: 8px;
+      font-weight: 500;
+      color: var(--slate-light);
+      min-width: 40px;
+    }
+
+    .nav-item.active { color: var(--navy); font-weight: 600; }
+    .nav-icon {
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .nav-icon svg { width: 16px; height: 16px; }
+
+    /* Cards & UI atoms */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      padding: 10px 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .section-title {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .qa-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .qa-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .qa-btn .qa-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--blue-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--blue);
+    }
+
+    .qa-btn .qa-icon svg { width: 14px; height: 14px; }
+
+    .qa-btn span {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--navy);
+      line-height: 1.2;
+    }
+
+    .activity-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-soft);
+      font-size: 11px;
+      color: var(--text);
+    }
+
+    .activity-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .activity-item:first-child { padding-top: 0; }
+
+    .activity-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--blue);
+      flex-shrink: 0;
+      opacity: 0.5;
+    }
+
+    .offline-card {
+      background: linear-gradient(135deg, #163A63 0%, #1E4A7A 100%);
+      border-radius: 12px;
+      padding: 12px;
+      color: #fff;
+    }
+
+    .offline-card .oc-label {
+      font-size: 8px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      opacity: 0.7;
+      margin-bottom: 4px;
+    }
+
+    .offline-card .oc-title {
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .offline-card .oc-meta {
+      font-size: 9px;
+      opacity: 0.85;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 8px;
+      font-weight: 600;
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .chip.green { background: var(--green-bg); color: var(--green); }
+    .chip.navy { background: #E8EEF5; color: var(--navy); }
+
+    .chip-row { display: flex; flex-wrap: wrap; gap: 4px; }
+
+    .input-field {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .selector-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .selector {
+      flex: 1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 9px;
+      font-weight: 500;
+      color: var(--navy);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .result-word {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--navy);
+      letter-spacing: -0.02em;
+    }
+
+    .result-meta {
+      font-size: 10px;
+      color: var(--slate);
+      margin: 2px 0 6px;
+    }
+
+    .meaning-block {
+      margin-top: 8px;
+    }
+
+    .meaning-label {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 3px;
+    }
+
+    .meaning-text {
+      font-size: 11px;
+      line-height: 1.45;
+      color: var(--text);
+    }
+
+    .action-row {
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 4px 4px;
+      border-top: 1px solid var(--border-soft);
+      margin-top: 8px;
+    }
+
+    .action-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: 7px;
+      font-weight: 500;
+      color: var(--slate);
+    }
+
+    .action-btn .ab-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--navy);
+    }
+
+    .action-btn .ab-icon svg { width: 12px; height: 12px; }
+
+    .primary-btn {
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      width: 100%;
+    }
+
+    .mode-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .mode-pill {
+      padding: 4px 8px;
+      border-radius: 14px;
+      font-size: 8px;
+      font-weight: 600;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--slate);
+    }
+
+    .mode-pill.active {
+      background: var(--navy);
+      border-color: var(--navy);
+      color: #fff;
+    }
+
+    .lang-pair {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--navy);
+    }
+
+    .swap-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--blue-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--blue);
+      font-size: 10px;
+    }
+
+    .text-area {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 88px;
+      position: relative;
+    }
+
+    .text-area .placeholder {
+      font-size: 12px;
+      color: var(--slate-light);
+    }
+
+    .mic-fab {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--navy);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+
+    .mic-fab svg { width: 14px; height: 14px; }
+
+    .placeholder-result {
+      background: var(--card);
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--slate-light);
+    }
+
+    /* Lens / camera */
+    .lens-body {
+      flex: 1;
+      background: #0d1a28;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .lens-tabs {
+      display: flex;
+      gap: 0;
+      padding: 4px 12px 8px;
+      background: transparent;
+      z-index: 5;
+    }
+
+    .lens-tab {
+      flex: 1;
+      text-align: center;
+      font-size: 9px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.5);
+      padding: 6px 4px;
+      border-bottom: 2px solid transparent;
+    }
+
+    .lens-tab.active {
+      color: #fff;
+      border-bottom-color: #4da3ff;
+    }
+
+    .camera-preview {
+      flex: 1;
+      position: relative;
+      background:
+        linear-gradient(180deg, rgba(13,26,40,0.3) 0%, transparent 30%, transparent 70%, rgba(13,26,40,0.5) 100%),
+        linear-gradient(135deg, #3d5a40 0%, #5a7a4a 40%, #8a9a50 70%, #6b8a40 100%);
+      margin: 0 12px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .warning-sign {
+      width: 140px;
+      height: 100px;
+      background: #F5C518;
+      border: 3px solid #1a1a1a;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      transform: rotate(-2deg);
+    }
+
+    .warning-sign .ws-icon {
+      width: 28px;
+      height: 28px;
+      border: 2.5px solid #1a1a1a;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 800;
+      color: #1a1a1a;
+    }
+
+    .warning-sign .ws-text {
+      font-size: 8px;
+      font-weight: 800;
+      color: #1a1a1a;
+      text-align: center;
+      letter-spacing: 0.02em;
+      line-height: 1.2;
+      padding: 0 8px;
+    }
+
+    .scan-frame {
+      position: absolute;
+      inset: 24px;
+      border: 2px solid rgba(255,255,255,0.85);
+      border-radius: 8px;
+      box-shadow: 0 0 0 999px rgba(0,0,0,0.25);
+    }
+
+    .scan-frame::before,
+    .scan-frame::after {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-color: #4da3ff;
+      border-style: solid;
+    }
+
+    .scan-frame::before {
+      top: -2px; left: -2px;
+      border-width: 3px 0 0 3px;
+      border-radius: 4px 0 0 0;
+    }
+
+    .scan-frame::after {
+      bottom: -2px; right: -2px;
+      border-width: 0 3px 3px 0;
+      border-radius: 0 0 4px 0;
+    }
+
+    .align-hint {
+      position: absolute;
+      bottom: 12px;
+      left: 0; right: 0;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.9);
+      z-index: 5;
+    }
+
+    .camera-controls {
+      padding: 14px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .shutter {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .shutter-inner {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    /* Library list */
+    .lib-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--card);
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+    }
+
+    .lib-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--blue-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--blue);
+      flex-shrink: 0;
+    }
+
+    .lib-icon svg { width: 15px; height: 15px; }
+
+    .lib-info { flex: 1; min-width: 0; }
+    .lib-info .lib-name { font-size: 12px; font-weight: 600; color: var(--navy); }
+    .lib-info .lib-count { font-size: 9px; color: var(--slate); margin-top: 1px; }
+
+    .lib-chevron {
+      color: var(--slate-light);
+      font-size: 14px;
+    }
+
+    /* Settings */
+    .settings-section {
+      margin-bottom: 4px;
+    }
+
+    .settings-section-title {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 6px 2px 4px;
+    }
+
+    .settings-group {
+      background: var(--card);
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border-soft);
+      font-size: 11px;
+      color: var(--text);
+    }
+
+    .settings-row:last-child { border-bottom: none; }
+
+    .toggle {
+      width: 32px;
+      height: 18px;
+      border-radius: 9px;
+      background: var(--navy);
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .toggle::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    .toggle.off { background: #CBD5E1; }
+    .toggle.off::after { right: auto; left: 2px; }
+
+    .settings-chevron {
+      color: var(--slate-light);
+      font-size: 12px;
+    }
+
+    /* Offline packs */
+    .pack-downloaded {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .pack-downloaded .pd-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .pack-downloaded .pd-meta {
+      font-size: 9px;
+      color: var(--slate);
+      margin: 3px 0 6px;
+    }
+
+    .pack-list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: var(--card);
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+    }
+
+    .pack-list-item .pli-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .dl-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--blue-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--blue);
+    }
+
+    .dl-icon svg { width: 13px; height: 13px; }
+
+    .secondary-btn {
+      background: var(--card);
+      border: 1.5px solid var(--navy);
+      color: var(--navy);
+      border-radius: 10px;
+      padding: 9px;
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+      width: 100%;
+    }
+
+    .page-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--navy);
+      padding: 4px 14px 8px;
+    }
+
+    .example-item {
+      font-size: 10px;
+      line-height: 1.4;
+      color: var(--text);
+      padding: 5px 0;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    .example-item:last-child { border-bottom: none; }
+    .example-item .ex-fil { color: var(--slate); font-style: italic; margin-top: 2px; }
+
+    .speaker-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .speaker-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--blue-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--blue);
+    }
+
+    .speaker-btn svg { width: 12px; height: 12px; }
+
+    .fil-section {
+      background: var(--blue-soft);
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 4px;
+    }
+
+    .fil-section .fs-label {
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 3px;
+    }
+
+    .fil-section .fs-words {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--navy);
+    }
+
+    /* Feature strip */
+    .feature-strip {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 14px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .feature-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--blue-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+      color: var(--navy);
+    }
+
+    .feature-icon svg { width: 18px; height: 18px; }
+
+    .feature-card h3 {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 4px;
+    }
+
+    .feature-card p {
+      font-size: 10px;
+      color: var(--slate);
+      line-height: 1.35;
+    }
+
+    /* Footer */
+    .board-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .footer-brand img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+    }
+
+    .footer-brand span {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .footer-center {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--slate);
+    }
+
+    .footer-right {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--navy);
+      letter-spacing: 0.02em;
+    }
+  </style>
+</head>
+<body>
+  <div class="board" id="board">
+    <header class="board-header">
+      <h1>LEXIENN — PROFESSIONAL &amp; ENTERPRISE UI/UX</h1>
+      <p class="subtitle">Mobile-First · Clean · Intelligent · Offline-Ready</p>
+    </header>
+
+    <div class="phone-grid">
+
+      <!-- 1. Home Dashboard -->
+      <div class="phone-wrap">
+        <div class="screen-label">Home Dashboard</div>
+        <div class="iphone">
+          <div class="iphone-screen">
+            <div class="status-bar">
+              <span>9:41</span>
+              <span class="status-icons">●●● 100%</span>
+            </div>
+            <div class="app-header">
+              <img class="logo-mark" src="../../public/brand/lexienn-logo-icon.png" alt="" />
+              <span class="app-name">Lexienn</span>
+            </div>
+            <div class="app-body">
+              <div>
+                <div class="section-title">Quick Actions</div>
+                <div class="qa-grid">
+                  <div class="qa-btn">
+                    <div class="qa-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                    </div>
+                    <span>Define a word</span>
+                  </div>
+                  <div class="qa-btn">
+                    <div class="qa-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 013 3v6a3 3 0 01-6 0V5a3 3 0 013-3z"/><path d="M19 10v1a7 7 0 01-14 0v-1M12 18v4"/></svg>
+                    </div>
+                    <span>Translate speech</span>
+                  </div>
+                  <div class="qa-btn">
+                    <div class="qa-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+                    </div>
+                    <span>Scan text</span>
+                  </div>
+                  <div class="qa-btn">
+                    <div class="qa-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    </div>
+                    <span>Use offline pack</span>
+                  </div>
+                </div>
+              </div>
+              <div class="card" style="padding:8px 10px;">
+                <div class="section-title">Recent Activity</div>
+                <div class="activity-item"><span class="activity-dot"></span>acceleration</div>
+                <div class="activity-item"><span class="activity-dot"></span>tie beam</div>
+                <div class="activity-item"><span class="activity-dot"></span>what’s your name?</div>
+                <div class="activity-item"><span class="activity-dot"></span>microcracking</div>
+              </div>
+              <div class="offline-card">
+                <div class="oc-label">Offline Ready</div>
+                <div class="oc-title">English ↔ Filipino</div>
+                <div class="oc-meta">246 phrases · 42 audio clips<br/>Updated today</div>
+              </div>
+            </div>
+            <div class="bottom-nav">
+              <div class="nav-item active">
+                <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div>
+                Define
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8l5 3 5-3M5 8v8l5 3 5-3V8M5 8l5-3 5 3"/></svg></div>
+                Translate
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg></div>
+                Lens
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
+                Library
+              </div>
+              <div class="nav-item">
+                <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></div>
+                More
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Define Result -->
+      <div class="phone-wrap">
+        <div class="screen-label">Define Result</div>
+        <div class="iphone">
+          <div class="iphone-screen">
+            <div class="status-bar"><span>9:41</span><span class="status-icons">●●● 100%</span></div>
+            <div class="app-header">
+              <img class="logo-mark" src="../../public/brand/lexienn-logo-icon.png" alt="" />
+              <span class="app-name">Lexienn</span>
+            </div>
+            <div class="app-body">
+              <div class="input-field">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                acceleration
+              </div>
+              <div class="selector-row">
+                <div class="selector">English → English <span style="opacity:.4">▾</span></div>
+                <div class="selector">Engineering <span style="opacity:.4">▾</span></div>
+              </div>
+              <div class="card">
+                <div class="result-word">acceleration</div>
+                <div class="result-meta">noun · English</div>
+                <div class="chip-row">
+                  <span class="chip">AI Generated</span>
+                  <span class="chip navy">Engineering</span>
+                  <span class="chip green">High confidence</span>
+                </div>
+                <div class="meaning-block">
+                  <div class="meaning-label">Meaning</div>
+                  <div class="meaning-text">The rate at which velocity changes over time.</div>
+                </div>
+                <div class="meaning-block">
+                  <div class="meaning-label">Engineering meaning</div>
+                  <div class="meaning-text">In physics and engineering, acceleration describes how quickly speed or direction changes, measured in m/s².</div>
+                </div>
+                <div class="meaning-block">
+                  <div class="meaning-label">Examples</div>
+                  <div class="meaning-text" style="font-size:10px;">The car’s acceleration increased on the incline.</div>
+                </div>
+                <div class="action-row">
+                  <div class="action-btn"><div class="ab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>Play</div>
+                  <div class="action-btn"><div class="ab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>Copy</div>
+                  <div class="action-btn"><div class="ab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg></div>Save</div>
+                  <div class="action-btn"><div class="ab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/></svg></div>Explain</div>
+                  <div class="action-btn"><div class="ab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div>Add to Pack</div>
+                </div>
+              </div>
+            </div>
+            <div class="bottom-nav">
+              <div class="nav-item active"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div>Define</div>
+              <div class="nav-item"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8l5 3 5-3M5 8v8l5 3 5-3V8"/></svg></div>Translate</div>
+              <div class="nav-item"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg></div>Lens</div>
+              <div class="nav-item"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>Library</div>
+              <div class="nav-item"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></div>More</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Translate -->
+      <div class="phone-wrap">
+        <div class="screen-label">Translate</div>
+        <div class="iphone">
+          <div class="iphone-screen">
+            <div class="status-bar"><span>9:41</span><span class="status-icons">●●● 100%</span></div>
+            <div class="app-header">
+              <img class="logo-mark" src="../../public/brand/lexienn-logo-icon.png" alt="" />
+              <span class="app-name">Lexienn</span>
+            </div>
+            <div class="app-body">
+              <div class="text-area">
+                <div class="placeholder">Speak or type sentence…</div>
+                <div class="mic-fab">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 013 3v6a3 3 0 01-6 0V5a3 3 0 013-3z"/><path d="M19 10v1a7 7 0 01-14 0v-1M12 18v4"/></svg>
+                </div>
+              </div>
+              <div class="lang-pair">
+                English <span class="swap-icon">↔</span> Filipino / Tagalog
+              </div>
+              <div>
+                <div class="section-title">Mode</div>
+                <div class="mode-pills">
+                  <span class="mode-pill active">Natural</span>
+                  <span class="mode-pill">Formal</span>
+                  <span class="mode-pill">Simple</span>
+                  <span class="mode-pill">Technical</span>
+                  <span class="mode-pill">Emergency</span>
+                </div>
+              </div>
+              <div class="primary-btn">Translate</div>
+              <div class="placeholder-result">Your translation will appear here…</div>
+              <div class="action-row" style="border:none; margin:0; padding:4px 0;">
+                <div class="action-btn"><div class="ab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>Play</div>
+                <div class="action-btn"><div class="ab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>Copy</div>
+                <div class="action-btn"><div class="ab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg></div>Save</div>
+                <div class="action-btn"><div class="ab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/></svg></div>Explain</div>
+              </div>
+            </div>
+            <div class="bottom-nav">
+              <div class="nav-item"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div>Define</div>
+              <div class="nav-item active"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8l5 3 5-3M5 8v8l5 3 5-3V8"/></svg></div>Translate</div>
+              <div class="nav-item"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg></div>Lens</div>
+              <div class="nav-item"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>Library</div>
+              <div class="nav-item"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></div>More</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Lens -->
+      <div class="phone-wrap">
+        <div class="screen-label">Lens</div>
+        <div class="iphone">
+          <div class="iphone-screen" style="background:#0d1a28;">
+            <div class="status-bar light"><span>9:41</span><span class="status-icons">●●● 100%</span></div>
+            <div class="app-header" style="padding-bottom:4px;">
+              <img class="logo-mark" src="../../public/brand/lexienn-logo-icon.png" alt="" />
+              <span class="app-name" style="color:#fff;">Lexienn</span>
+            </div>
+            <div class="lens-body">
+              <div class="lens-tabs">
+                <div class="lens-tab active">Scan Text</div>
+                <div class="lens-tab">Import Image</div>
+                <div class="lens-tab">History</div>
+              </div>
+              <div class="camera-preview">
+                <div class="warning-sign">
+                  <div class="ws-icon">!</div>
+                  <div class="ws-text">CAUTION<br/>HARD HAT AREA</div>
+                </div>
+                <div class="scan-frame"></div>
+                <div class="align-hint">Align text in the frame</div>
+              </div>
+              <div class="camera-controls">
+                <div class="shutter"><div class="shutter-inner"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Library -->
+      <div class="phone-wrap">
+        <div class="screen-label">Library</div>
+        <div class="iphone">
+          <div class="iphone-screen">
+            <div class="status-bar"><span>9:41</span><span class="status-icons">●●● 100%</span></div>
+            <div class="app-header">
+              <img class="logo-mark" src="../../public/brand/lexienn-logo-icon.png" alt="" />
+              <span class="app-name">Lexienn</span>
+            </div>
+            <div class="app-body" style="gap:7px;">
+              <div class="lib-item">
+                <div class="lib-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
+                <div class="lib-info"><div class="lib-name">Saved Words</div><div class="lib-count">128 items</div></div>
+                <span class="lib-chevron">›</span>
+              </div>
+              <div class="lib-item">
+                <div class="lib-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+                <div class="lib-info"><div class="lib-name">Saved Phrases</div><div class="lib-count">64 items</div></div>
+                <span class="lib-chevron">›</span>
+              </div>
+              <div class="lib-item">
+                <div class="lib-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></div>
+                <div class="lib-info"><div class="lib-name">Offline Packs</div><div class="lib-count">3 packs</div></div>
+                <span class="lib-chevron">›</span>
+              </div>
+              <div class="lib-item">
+                <div class="lib-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+                <div class="lib-info"><div class="lib-name">Profession Packs</div><div class="lib-count">8 packs</div></div>
+                <span class="lib-chevron">›</span>
+              </div>
+              <div class="lib-item">
+                <div class="lib-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+                <div class="lib-info"><div class="lib-name">Recent Searches</div><div class="lib-count">24 items</div></div>
+                <span class="lib-chevron">›</span>
+              </div>
+              <div class="lib-item">
+                <div class="lib-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
+                <div class="lib-info"><div class="lib-name">Favorites</div><div class="lib-count">42 items</div></div>
+                <span class="lib-chevron">›</span>
+              </div>
+            </div>
+            <div class="bottom-nav">
+              <div class="nav-item"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div>Define</div>
+              <div class="nav-item"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8l5 3 5-3M5 8v8l5 3 5-3V8"/></svg></div>Translate</div>
+              <div class="nav-item"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg></div>Lens</div>
+              <div class="nav-item active"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>Library</div>
+              <div class="nav-item"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></div>More</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. More / Settings -->
+      <div class="phone-wrap">
+        <div class="screen-label">More / Settings</div>
+        <div class="iphone">
+          <div class="iphone-screen">
+            <div class="status-bar"><span>9:41</span><span class="status-icons">●●● 100%</span></div>
+            <div class="app-header">
+              <img class="logo-mark" src="../../public/brand/lexienn-logo-icon.png" alt="" />
+              <span class="app-name">Lexienn</span>
+            </div>
+            <div class="app-body" style="gap:6px; overflow:hidden;">
+              <div class="settings-section">
+                <div class="settings-section-title">App Experience</div>
+                <div class="settings-group">
+                  <div class="settings-row">Launch animation <div class="toggle"></div></div>
+                  <div class="settings-row">Launch sound <div class="toggle off"></div></div>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-title">Voice &amp; Microphone</div>
+                <div class="settings-group">
+                  <div class="settings-row">Voice settings <span class="settings-chevron">›</span></div>
+                  <div class="settings-row">Microphone test <span class="settings-chevron">›</span></div>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-title">Offline</div>
+                <div class="settings-group">
+                  <div class="settings-row">Offline storage <span class="settings-chevron">›</span></div>
+                  <div class="settings-row">Manage packs <span class="settings-chevron">›</span></div>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-title">Preferences</div>
+                <div class="settings-group">
+                  <div class="settings-row">Language preferences <span class="settings-chevron">›</span></div>
+                  <div class="settings-row">Translation preferences <span class="settings-chevron">›</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="bottom-nav">
+              <div class="nav-item"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div>Define</div>
+              <div class="nav-item"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8l5 3 5-3M5 8v8l5 3 5-3V8"/></svg></div>Translate</div>
+              <div class="nav-item"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg></div>Lens</div>
+              <div class="nav-item"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>Library</div>
+              <div class="nav-item active"><div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></div>More</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. Offline Packs -->
+      <div class="phone-wrap">
+        <div class="screen-label">Offline Packs</div>
+        <div class="iphone">
+          <div class="iphone-screen">
+            <div class="status-bar"><span>9:41</span><span class="status-icons">●●● 100%</span></div>
+            <div class="app-header">
+              <img class="logo-mark" src="../../public/brand/lexienn-logo-icon.png" alt="" />
+              <span class="app-name">Lexienn</span>
+            </div>
+            <div class="page-title">Offline Packs</div>
+            <div class="app-body" style="gap:8px;">
+              <div class="pack-downloaded">
+                <div class="pd-title">English ↔ Filipino</div>
+                <div class="pd-meta">246 phrases · 42 audio clips</div>
+                <span class="chip green">Downloaded</span>
+              </div>
+              <div class="section-title">All Packs</div>
+              <div class="pack-list-item">
+                <span class="pli-name">Emergency Phrases</span>
+                <div class="dl-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></div>
+              </div>
+              <div class="pack-list-item">
+                <span class="pli-name">Engineering Terms</span>
+                <div class="dl-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></div>
+              </div>
+              <div class="pack-list-item">
+                <span class="pli-name">Travel Essentials</span>
+                <div class="dl-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></div>
+              </div>
+              <div class="pack-list-item">
+                <span class="pli-name">Business Communication</span>
+                <div class="dl-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></div>
+              </div>
+              <div class="secondary-btn">Download More Packs</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. Word Detail -->
+      <div class="phone-wrap">
+        <div class="screen-label">Word Detail</div>
+        <div class="iphone">
+          <div class="iphone-screen">
+            <div class="status-bar"><span>9:41</span><span class="status-icons">●●● 100%</span></div>
+            <div class="app-header">
+              <img class="logo-mark" src="../../public/brand/lexienn-logo-icon.png" alt="" />
+              <span class="app-name">Lexienn</span>
+            </div>
+            <div class="app-body">
+              <div class="card">
+                <div class="speaker-row">
+                  <div>
+                    <div class="result-word">acceleration</div>
+                    <div class="result-meta">noun · English</div>
+                  </div>
+                  <div class="speaker-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg>
+                  </div>
+                </div>
+                <div class="chip-row" style="margin-bottom:8px;">
+                  <span class="chip">AI Generated</span>
+                  <span class="chip navy">Engineering</span>
+                  <span class="chip green">High confidence</span>
+                </div>
+                <div class="meaning-block">
+                  <div class="meaning-label">Meaning</div>
+                  <div class="meaning-text">The rate at which velocity changes over time.</div>
+                </div>
+                <div class="fil-section">
+                  <div class="fs-label">Filipino / Tagalog</div>
+                  <div class="fs-words">pagbilis, akselerasyon</div>
+                </div>
+                <div class="meaning-block">
+                  <div class="meaning-label">Examples</div>
+                  <div class="example-item">
+                    The car’s acceleration increased.
+                    <div class="ex-fil">Bumilis ang takbo ng sasakyan.</div>
+                  </div>
+                </div>
+                <div class="action-row">
+                  <div class="action-btn"><div class="ab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>Play</div>
+                  <div class="action-btn"><div class="ab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>Copy</div>
+                  <div class="action-btn"><div class="ab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg></div>Share</div>
+                  <div class="action-btn"><div class="ab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></div>Remove</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Feature strip -->
+    <div class="feature-strip">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>Enterprise Grade</h3>
+        <p>Secure &amp; Reliable</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        </div>
+        <h3>Offline Ready</h3>
+        <p>No Internet? No Problem.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 014 4c0 1.5-.8 2.8-2 3.5V12h-4V9.5C8.8 8.8 8 7.5 8 6a4 4 0 014-4z"/><path d="M8 16h8M9 20h6"/></svg>
+        </div>
+        <h3>AI Powered</h3>
+        <p>Smart, Contextual Results</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        </div>
+        <h3>Private &amp; Secure</h3>
+        <p>Your Data Stays Yours</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+        </div>
+        <h3>Install as App</h3>
+        <p>PWA — Fast, Light, Always with You</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+        </div>
+        <h3>40+ Languages</h3>
+        <p>And Growing</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="board-footer">
+      <div class="footer-brand">
+        <img src="../../public/brand/lexienn-logo-icon.png" alt="Lexienn" />
+        <span>Lexienn</span>
+      </div>
+      <div class="footer-center">Your Personal Language Intelligence Partner</div>
+      <div class="footer-right">Understand. Communicate. Connect.</div>
+    </footer>
+  </div>
+</body>
+</html>
