@@ -36,7 +36,7 @@ const translationModes: Array<{ value: TranslationMode; label: string }> = [
   { value: "natural", label: "Natural" },
   { value: "polite", label: "Formal" },
   { value: "simple", label: "Simple" },
-  { value: "direct", label: "Technical" },
+  { value: "direct", label: "Literal" },
   { value: "speak_to_local", label: "Emergency" },
 ];
 

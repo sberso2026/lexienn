@@ -84,6 +84,20 @@ describe("buildTranslationPrompt", () => {
     );
     expect(system).not.toContain('Use "thongs" for flip-flop footwear');
   });
+
+  it("requires word-for-word fidelity and grammatical correctness", () => {
+    const { system, user } = buildTranslationPrompt({
+      ...baseRequest,
+      target_language: "fa",
+      target_display_name: "Persian",
+      translation_mode: "direct",
+    });
+
+    expect(system).toContain(AI_TRANSLATION_GUARDRAIL_MARKERS.wordForWord);
+    expect(system).toContain(AI_TRANSLATION_GUARDRAIL_MARKERS.grammaticallyCorrect);
+    expect(system).toContain("TRANSLATION MODE DEFINITIONS");
+    expect(user).toContain("word-for-word fidelity");
+  });
 });
 
 describe("translationTargetValidation", () => {

@@ -25,8 +25,8 @@ interface LexiennLaunchScreenProps {
   onComplete: () => void;
 }
 
-const ANIMATION_MS = 1400;
-const MAX_WAIT_MS = 1800;
+const ANIMATION_MS = 2600;
+const MAX_WAIT_MS = 3200;
 
 export function LexiennLaunchScreen({ onComplete }: LexiennLaunchScreenProps) {
   const reducedMotion = shouldUseReducedMotionLaunch();
@@ -40,7 +40,7 @@ export function LexiennLaunchScreen({ onComplete }: LexiennLaunchScreenProps) {
     markLaunchShownEver();
     setPhase("done");
     setFadingOut(true);
-    window.setTimeout(onComplete, 320);
+    window.setTimeout(onComplete, 450);
   }, [onComplete]);
 
   const handleSkip = useCallback(() => {
@@ -67,11 +67,11 @@ export function LexiennLaunchScreen({ onComplete }: LexiennLaunchScreenProps) {
     setPhase("animating");
 
     const cues: Array<{ at: number; cue: Parameters<typeof playLaunchSound>[0] }> = [
-      { at: 180, cue: "blueSwoosh" },
-      { at: 420, cue: "redSwoosh" },
-      { at: 760, cue: "bookLock" },
-      { at: 1180, cue: "starLock" },
-      { at: 1900, cue: "finalBurst" },
+      { at: 250, cue: "blueSwoosh" },
+      { at: 600, cue: "redSwoosh" },
+      { at: 1050, cue: "bookLock" },
+      { at: 1650, cue: "starLock" },
+      { at: 2000, cue: "finalBurst" },
     ];
 
     if (prefs.soundEnabled) {
@@ -80,7 +80,7 @@ export function LexiennLaunchScreen({ onComplete }: LexiennLaunchScreenProps) {
       }
     }
 
-    window.setTimeout(() => setShowComplete(true), 1700);
+    window.setTimeout(() => setShowComplete(true), 2000);
     window.setTimeout(finish, ANIMATION_MS);
   }, [finish, reducedMotion]);
 
@@ -125,6 +125,12 @@ export function LexiennLaunchScreen({ onComplete }: LexiennLaunchScreenProps) {
 
       {phase === "animating" && (
         <div className="relative h-40 w-40">
+          {(showComplete || reducedMotion) && (
+            <div
+              className="launch-complete-glow pointer-events-none absolute inset-[-20%] rounded-full"
+              aria-hidden
+            />
+          )}
           {!reducedMotion && !showComplete && (
             <>
               <LexiennLogoBlueSwoosh className="launch-piece launch-blue absolute inset-0 h-full w-full" />

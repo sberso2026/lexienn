@@ -188,8 +188,8 @@ export type TranslationPipelineResult = TranslatorResponse & {
  * 3. Curated dictionary exact match
  * 4. B'laan verified phrase (bli target only)
  * 5. Exact phrase pack match
- * 6. Rule/template/keyword fallback (when enabled)
- * 7. AI translation (when configured and enabled)
+ * 6. AI translation (when configured and enabled)
+ * 7. Rule/template/keyword fallback (when enabled; approximate only)
  * 8. Unavailable with a single clear reason
  */
 export async function runTranslationPipeline(
@@ -241,13 +241,6 @@ export async function runTranslationPipeline(
   }
   diagnostics.push("miss:phrase_pack");
 
-  const ruleFallback = tryRuleFallbackTranslation(request);
-  if (ruleFallback) {
-    diagnostics.push("matched:rule_fallback");
-    return attachDiagnostics(ruleFallback, request, diagnostics);
-  }
-  diagnostics.push("miss:rule_fallback");
-
   let aiAttempted = false;
   if (request.ai_translation_enabled && isAiTranslationConfigured()) {
     aiAttempted = true;
@@ -263,6 +256,13 @@ export async function runTranslationPipeline(
   } else {
     diagnostics.push("skip:ai_disabled");
   }
+
+  const ruleFallback = tryRuleFallbackTranslation(request);
+  if (ruleFallback) {
+    diagnostics.push("matched:rule_fallback");
+    return attachDiagnostics(ruleFallback, request, diagnostics);
+  }
+  diagnostics.push("miss:rule_fallback");
 
   return buildUnavailableResponse(request, {
     aiAttempted,

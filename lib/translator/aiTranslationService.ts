@@ -29,17 +29,26 @@ function normalizeAiTranslationPayload(
   if (!obj) return raw;
 
   const original = request.input_text.trim();
-  const translated =
-    typeof obj.translated_text === "string"
-      ? obj.translated_text
-      : typeof obj.natural_translation === "string"
-        ? obj.natural_translation
-        : original;
+  const literal =
+    typeof obj.literal_translation === "string" && obj.literal_translation.trim()
+      ? obj.literal_translation.trim()
+      : undefined;
+  const naturalField =
+    typeof obj.natural_translation === "string" && obj.natural_translation.trim()
+      ? obj.natural_translation.trim()
+      : undefined;
+  const modelPrimary =
+    typeof obj.translated_text === "string" && obj.translated_text.trim()
+      ? obj.translated_text.trim()
+      : undefined;
 
-  const natural =
-    typeof obj.natural_translation === "string"
-      ? obj.natural_translation
-      : translated;
+  // Prefer explicit primary; for direct/literal mode favor word-for-word when provided.
+  const translated =
+    request.translation_mode === "direct"
+      ? modelPrimary ?? literal ?? naturalField ?? original
+      : modelPrimary ?? naturalField ?? literal ?? original;
+
+  const natural = naturalField ?? translated;
 
   const pronunciation =
     typeof obj.pronunciation_simple === "string" && obj.pronunciation_simple.length > 0
@@ -61,8 +70,7 @@ function normalizeAiTranslationPayload(
     source_language: request.source_language,
     target_language: request.target_language,
     target_dialect: request.target_dialect,
-    literal_translation:
-      typeof obj.literal_translation === "string" ? obj.literal_translation : undefined,
+    literal_translation: literal,
     natural_translation: natural,
     pronunciation_simple: pronunciation,
     usage_note: typeof obj.usage_note === "string" ? obj.usage_note : undefined,
@@ -111,7 +119,7 @@ async function requestAiTranslation(
 
   return requestOpenAiChatCompletion({
     model: config.model,
-    temperature: 0.2,
+    temperature: 0.1,
     response_format: { type: "json_object" },
     messages: [
       { role: "system", content: system },
