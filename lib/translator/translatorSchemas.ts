@@ -81,7 +81,7 @@ export type TranslatorProviderStatus = z.infer<
 >;
 
 export const AI_NOT_CONFIGURED_MESSAGE =
-  "AI translation is not configured. Add provider key or enable fallback.";
+  "Translation is temporarily unavailable. Try again or use an offline pack.";
 
 export const TRANSLATION_UNAVAILABLE_MESSAGE =
   "Translation is not available yet for this phrase. Try a simpler phrase or download an offline pack.";
@@ -91,7 +91,7 @@ export const TRANSLATION_SOURCE_LABELS: Record<TranslationSource, string> = {
   dictionary: "Dictionary",
   phrase_pack: "Phrase pack",
   ai: "AI generated",
-  rule_fallback: "Pattern match",
+  rule_fallback: "Approximate match",
   unavailable: "Unavailable",
 };
 
@@ -113,8 +113,8 @@ export function getReliabilityLabel(
   }
   if (source === "rule_fallback") {
     return confidence >= 0.6
-      ? "Pattern-based translation (approximate)"
-      : "Low-confidence pattern match";
+      ? "Approximate translation — review recommended"
+      : "Low-confidence approximate match";
   }
   return "Translation available";
 }

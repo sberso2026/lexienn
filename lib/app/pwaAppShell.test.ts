@@ -74,7 +74,7 @@ describe("PWA app shell layout and navigation", () => {
     expect(appShell).toContain("showSignIn: false");
     expect(appShell).toContain("LexiennBootSplash");
     expect(launch).not.toContain("Enter Lexienn");
-    expect(launch).toContain("Opening Lexienn");
+    expect(launch).toContain("Tap to open");
   });
 
   it("links the Lexienn header brand to the home dashboard", () => {

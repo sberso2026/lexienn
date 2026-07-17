@@ -139,7 +139,7 @@ export function TextTranslatorView() {
 
     const parsed = translatorRequestSchema.safeParse(payload);
     if (!parsed.success) {
-      setFormError(parsed.error.issues[0]?.message ?? "Invalid request.");
+      setFormError("Check your languages and try again.");
       setRequestState("ready");
       return;
     }

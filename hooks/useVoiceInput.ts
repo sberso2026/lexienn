@@ -54,10 +54,10 @@ function mapSpeechErrorMessage(error: unknown): MicUserMessage {
   }
   if (error instanceof VoiceTranscribeApiError) {
     if (error.code === "transcription_provider_unavailable") {
-      return { body: "High-reliability mobile transcription is not configured yet." };
+      return { body: "Voice transcription isn’t available right now. You can type instead." };
     }
     if (error.code === "transcription_timeout") {
-      return { body: "Speech processing timed out. Try again or type instead." };
+      return { body: "Speech took too long. Try again or type instead." };
     }
     if (error.code === "unsupported_audio_format") {
       return { body: "This browser audio format is not supported for transcription." };

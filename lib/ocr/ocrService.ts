@@ -98,7 +98,7 @@ export async function extractTextFromImageCloud(
     });
   } catch {
     return buildUnavailableResponse(
-      "Image text extraction timed out. Try typing the text manually.",
+      "Couldn’t read the image. Try again or type the text.",
     );
   }
 

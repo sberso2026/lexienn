@@ -21,6 +21,10 @@ import {
   saveDictionaryResult,
   type StoredDictionaryResult,
 } from "@/lib/dictionary/resultStorage";
+import {
+  toUserFacingError,
+  USER_LOOKUP_UNAVAILABLE,
+} from "@/lib/ui/userFacingErrors";
 import { buildDictionaryRequestKey, dictionaryQueriesMatch } from "@/lib/request/requestKeys";
 import type { DictionaryQuery } from "@/lib/schemas";
 import type { UserPreferences } from "@/lib/settings/userPreferences";
@@ -201,8 +205,8 @@ export function DictionaryResultView() {
         setResult((previous) => (previous === null ? previous : null));
         const message =
           error instanceof DictionaryApiError
-            ? error.message
-            : "Failed to load dictionary result.";
+            ? toUserFacingError(error.message, USER_LOOKUP_UNAVAILABLE)
+            : "Could not load this result. Please try again.";
         setFetchError((previous) => (previous === message ? previous : message));
         if (!(error instanceof DictionaryApiError)) {
           console.error("[dictionary.result] unexpected_error", error);

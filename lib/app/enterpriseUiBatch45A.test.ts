@@ -86,7 +86,7 @@ describe("Batch 45A enterprise UI foundation", () => {
 
   it("keeps camera OCR available in both Translator and Lens", () => {
     const translator = readFileSync("components/translator/TranslatorView.tsx", "utf8");
-    const lens = readFileSync("app/lens/page.tsx", "utf8");
+    const lens = readFileSync("components/lens/LensView.tsx", "utf8");
     expect(translator).toContain("CameraTranslatorView");
     expect(lens).toContain("CameraTranslatorView");
   });

@@ -235,6 +235,13 @@ textarea {
   padding-bottom: var(--safe-area-bottom);
 }
 
+@media (max-width: 767px) and (orientation: landscape) {
+  :root {
+    --app-header-offset-mobile: 4.75rem;
+    --header-mobile-rows: 4.75rem;
+  }
+}
+
 @media (min-width: 768px) {
   .mobile-app-shell {
     overflow: visible;

@@ -19,7 +19,7 @@ import {
   LexiennLogoStar,
 } from "@/components/launch/lexiennLogoParts";
 
-type Phase = "opening" | "animating" | "done";
+type Phase = "ready" | "animating" | "done";
 
 interface LexiennLaunchScreenProps {
   onComplete: () => void;
@@ -30,7 +30,7 @@ const MAX_WAIT_MS = 1800;
 
 export function LexiennLaunchScreen({ onComplete }: LexiennLaunchScreenProps) {
   const reducedMotion = shouldUseReducedMotionLaunch();
-  const [phase, setPhase] = useState<Phase>("opening");
+  const [phase, setPhase] = useState<Phase>("ready");
   const [showComplete, setShowComplete] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
   const startedRef = useRef(false);
@@ -48,6 +48,9 @@ export function LexiennLaunchScreen({ onComplete }: LexiennLaunchScreenProps) {
   }, [finish]);
 
   const startAnimation = useCallback(async () => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+
     const prefs = loadLaunchPreferences();
     await resumeLaunchAudioContext();
     if (prefs.soundEnabled && !reducedMotion) {
@@ -82,33 +85,42 @@ export function LexiennLaunchScreen({ onComplete }: LexiennLaunchScreenProps) {
   }, [finish, reducedMotion]);
 
   useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
-    const timer = window.setTimeout(() => {
-      void startAnimation();
-    }, 120);
-    return () => window.clearTimeout(timer);
-  }, [startAnimation]);
-
-  useEffect(() => {
+    if (phase !== "animating") return;
     const safety = window.setTimeout(() => {
-      if (phase !== "done") finish();
+      finish();
     }, MAX_WAIT_MS);
     return () => window.clearTimeout(safety);
   }, [finish, phase]);
 
   return (
     <div
-      className={`boot-overlay fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[radial-gradient(circle_at_center,#1a3f6b_0%,#0b1f38_70%)] px-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] transition-opacity duration-300 ${
+      className={`boot-overlay fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[radial-gradient(circle_at_center,#1a3f6b_0%,#0b1f38_70%)] px-6 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] transition-opacity duration-300 ${
         fadingOut ? "pointer-events-none opacity-0" : "opacity-100"
       }`}
       role="dialog"
       aria-label="Lexienn launch"
     >
-      {phase === "opening" && (
-        <p className="text-sm text-slate-200" aria-live="polite">
-          Opening Lexienn…
-        </p>
+      {phase === "ready" && (
+        <div className="flex flex-col items-center gap-6">
+          <LexiennLogoComplete className="h-28 w-28 object-contain opacity-90" />
+          <p className="text-sm text-slate-200" aria-live="polite">
+            Lexienn is ready
+          </p>
+          <button
+            type="button"
+            onClick={() => void startAnimation()}
+            className="min-h-11 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-[#0b1f38] shadow-lg"
+          >
+            Tap to open
+          </button>
+          <button
+            type="button"
+            onClick={handleSkip}
+            className="min-h-11 text-xs text-slate-300 underline"
+          >
+            Skip
+          </button>
+        </div>
       )}
 
       {phase === "animating" && (
@@ -135,7 +147,7 @@ export function LexiennLaunchScreen({ onComplete }: LexiennLaunchScreenProps) {
         <button
           type="button"
           onClick={handleSkip}
-          className="absolute bottom-[calc(2rem+env(safe-area-inset-bottom))] text-xs text-slate-300 underline"
+          className="absolute bottom-[calc(2rem+env(safe-area-inset-bottom))] min-h-11 text-xs text-slate-300 underline"
         >
           Skip
         </button>

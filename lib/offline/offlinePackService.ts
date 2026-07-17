@@ -113,7 +113,7 @@ export function buildPackAvailabilityMessage(
   if (availability.status === "missing" && !isOnline) {
     return "No offline pack downloaded for this language pair.";
   }
-  return "Pack unavailable. Try another language pair or enable AI generation.";
+  return "Pack unavailable. Try another language pair or check your connection.";
 }
 
 export function getActiveOfflinePairKey(): string | null {

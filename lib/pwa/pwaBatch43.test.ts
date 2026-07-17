@@ -82,9 +82,10 @@ describe("PWA batch 43", () => {
 
   it("launch screen supports tap-to-start and skip", () => {
     const launch = readFileSync("components/launch/LexiennLaunchScreen.tsx", "utf8");
-    expect(launch).toContain("Opening Lexienn");
+    expect(launch).toContain("Tap to open");
     expect(launch).toContain("Skip");
     expect(launch).toContain("playLaunchSound");
+    expect(launch).toContain("loadLaunchPreferences");
   });
 
   it("settings include App Experience toggles", () => {

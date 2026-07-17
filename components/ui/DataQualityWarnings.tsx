@@ -54,7 +54,7 @@ export function DataQualityWarnings({
       {isUnavailable && (
         <WarningCallout title="Unavailable">
           {unavailableMessage ??
-            "Definition unavailable from reliable sources. Try a simpler word or enable AI generation."}
+            "Definition unavailable from reliable sources. Try a simpler word or phrase."}
         </WarningCallout>
       )}
 

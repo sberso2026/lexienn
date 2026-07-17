@@ -1,9 +1,24 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
-import { CameraTranslatorView } from "@/components/translator/CameraTranslatorView";
 import { TextTranslatorView } from "@/components/translator/TextTranslatorView";
 import { TranslatorModeTabs } from "@/components/translator/TranslatorModeTabs";
+
+const CameraTranslatorView = dynamic(
+  () =>
+    import("@/components/translator/CameraTranslatorView").then((mod) => ({
+      default: mod.CameraTranslatorView,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <p className="text-sm text-[var(--muted)]" aria-live="polite">
+        Loading camera tools…
+      </p>
+    ),
+  },
+);
 
 export function TranslatorView() {
   const [mode, setMode] = useState<"text" | "camera">("text");

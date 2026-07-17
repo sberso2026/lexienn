@@ -25,6 +25,10 @@ import {
   saveDictionaryLookupFormFromQuery,
   type StoredDictionaryLookupForm,
 } from "@/lib/dictionary/lookupFormStorage";
+import {
+  toUserFacingError,
+  USER_LOOKUP_UNAVAILABLE,
+} from "@/lib/ui/userFacingErrors";
 import { useActiveRequest } from "@/hooks/useActiveRequest";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { buildDictionaryRequestKey } from "@/lib/request/requestKeys";
@@ -248,7 +252,7 @@ export function DictionaryLookupForm({
         }
         if (!isActiveRequest(requestKey)) return;
         if (error instanceof DictionaryApiError) {
-          setFormError(error.message);
+          setFormError(toUserFacingError(error.message, USER_LOOKUP_UNAVAILABLE));
         } else {
           console.error("[dictionary.lookup] unexpected_error", error);
           setFormError("Could not generate a dictionary result. Please try again.");

@@ -102,7 +102,7 @@ export function InstallStep({
 function InstallGateShell({ children }: { children: ReactNode }) {
   return (
     <div
-      className="fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-y-auto bg-[radial-gradient(circle_at_top,#1a3f6b_0%,#0b1f38_65%)] px-6 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-8 text-center text-white"
+      className="fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-y-auto bg-[radial-gradient(circle_at_top,#1a3f6b_0%,#0b1f38_65%)] px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] text-center text-white sm:px-6"
       role="dialog"
       aria-label="Install Lexienn"
     >

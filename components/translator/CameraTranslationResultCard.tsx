@@ -81,8 +81,8 @@ export function CameraTranslationResultCard({
 
       {hasTranslation && (
         <>
-          <p className="text-lg font-semibold leading-snug">{result.translated_text}</p>
-          <p className="mt-1 text-xs text-[var(--muted)] line-clamp-2">
+          <p className="text-lg font-semibold leading-snug break-words">{result.translated_text}</p>
+          <p className="mt-1 text-xs text-[var(--muted)] line-clamp-2 break-words">
             {result.original_text}
           </p>
 

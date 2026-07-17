@@ -49,7 +49,7 @@ describe("Batch 45B enterprise screen polish", () => {
   });
 
   it("Lens renders Scan Text, Import Image, and History", () => {
-    const lens = readFileSync("app/lens/page.tsx", "utf8");
+    const lens = readFileSync("components/lens/LensView.tsx", "utf8");
     expect(lens).toContain("Scan Text");
     expect(lens).toContain("Import Image");
     expect(lens).toContain("History");

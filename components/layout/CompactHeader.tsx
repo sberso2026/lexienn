@@ -75,7 +75,7 @@ function HeaderStatusRow({
         <StatusChip label="Voice" variant="info" icon={<SpeakerIcon />} />
       </span>
       {offlineReady && (
-        <StatusChip label="Offline Ready" variant="success" icon={<DownloadIcon />} />
+        <StatusChip label="Offline" variant="success" icon={<DownloadIcon />} />
       )}
     </div>
   );
