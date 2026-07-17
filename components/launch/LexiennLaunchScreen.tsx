@@ -25,8 +25,10 @@ interface LexiennLaunchScreenProps {
   onComplete: () => void;
 }
 
-const ANIMATION_MS = 2600;
-const MAX_WAIT_MS = 3200;
+const ASSEMBLY_MS = 2000;
+const COMPLETE_HOLD_MS = 3000;
+const ANIMATION_MS = ASSEMBLY_MS + COMPLETE_HOLD_MS;
+const MAX_WAIT_MS = ANIMATION_MS + 800;
 
 export function LexiennLaunchScreen({ onComplete }: LexiennLaunchScreenProps) {
   const reducedMotion = shouldUseReducedMotionLaunch();
@@ -60,7 +62,7 @@ export function LexiennLaunchScreen({ onComplete }: LexiennLaunchScreenProps) {
     if (reducedMotion) {
       setPhase("animating");
       setShowComplete(true);
-      window.setTimeout(finish, 700);
+      window.setTimeout(finish, COMPLETE_HOLD_MS);
       return;
     }
 
@@ -71,7 +73,7 @@ export function LexiennLaunchScreen({ onComplete }: LexiennLaunchScreenProps) {
       { at: 600, cue: "redSwoosh" },
       { at: 1050, cue: "bookLock" },
       { at: 1650, cue: "starLock" },
-      { at: 2000, cue: "finalBurst" },
+      { at: ASSEMBLY_MS, cue: "finalBurst" },
     ];
 
     if (prefs.soundEnabled) {
@@ -80,7 +82,7 @@ export function LexiennLaunchScreen({ onComplete }: LexiennLaunchScreenProps) {
       }
     }
 
-    window.setTimeout(() => setShowComplete(true), 2000);
+    window.setTimeout(() => setShowComplete(true), ASSEMBLY_MS);
     window.setTimeout(finish, ANIMATION_MS);
   }, [finish, reducedMotion]);
 

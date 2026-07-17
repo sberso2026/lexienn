@@ -127,6 +127,11 @@ export function useVoiceInput({
     setStatusMessage(getMicErrorMessage(errorCode, platform));
     logVoiceDiagnostic("recognition_error", { code: errorCode });
     updateVoiceDebugSnapshot({ voiceState: micErrorCodeToVoiceInputState(errorCode) });
+    if (errorCode === "mic_permission_denied") {
+      void import("@/lib/analytics/appEvents").then(({ trackAppEvent }) => {
+        trackAppEvent("microphone_permission_denied");
+      });
+    }
   }, []);
 
   const commitTranscript = useCallback(

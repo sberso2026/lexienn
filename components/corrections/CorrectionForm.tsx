@@ -29,6 +29,9 @@ export type CorrectionFormDefaults = {
   language: string;
   dialect?: string;
   correction_type?: z.infer<typeof correctionTypeSchema>;
+  source_language?: string;
+  source_type?: string;
+  user_context?: string;
 };
 
 interface CorrectionFormProps {
@@ -106,7 +109,12 @@ export function CorrectionForm({
       return;
     }
 
-    const correction = createCorrectionSubmission(result.data);
+    const correction = createCorrectionSubmission({
+      ...result.data,
+      source_language: defaults.source_language,
+      source_type: defaults.source_type,
+      user_context: defaults.user_context,
+    });
     setIsSaving(true);
     saveCorrection(correction);
     setMessage("Correction saved locally with pending sync status.");

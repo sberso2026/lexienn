@@ -77,7 +77,10 @@ describe("result page interaction freeze regression", () => {
     expect(dictionaryResultCard).toContain('label="Save"');
     expect(dictionaryResultCard).toContain('label="Explain"');
     expect(dictionaryResultCard).toContain('label="Add to Library"');
-    expect(dictionaryResultCard).toContain("Suggest a correction");
+    expect(dictionaryResultCard).toContain("ResultCorrectionActions");
+    expect(readFileSync("components/corrections/ResultCorrectionActions.tsx", "utf8")).toContain(
+      "Suggest correction",
+    );
   });
 
   it("scopes audio disabled state to the play button only", () => {

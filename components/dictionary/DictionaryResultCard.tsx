@@ -8,7 +8,6 @@ import { IconButton } from "@/components/ui/IconButton";
 import { useVoicePlayback } from "@/lib/voice/useVoicePlayback";
 import { DictionarySourceBadge } from "@/components/ui/DictionarySourceBadge";
 import { ConfidenceBadge } from "@/components/ui/ConfidenceBadge";
-import { ResultCard } from "@/components/ui/ResultCard";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { LanguageBadge } from "@/components/ui/LanguageBadge";
 import { Badge } from "@/components/ui/StatusBadge";
@@ -33,7 +32,7 @@ import type { DictionaryDiagnostics } from "@/lib/dictionary/apiSchemas";
 import { isEnglishToEnglishQuery } from "@/lib/dictionary/normalizeDictionaryEntry";
 import type { DictionaryEntry, DictionaryQuery, DictionaryResolutionSource } from "@/lib/schemas";
 import { DataQualityWarnings } from "@/components/ui/DataQualityWarnings";
-import { CorrectionForm } from "@/components/corrections/CorrectionForm";
+import { ResultCorrectionActions } from "@/components/corrections/ResultCorrectionActions";
 
 interface DictionaryResultCardProps {
   query: DictionaryQuery;
@@ -127,7 +126,6 @@ export function DictionaryResultCard({
 
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [alreadySaved, setAlreadySaved] = useState(false);
-  const [showCorrectionForm, setShowCorrectionForm] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -367,28 +365,19 @@ export function DictionaryResultCard({
           </p>
         )}
 
-        <button
-          type="button"
-          onClick={() => setShowCorrectionForm((value) => !value)}
-          className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--accent)]"
-          aria-expanded={showCorrectionForm}
-        >
-          {showCorrectionForm ? "Close correction form" : "Suggest a correction"}
-        </button>
-
-        {showCorrectionForm && (
-          <ResultCard title="Submit correction">
-            <CorrectionForm
-              defaults={{
-                original_text: enrichedEntry.input_text,
-                current_translation: enrichedEntry.target_meaning,
-                language: query.target_language,
-                dialect: query.target_dialect,
-              }}
-              onClose={() => setShowCorrectionForm(false)}
-            />
-          </ResultCard>
-        )}
+        <ResultCorrectionActions
+          defaults={{
+            original_text: enrichedEntry.input_text,
+            current_translation:
+              enrichedEntry.target_meaning || enrichedEntry.general_meaning_en,
+            language: query.target_language,
+            dialect: query.target_dialect,
+            correction_type: "meaning",
+            source_language: query.source_language,
+            source_type: source,
+            user_context: query.user_context,
+          }}
+        />
       </div>
 
       <BottomActionBar ariaLabel="Dictionary result actions">

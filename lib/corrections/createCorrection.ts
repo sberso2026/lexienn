@@ -11,6 +11,9 @@ export type CorrectionFormInput = {
   contributor_note?: string;
   is_native_speaker: boolean;
   is_profession_reviewer: boolean;
+  source_language?: string;
+  source_type?: string;
+  user_context?: string;
 };
 
 export function createCorrectionSubmission(
@@ -29,5 +32,8 @@ export function createCorrectionSubmission(
     is_profession_reviewer: input.is_profession_reviewer,
     status: "pending_sync",
     created_at: new Date().toISOString(),
+    source_language: input.source_language,
+    source_type: input.source_type,
+    user_context: input.user_context,
   });
 }

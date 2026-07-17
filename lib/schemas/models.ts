@@ -167,6 +167,9 @@ export const correctionSubmissionSchema = z.object({
   is_profession_reviewer: z.boolean().default(false),
   status: correctionStatusSchema.default("pending_sync"),
   created_at: z.string().datetime(),
+  source_language: z.string().optional(),
+  source_type: z.string().optional(),
+  user_context: z.string().optional(),
 });
 
 export type ConfidenceStatus = z.infer<typeof confidenceStatusSchema>;

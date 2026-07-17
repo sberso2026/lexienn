@@ -113,6 +113,22 @@ export const CURATED_PHRASE_ENTRIES: CuratedPhraseEntry[] = [
     pronunciation_simple: "HIN-dee",
   },
   {
+    id: "curated-which-way-to-church",
+    source_keys: [
+      "which way to church",
+      "which way to the church",
+      "where's the church",
+      "where is the church",
+      "where is the nearest church",
+      "how do i get to church",
+      "how do i get to the church",
+    ],
+    target_languages: ["tl"],
+    translated_text: "Nasaan po ang daan patungo sa simbahan?",
+    pronunciation_simple: "nah-sah-AN po ang DAH-an pah-TOONG-go sah seem-BAH-han",
+    usage_note: "Polite way to ask directions to a church in Filipino / Tagalog.",
+  },
+  {
     id: "curated-water-word",
     source_keys: ["water"],
     target_languages: ["tl"],

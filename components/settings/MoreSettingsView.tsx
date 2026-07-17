@@ -184,15 +184,74 @@ export function MoreSettingsView() {
         </div>
       </section>
 
+      <SettingsSection
+        title="Feedback"
+        description="Help improve Lexienn during real-device testing."
+        rows={[
+          {
+            title: "Send feedback",
+            description: "General comments and ideas",
+            href: "/more/feedback?category=send_feedback",
+          },
+          {
+            title: "Report issue",
+            description: "Something didn’t work as expected",
+            href: "/more/feedback?category=report_issue",
+          },
+          {
+            title: "Suggest language or phrase",
+            description: "Request a language or common phrase",
+            href: "/more/feedback?category=suggest_language_or_phrase",
+          },
+          {
+            title: "Report wrong translation",
+            description: "Flag an inaccurate translation",
+            href: "/more/feedback?category=report_wrong_translation",
+          },
+          {
+            title: "Report microphone issue",
+            description: "Voice input or permission problems",
+            href: "/more/feedback?category=report_microphone_issue",
+          },
+          {
+            title: "Report camera/Lens issue",
+            description: "Scan, import, or OCR problems",
+            href: "/more/feedback?category=report_camera_lens_issue",
+          },
+        ]}
+      />
+
+      <SettingsSection
+        title="About"
+        description="Release metadata for support and verification."
+        rows={[
+          {
+            title: "About Lexienn",
+            description: "Version, environment, and commit label",
+            href: "/more/about",
+          },
+        ]}
+      />
+
       {isDeveloperModeFeatureEnabled() && (
         <SettingsSection
           title="Developer Diagnostics"
-          description="Internal runtime and provider tools."
+          description="Internal runtime and QA tools."
           rows={[
             {
               title: "Open diagnostics",
               description: "PWA, microphone, provider, and local data tools",
               href: "/settings",
+            },
+            {
+              title: "Production diagnostics",
+              description: "Safe status panel for field testing",
+              href: "/more/qa",
+            },
+            {
+              title: "QA checklist",
+              description: "Pass/fail real-device checks with export",
+              href: "/more/qa",
             },
           ]}
         />

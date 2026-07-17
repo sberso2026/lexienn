@@ -246,6 +246,12 @@ export function DictionaryLookupForm({
           context: response.query.user_context,
         });
         router.push(`/dictionary/result?${params.toString()}`);
+        void import("@/lib/analytics/appEvents").then(({ trackAppEvent }) => {
+          trackAppEvent("dictionary_lookup_completed", {
+            source: response.source,
+            target: response.query.target_language,
+          });
+        });
       } catch (error) {
         if (isAbortError(error) || generation !== submitGenerationRef.current) {
           return;

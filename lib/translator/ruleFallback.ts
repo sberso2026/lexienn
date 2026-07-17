@@ -37,9 +37,14 @@ const KEYWORD_PHRASE_MAP: Array<{
     priority: 6,
   },
   {
-    keywords: ["road", "way", "direction"],
+    keywords: ["road", "street", "highway", "kalsada"],
     english: "Where is the nearest road?",
     priority: 5,
+  },
+  {
+    keywords: ["church", "simbahan"],
+    english: "Which way to church?",
+    priority: 8,
   },
   { keywords: ["price", "much", "cost"], english: "How much is this?", priority: 5 },
   { keywords: ["safe", "safety"], english: "Is this place safe?", priority: 4 },

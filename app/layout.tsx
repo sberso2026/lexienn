@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { AppErrorBoundary } from "@/components/app/AppErrorBoundary";
 import { AppShell } from "@/components/AppShell";
 import { MobileAppShell } from "@/components/layout/MobileAppShell";
 import { withBrandAssetVersion } from "@/lib/brand/brandAssetVersion";
@@ -57,7 +58,9 @@ export default function RootLayout({
           Skip to main content
         </a>
         <AppShell>
-          <MobileAppShell>{children}</MobileAppShell>
+          <AppErrorBoundary>
+            <MobileAppShell>{children}</MobileAppShell>
+          </AppErrorBoundary>
         </AppShell>
       </body>
     </html>

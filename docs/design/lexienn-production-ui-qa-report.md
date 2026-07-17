@@ -136,3 +136,64 @@ Capture (or tick) for each:
 ## Production readiness
 
 **Ready for broader user testing.** Core Define / Translate / Lens / Library / More flows remain intact; PWA install and launch are clearer and safer; API results cannot be stale via the service worker; user-visible prototype/provider wording has been scrubbed from normal screens.
+
+---
+
+## Batch 46 — Real-device feedback readiness (2026-07-17)
+
+### Translation fix
+- English → Filipino “Which way to church” now curated as **Nasaan po ang daan patungo sa simbahan?**
+- Rule-fallback no longer maps bare “way” to “nearest road”
+
+### Launch
+- After logo assembly, hold **3 seconds** with glow before dismiss
+
+### Feedback workflow
+1. More → Feedback categories (issue, wrong translation, mic, Lens, etc.)
+2. Form stores locally (`lexienn_feedback_submissions`) with route, version, device summary, PWA mode
+3. Define/Translate result cards: Suggest correction / Report wrong meaning / Report wrong translation
+4. Corrections store language pair + source type locally; existing queue still available in Developer settings
+
+### Support triage process
+1. Collect exported QA JSON from `/more/qa` (Developer Mode)
+2. Review local feedback/corrections queues on tester devices or shared export
+3. Reproduce with release metadata (About / diagnostics)
+4. Prioritize: install/PWA → core Define/Translate → Lens/mic → offline
+
+### Release metadata instructions
+Set on Vercel:
+- `NEXT_PUBLIC_APP_VERSION`
+- `NEXT_PUBLIC_COMMIT_SHA` (or rely on `VERCEL_GIT_COMMIT_SHA`)
+- `NEXT_PUBLIC_DEPLOY_ENV` (`local` | `preview` | `production`)
+- Optional: `NEXT_PUBLIC_BUILD_TIMESTAMP`
+
+Display: More → About (and Developer QA diagnostics).
+
+### Real-device QA checklist template
+Use Developer Mode → `/more/qa` or `/qa`:
+- [ ] install gate
+- [ ] home-screen icon
+- [ ] standalone mode
+- [ ] launch animation (3s glow hold)
+- [ ] mic permission
+- [ ] voice input
+- [ ] dictionary AI
+- [ ] translator (incl. “Which way to church” → simbahan)
+- [ ] Lens fallback
+- [ ] offline packs
+- [ ] Library save
+- [ ] service worker no API cache
+
+### Known limitations
+- Feedback/corrections are device-local until a backend sync is wired
+- No third-party analytics yet (local counters + Developer console.debug only)
+- QA/diagnostics screens require `NEXT_PUBLIC_ENABLE_DEVELOPER_MODE=true`
+
+### Post-deploy verification steps
+1. Confirm About version/commit on preview and production
+2. Translate “Which way to church” EN→TL
+3. Submit one feedback item; confirm it appears in local storage
+4. Submit one correction from Translate result
+5. Developer Mode: open `/more/qa`, mark two checks, export JSON
+6. Confirm SW still skips `/api/*`
+7. Confirm Persian / Azerbaijani appear in language selects

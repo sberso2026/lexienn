@@ -81,6 +81,9 @@ export function ImageCaptureCard({
 
   async function openCamera() {
     setCameraError(null);
+    void import("@/lib/analytics/appEvents").then(({ trackAppEvent }) => {
+      trackAppEvent("lens_scan_started");
+    });
 
     if (!isCameraCaptureSupported()) {
       cameraFallbackInputRef.current?.click();

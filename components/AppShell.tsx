@@ -8,6 +8,7 @@ import { LexiennLaunchScreen } from "@/components/launch/LexiennLaunchScreen";
 import { MobileInstallGate } from "@/components/pwa/MobileInstallGate";
 import { ClientErrorReporter } from "@/components/pwa/ClientErrorReporter";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
+import { trackAppEvent } from "@/lib/analytics/appEvents";
 import {
   isAppBootChecking,
   resolveAppBootState,
@@ -19,6 +20,7 @@ import {
 } from "@/lib/launch/launchPreferences";
 import { logPerf } from "@/lib/request/perfLog";
 import { shouldShowLaunchScreen } from "@/lib/launch/shouldShowLaunchScreen";
+import { isStandaloneApp } from "@/lib/pwa/isStandaloneApp";
 import { shouldShowMobileInstallGate } from "@/lib/pwa/shouldShowMobileInstallGate";
 
 interface AppShellProps {
@@ -53,7 +55,12 @@ export function AppShell({ children }: AppShellProps) {
     setInstallGateOpen(gated);
 
     if (gated) {
+      trackAppEvent("install_gate_viewed");
       return;
+    }
+
+    if (isStandaloneApp()) {
+      trackAppEvent("app_installed_detected");
     }
 
     const launch = shouldShowLaunchScreen();
@@ -73,6 +80,7 @@ export function AppShell({ children }: AppShellProps) {
     bootCompletedRef.current = true;
     setShowLaunch(false);
     setAppContentVisible(true);
+    trackAppEvent("launch_animation_completed");
   }, []);
 
   const handleDeveloperBypass = useCallback(() => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ResultCorrectionActions } from "@/components/corrections/ResultCorrectionActions";
 import { CompactAlert } from "@/components/ui/CompactAlert";
 import { CompactCard } from "@/components/ui/CompactCard";
 import { IconButton } from "@/components/ui/IconButton";
@@ -15,6 +16,7 @@ import { ValidationStatusBadge } from "@/components/ui/ValidationStatusBadge";
 import { ConfidenceBadge } from "@/components/ui/ConfidenceBadge";
 import { useActiveRequest } from "@/hooks/useActiveRequest";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
+import { trackAppEvent } from "@/lib/analytics/appEvents";
 import {
   resolveLanguageSelection,
   buildTranslationTargetPayload,
@@ -155,6 +157,11 @@ export function TextTranslatorView() {
 
       setResult(response);
       setRequestState(fromCache ? "from_cache" : "ready");
+      trackAppEvent("translation_completed", {
+        source: response.source,
+        target: response.target_language,
+        fromCache,
+      });
       if (!fromCache) {
         setAutoplayRequestId((id) => id + 1);
       }
@@ -446,6 +453,21 @@ export function TextTranslatorView() {
                   {saveMessage}
                 </p>
               )}
+
+              <div className="mt-3">
+                <ResultCorrectionActions
+                  defaults={{
+                    original_text: result.original_text,
+                    current_translation: result.translated_text || result.natural_translation,
+                    language: result.target_language,
+                    dialect: result.target_dialect,
+                    correction_type: "translation",
+                    source_language: result.source_language,
+                    source_type: result.source,
+                    user_context: userContext,
+                  }}
+                />
+              </div>
 
               {(statusMessage || audioState === "audio_error" || audioState === "audio_unavailable") && (
                 <p
