@@ -8,6 +8,16 @@ import {
   isAustralianIndigenousLanguageCode,
 } from "@/lib/languages/australianLanguages";
 import {
+  EUROPEAN_NATIONAL_LANGUAGE_DEFINITIONS,
+  LOCAL_DIALECT_LANGUAGE_DEFINITIONS,
+} from "@/lib/languages/batch49Languages";
+import {
+  LANGUAGE_SEARCH_ALIASES,
+  LOCAL_DIALECTS_GROUP,
+  NATIONAL_LANGUAGES_GROUP,
+  resolveSelectorGroup,
+} from "@/lib/languages/languageGrouping";
+import {
   PHILIPPINE_INDIGENOUS_DIALECT_LANGUAGE_IDS,
   PHILIPPINE_INDIGENOUS_LANGUAGE_DEFINITIONS,
   PHILIPPINE_INDIGENOUS_LANGUAGES_GROUP,
@@ -16,6 +26,7 @@ import { getBcp47Lang } from "@/lib/audio/speechSynthesis";
 
 export const AFRICAN_LANGUAGES_GROUP = "African Languages";
 export { AUSTRALIAN_LANGUAGES_GROUP, PHILIPPINE_INDIGENOUS_LANGUAGES_GROUP };
+export { NATIONAL_LANGUAGES_GROUP, LOCAL_DIALECTS_GROUP };
 
 export type LanguageOptionDefinition = {
   value: string;
@@ -210,6 +221,20 @@ function finalizeOption(
   const display_label = partial.dialect_label
     ? `${partial.display_name} (${partial.dialect_label})`
     : partial.display_name;
+  const aliasBits = LANGUAGE_SEARCH_ALIASES[partial.base_language] ?? [];
+  const search_text = [
+    display_label,
+    partial.display_name,
+    partial.native_name,
+    partial.iso_639_code,
+    partial.bcp_47_tag,
+    partial.dialect_label,
+    partial.value,
+    ...aliasBits,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 
   return {
     ...partial,
@@ -217,6 +242,7 @@ function finalizeOption(
     supports_speech_input: partial.supports_speech_input ?? true,
     locale_tag,
     display_label,
+    search_text,
   };
 }
 
@@ -295,6 +321,14 @@ function buildDialectLanguageOptions(): LanguageOptionDefinition[] {
 
 let cachedOptions: LanguageOptionDefinition[] | null = null;
 
+function buildEuropeanNationalLanguageOptions(): LanguageOptionDefinition[] {
+  return EUROPEAN_NATIONAL_LANGUAGE_DEFINITIONS.map((item) => finalizeOption(item));
+}
+
+function buildLocalDialectLanguageOptions(): LanguageOptionDefinition[] {
+  return LOCAL_DIALECT_LANGUAGE_DEFINITIONS.map((item) => finalizeOption(item));
+}
+
 export function getAllLanguageOptions(): LanguageOptionDefinition[] {
   if (cachedOptions) return cachedOptions;
 
@@ -304,6 +338,8 @@ export function getAllLanguageOptions(): LanguageOptionDefinition[] {
     ...buildAfricanLanguageOptions(),
     ...buildAustralianLanguageOptions(),
     ...buildPhilippineIndigenousLanguageOptions(),
+    ...buildEuropeanNationalLanguageOptions(),
+    ...buildLocalDialectLanguageOptions(),
     ...buildDialectLanguageOptions(),
   ]) {
     byValue.set(option.value, option);
