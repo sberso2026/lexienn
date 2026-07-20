@@ -33,6 +33,7 @@ import { translatorRequestSchema } from "@/lib/translator/translatorSchemas";
 import { stopVoicePlayback } from "@/lib/voice/audioPlayback";
 import { useVoicePlayback } from "@/lib/voice/useVoicePlayback";
 import { saveTranslatedPhrase } from "@/lib/storage/savedPhrasesStorage";
+import { languageTextDirection } from "@/lib/languages/languageDirection";
 
 const translationModes: Array<{ value: TranslationMode; label: string }> = [
   { value: "natural", label: "Natural" },
@@ -293,6 +294,7 @@ export function TextTranslatorView() {
                 </svg>
               }
               label="Swap source and target languages"
+              size="lg"
               onClick={swapLanguages}
             />
             <SearchableLanguageSelectField
@@ -315,7 +317,7 @@ export function TextTranslatorView() {
                     role="radio"
                     aria-checked={selected}
                     onClick={() => setTranslationMode(mode.value)}
-                    className={`min-h-11 rounded-xl border px-3 text-xs font-semibold transition-colors ${
+                    className={`min-h-12 rounded-xl border px-3 text-xs font-semibold transition-colors touch-manipulation active:scale-[0.98] ${
                       selected
                         ? "border-[var(--accent)] bg-[var(--accent)] text-white"
                         : "border-[var(--card-border)] bg-[var(--card)] text-[var(--muted)]"
@@ -368,10 +370,77 @@ export function TextTranslatorView() {
 
           {hasTranslation && (
             <>
-              <p className="break-words text-xl font-semibold leading-relaxed">{result.translated_text}</p>
+              <p
+                className="break-words text-xl font-semibold leading-relaxed"
+                dir={languageTextDirection(result.target_language)}
+                lang={result.target_language}
+              >
+                {result.translated_text}
+              </p>
               <p className="mt-1 text-xs text-[var(--muted)]">
                 {fromName} → {toName}
               </p>
+
+              {(result.natural_translation || result.literal_translation) &&
+                (result.natural_translation !== result.translated_text ||
+                  result.literal_translation) && (
+                  <div className="mt-3 space-y-2">
+                    {result.natural_translation &&
+                      result.natural_translation !== result.translated_text && (
+                        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--background)] px-3 py-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                            More natural
+                          </p>
+                          <p className="mt-1 text-sm leading-relaxed">{result.natural_translation}</p>
+                        </div>
+                      )}
+                    {result.literal_translation &&
+                      result.literal_translation !== result.translated_text && (
+                        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--background)] px-3 py-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                            More literal
+                          </p>
+                          <p className="mt-1 text-sm leading-relaxed">{result.literal_translation}</p>
+                        </div>
+                      )}
+                  </div>
+                )}
+
+              <details className="mt-3 rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2">
+                <summary className="min-h-12 cursor-pointer list-none text-sm font-medium touch-manipulation">
+                  Details
+                </summary>
+                <dl className="mt-2 space-y-1 text-xs text-[var(--muted)]">
+                  <div className="flex justify-between gap-3">
+                    <dt>Mode</dt>
+                    <dd className="font-medium text-[var(--foreground)]">{modeLabel}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt>Languages</dt>
+                    <dd className="font-medium text-[var(--foreground)]">
+                      {fromName} → {toName}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt>Confidence</dt>
+                    <dd className="font-medium text-[var(--foreground)]">
+                      {Math.round((result.confidence_score ?? 0) * 100)}%
+                    </dd>
+                  </div>
+                </dl>
+                {translationMode === "direct" && (
+                  <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+                    Literal mode keeps closer phrase structure and may sound less natural.
+                  </p>
+                )}
+              </details>
+
+              {result.usage_note && (
+                <details className="mt-2 rounded-xl border border-[var(--card-border)] px-3 py-2">
+                  <summary className="min-h-12 cursor-pointer text-sm font-medium">Usage examples</summary>
+                  <p className="mt-2 text-sm leading-relaxed">{result.usage_note}</p>
+                </details>
+              )}
 
               {result.pronunciation_simple && (
                 <p className="mt-3 rounded-xl bg-[var(--background)] px-3 py-2 text-sm text-[var(--muted)]">

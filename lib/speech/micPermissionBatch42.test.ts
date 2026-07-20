@@ -38,7 +38,14 @@ describe("batch 42 microphone permission", () => {
 
     const result = await requestMicPermissionPreflight();
 
-    expect(getUserMedia).toHaveBeenCalledWith({ audio: true });
+    expect(getUserMedia).toHaveBeenCalled();
+    expect(getUserMedia.mock.calls[0]?.[0]).toMatchObject({
+      audio: expect.objectContaining({
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      }),
+    });
     expect(result.ok).toBe(true);
   });
 

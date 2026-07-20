@@ -21,7 +21,7 @@ export const MobileBottomNav = memo(function MobileBottomNav() {
             <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
-                className={`flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-lg px-0.5 py-1 text-[10px] font-semibold transition-colors touch-manipulation ${
+                className={`flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-lg px-0.5 py-1.5 text-[10px] font-semibold transition-colors touch-manipulation active:scale-[0.98] ${
                   isActive
                     ? "text-[var(--accent)]"
                     : "text-[var(--muted)]"

@@ -18,7 +18,6 @@ import { mergeDialects } from "@/lib/admin/catalog";
 import { collectLowConfidenceItems } from "@/lib/admin/lowConfidence";
 import { mockDialects } from "@/lib/mock/dialects";
 import {
-  AFRICAN_LANGUAGES_GROUP,
   getLanguageSelectGroups,
 } from "@/lib/languages/languageOptions";
 
@@ -282,9 +281,12 @@ describe("Lexienn MVP verification", () => {
     expect(translator).toContain("useUserPreferences");
   });
 
-  it("African Languages group exists in language options", () => {
+  it("National Languages and Local Dialects groups exist in language options", () => {
     const groups = getLanguageSelectGroups();
-    expect(groups.some((group) => group.label === AFRICAN_LANGUAGES_GROUP)).toBe(true);
+    expect(groups.map((group) => group.label)).toEqual([
+      "National Languages",
+      "Local Dialects",
+    ]);
   });
 
   it("AI voice passes dialect metadata in voice schemas", () => {
@@ -405,10 +407,13 @@ describe("Lexienn MVP verification", () => {
     const preflight = readFileSync("lib/speech/requestMicPermission.ts", "utf8");
     expect(hook).toContain("requestMicPermissionPreflight");
     expect(hook).not.toContain("Microphone access was blocked");
-    expect(preflight).toContain("getUserMedia({ audio: true })");
+    expect(preflight).toContain("getMicrophoneStreamWithQuality");
+    expect(readFileSync("lib/speech/micAudioConstraints.ts", "utf8")).toContain(
+      "getUserMedia({ audio: true })",
+    );
     expect(client).toContain("micPermissionPreflightPassed");
     expect(status).toContain("Use transcript");
-    expect(status).toContain("Continue typing");
+    expect(status).toContain("Use typed text");
     expect(status).toContain("Try again");
     expect(readFileSync("lib/speech/micPermissionMessages.ts", "utf8")).toContain(
       "permission_denied",

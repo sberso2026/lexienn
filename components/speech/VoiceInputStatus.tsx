@@ -172,7 +172,7 @@ export function VoiceInputStatus({
           state === "permission_denied" ||
           state === "unsupported") && (
           <ActionButton type="button" variant="ghost" onClick={onDismiss}>
-            Continue typing
+            Use typed text
           </ActionButton>
         )}
       </div>

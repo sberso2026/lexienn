@@ -197,3 +197,47 @@ Use Developer Mode → `/more/qa` or `/qa`:
 5. Developer Mode: open `/more/qa`, mark two checks, export JSON
 6. Confirm SW still skips `/api/*`
 7. Confirm Persian / Azerbaijani appear in language selects
+
+---
+
+## Batch 49 — Mobile touch, mic quality, European languages, competitive hardening
+
+**Date:** 2026-07-20  
+**Scope:** Touch targets, microphone capture quality, National/Local Dialects catalog, DeepL/Duolingo/Reverso gap improvements
+
+### Touch target audit summary
+- Shared patterns: `TouchButton`, `IconTouchButton`, `PrimaryActionButton`, `ActionPillButton` + `lib/ui/touchTargets.ts`
+- Defaults raised: ActionButton ≥48px (primary ≥56px), IconButton ≥48px, bottom nav ≥56px, mic ≥56px, Lens capture ≥64px
+- Adjacent action spacing prefers 12px (`gap-3`); pressed/disabled states clearer
+
+### Microphone quality changes
+- Preferred `getUserMedia` constraints: echoCancellation, noiseSuppression, autoGainControl, mono, sampleRate/sampleSize with graceful fallbacks
+- Recognition locales via `mapSpeechRecognitionLocale` (en-US, fil-PH, ga-IE, fa-IR, ur-PK, he-IL, az-AZ, …)
+- Friendlier mic states; “Use typed text” preserves typed input on failure
+- User-facing Microphone test under Settings; Developer Mode keeps detailed diagnostics
+
+### Added languages (National Languages)
+Irish/Gaeilge, Albanian, Belarusian, Bosnian, Estonian, Icelandic, Latvian, Lithuanian, Macedonian, Maltese, Slovenian — plus existing European nationals retained (Bulgarian, Croatian, Czech, Danish, Dutch, Finnish, Greek, Hungarian, Norwegian, Polish, Romanian, Serbian, Slovak, Swedish, …).
+
+### Local Dialects additions
+Kapampangan, Pangasinan, Bicolano, Chavacano, Catalan, Basque, Galician, Welsh, Scottish Gaelic, Breton, Corsican, Sardinian, Sicilian, Frisian, Luxembourgish, Faroese, Romani — plus existing regional/Philippine/Australian dialect entries remapped into this selector group.
+
+### Language grouping rules
+Selectors show **only**:
+1. National Languages  
+2. Local Dialects  
+Alphabetized by English display label within each group. Search matches English name, native name, aliases (Farsi/Azeri/Tagalog/Bisaya/Gaeilge/…), and codes.
+
+### Capability metadata policy
+`toLanguageCapabilityMetadata()` exposes voice/offline/OCR/dictionary flags. UI must not imply voice or offline support when flags are false; copy uses “Voice is not available yet for this language.” / “Offline pack not available yet.”
+
+### Competitor gap improvements
+- **DeepL:** translation Details (mode/pair/confidence), natural/literal alternatives when present, literal-mode note, existing glossary/curated priority retained
+- **Duolingo:** Library `VocabularyReviewCard` (I know this / Review again / Favorite) stored locally
+- **Reverso:** Define examples/related words/usage/common mistakes in collapsible sections; Translate usage notes collapsible
+
+### Known limitations
+- Browser STT quality still device/browser dependent; server STT only when existing provider path is available
+- Not all new languages have equal AI/voice/OCR/offline depth
+- Review practice is local-only (no sync/streaks)
+- Full device tap QA still needs a 360px phone pass after deploy

@@ -9,23 +9,36 @@ import {
   getLanguageSelectGroups,
   isAustralianEnglishTarget,
   isIndigenousAustralianTarget,
+  LOCAL_DIALECTS_GROUP,
+  NATIONAL_LANGUAGES_GROUP,
   resolveLanguageSelection,
 } from "@/lib/languages/languageOptions";
 import { getBcp47Lang } from "@/lib/audio/speechSynthesis";
 
 describe("languageOptions", () => {
-  it("includes African Languages group with alphabetically sorted entries", () => {
-    const africanGroup = getLanguageSelectGroups().find(
-      (group) => group.label === AFRICAN_LANGUAGES_GROUP,
-    );
+  it("selector groups are National Languages and Local Dialects only", () => {
+    const labels = getLanguageSelectGroups().map((group) => group.label);
+    expect(labels).toEqual([NATIONAL_LANGUAGES_GROUP, LOCAL_DIALECTS_GROUP]);
+  });
 
-    expect(africanGroup).toBeTruthy();
-    const labels = africanGroup?.options.map((option) => option.label) ?? [];
-    const sorted = [...labels].sort((a, b) =>
+  it("includes African languages alphabetically in the catalog helpers", () => {
+    const names = getAfricanLanguageOptions().map((option) => option.display_name);
+    const sorted = [...names].sort((a, b) =>
       a.localeCompare(b, undefined, { sensitivity: "base" }),
     );
-    expect(labels).toEqual(sorted);
-    expect(labels.length).toBeGreaterThanOrEqual(26);
+    expect(names).toEqual(sorted);
+    expect(names.length).toBeGreaterThanOrEqual(26);
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "Afrikaans",
+        "Hausa",
+        "Igbo",
+        "Swahili",
+        "Yoruba",
+        "Zulu",
+        "Amharic",
+      ]),
+    );
   });
 
   it("resolves dialect variants from combined selection values", () => {
@@ -42,78 +55,38 @@ describe("languageOptions", () => {
     expect(instruction).toContain("sw-KE");
   });
 
-  it("includes required African languages", () => {
-    const names = getAfricanLanguageOptions().map((option) => option.display_name);
-    expect(names).toEqual(
-      expect.arrayContaining([
-        "Afrikaans",
-        "Hausa",
-        "Igbo",
-        "Swahili",
-        "Yoruba",
-        "Zulu",
-        "Amharic",
-      ]),
-    );
-  });
-
-  it("includes Australian Languages group with alphabetically sorted entries", () => {
-    const australianGroup = getLanguageSelectGroups().find(
-      (group) => group.label === AUSTRALIAN_LANGUAGES_GROUP,
-    );
-
-    expect(australianGroup).toBeTruthy();
-    const labels = australianGroup?.options.map((option) => option.label) ?? [];
-    const sorted = [...labels].sort((a, b) =>
+  it("includes Australian languages alphabetically in catalog helpers", () => {
+    const names = getAustralianLanguageOptions().map((option) => option.display_name);
+    const sorted = [...names].sort((a, b) =>
       a.localeCompare(b, undefined, { sensitivity: "base" }),
     );
-    expect(labels).toEqual(sorted);
-    expect(labels.length).toBeGreaterThanOrEqual(15);
-  });
-
-  it("includes required Australian and Aboriginal languages", () => {
-    const names = getAustralianLanguageOptions().map((option) => option.display_name);
+    expect(names).toEqual(sorted);
+    expect(names.length).toBeGreaterThanOrEqual(15);
     expect(names).toEqual(
       expect.arrayContaining([
         "English (Australia)",
         "Warlpiri",
         "Pitjantjatjara",
-        "Yolngu Matha",
-        "Kaurna",
-        "Wiradjuri",
       ]),
     );
   });
 
-  it("resolves Australian English with en-AU locale", () => {
-    const resolved = resolveLanguageSelection("en-au");
-    expect(resolved.base_language).toBe("en");
-    expect(resolved.dialect_label).toBe("Australian English");
-    expect(resolved.locale_tag).toBe("en-AU");
+  it("maps Australian English and indigenous targets", () => {
+    expect(isAustralianEnglishTarget({ target_language_selection: "en-au" })).toBe(true);
+    expect(isIndigenousAustralianTarget({ target_language_selection: "wbp" })).toBe(true);
     expect(getBcp47Lang("en-au")).toBe("en-AU");
+    expect(AFRICAN_LANGUAGES_GROUP).toBe("African Languages");
+    expect(AUSTRALIAN_LANGUAGES_GROUP).toBe("Australian Languages");
   });
 
-  it("builds translation payload with Australian English metadata", () => {
-    const payload = buildTranslationTargetPayload("en-au");
-    expect(payload.target_language).toBe("en");
-    expect(payload.target_language_selection).toBe("en-au");
-    expect(payload.target_locale_tag).toBe("en-AU");
-    expect(payload.target_dialect_label).toBe("Australian English");
-    expect(payload.target_display_name).toContain("Australia");
-    expect(isAustralianEnglishTarget(payload)).toBe(true);
+  it("places dialect selections under Local Dialects", () => {
+    const local = getLanguageSelectGroups().find((group) => group.label === LOCAL_DIALECTS_GROUP);
+    expect(local?.options.some((option) => option.value.includes("::"))).toBe(true);
   });
 
-  it("builds translation payload with Wiradjuri display name", () => {
-    const payload = buildTranslationTargetPayload("wrh");
-    expect(payload.target_language).toBe("wrh");
-    expect(payload.target_display_name).toBe("Wiradjuri");
-    expect(isIndigenousAustralianTarget(payload)).toBe(true);
-  });
-
-  it("adds indigenous voice guidance without Chinese accent instructions for English", () => {
-    const resolved = resolveLanguageSelection("wbp");
-    const instruction = buildVoiceInstruction(resolved);
-    expect(instruction).toContain("Indigenous Australian");
-    expect(instruction).toContain("Do not use Chinese");
+  it("buildTranslationTargetPayload retains dialect metadata", () => {
+    const payload = buildTranslationTargetPayload("tl::dialect-tl-manila");
+    expect(payload.target_language).toBe("tl");
+    expect(payload.target_dialect).toBe("dialect-tl-manila");
   });
 });

@@ -38,10 +38,28 @@ export type UseVoiceInputOptions = {
 function mapSpeechErrorMessage(error: unknown): MicUserMessage {
   const message = error instanceof Error ? error.message : "Voice input failed.";
   if (message.includes("permission denied") || message.includes("not-allowed")) {
-    return { body: "Microphone permission was denied." };
+    return {
+      title: "Permission blocked",
+      body: "Microphone permission was denied. You can keep using typed text.",
+    };
   }
-  if (message.includes("No speech was detected")) {
-    return { body: "No speech detected. Try again." };
+  if (message.includes("No speech was detected") || message.includes("no-speech")) {
+    return {
+      title: "No speech detected",
+      body: "Try again or type manually. Hold the phone closer if needed.",
+    };
+  }
+  if (message.includes("audio-capture") || message.includes("unavailable")) {
+    return {
+      title: "Microphone unavailable",
+      body: "Try again or type manually.",
+    };
+  }
+  if (message.includes("network") || message.includes("aborted")) {
+    return {
+      title: "Poor audio detected",
+      body: "Reduce background noise and try again, or use typed text.",
+    };
   }
   if (message.includes("limited on this browser")) {
     return { body: "Voice capture is limited on this browser. Please type instead." };
@@ -50,7 +68,10 @@ function mapSpeechErrorMessage(error: unknown): MicUserMessage {
     return { body: "Voice input stopped." };
   }
   if (message.includes("not supported")) {
-    return { body: "Voice input is not supported in this browser. You can type instead." };
+    return {
+      title: "Voice unavailable",
+      body: "Voice input is not supported in this browser. You can type instead.",
+    };
   }
   if (error instanceof VoiceTranscribeApiError) {
     if (error.code === "transcription_provider_unavailable") {
@@ -63,7 +84,7 @@ function mapSpeechErrorMessage(error: unknown): MicUserMessage {
       return { body: "This browser audio format is not supported for transcription." };
     }
   }
-  return { body: message };
+  return { body: "Try again or type manually." };
 }
 
 function formatRecordingTimer(elapsedMs: number): string {

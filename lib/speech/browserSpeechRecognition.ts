@@ -1,3 +1,5 @@
+import { mapSpeechRecognitionLocale } from "@/lib/speech/speechRecognitionLocale";
+
 type BrowserSpeechRecognitionResult = {
   isFinal: boolean;
   0: { transcript?: string; confidence?: number };
@@ -52,29 +54,6 @@ function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | null 
   return window.SpeechRecognition ?? window.webkitSpeechRecognition ?? null;
 }
 
-function mapLanguageHintToBcp47(languageHint: string): string {
-  const normalized = languageHint.trim().toLowerCase();
-  if (normalized.includes("-")) return normalized;
-  const map: Record<string, string> = {
-    en: "en-US",
-    zh: "zh-CN",
-    es: "es-ES",
-    fr: "fr-FR",
-    de: "de-DE",
-    ja: "ja-JP",
-    ko: "ko-KR",
-    pt: "pt-PT",
-    ar: "ar-SA",
-    hi: "hi-IN",
-    th: "th-TH",
-    vi: "vi-VN",
-    id: "id-ID",
-    ms: "ms-MY",
-    tl: "fil-PH",
-  };
-  return map[normalized] ?? normalized;
-}
-
 function appendTranscript(previous: string, next: string): string {
   const chunk = next.trim();
   if (!chunk) return previous;
@@ -121,7 +100,7 @@ export function startBrowserSpeechSession(
 
   const promise = new Promise<BrowserSpeechResult>((resolve, reject) => {
     recognition = new Constructor();
-    recognition.lang = mapLanguageHintToBcp47(languageHint);
+    recognition.lang = mapSpeechRecognitionLocale(languageHint);
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
     recognition.continuous = true;
@@ -302,7 +281,7 @@ export function startBrowserSpeechInterimAssist(
   const startRecognition = () => {
     if (stopped) return;
     recognition = new Constructor();
-    recognition.lang = mapLanguageHintToBcp47(languageHint);
+    recognition.lang = mapSpeechRecognitionLocale(languageHint);
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
     recognition.continuous = true;

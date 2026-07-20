@@ -19,6 +19,7 @@ import type { TranslationMode } from "@/lib/translator/translatorSchemas";
 import { OfflineStorageActions } from "@/components/settings/OfflineStorageActions";
 import { AppExperienceSettings } from "@/components/settings/AppExperienceSettings";
 import { MicDiagnosticsPanel } from "@/components/settings/MicDiagnosticsPanel";
+import { MicQualityTestPanel } from "@/components/settings/MicQualityTestPanel";
 import { PwaDiagnosticsPanel } from "@/components/settings/PwaDiagnosticsPanel";
 import {
   getActiveOfflinePackId,
@@ -148,6 +149,8 @@ export function SettingsView() {
           />
         </div>
       </CompactCard>
+
+      <MicQualityTestPanel />
 
       <CompactCard>
         <h2 className="mb-3 text-sm font-semibold">Offline storage</h2>

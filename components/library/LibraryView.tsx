@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { VocabularyReviewCard } from "@/components/library/VocabularyReviewCard";
 import { loadDictionaryLookupForm } from "@/lib/dictionary/lookupFormStorage";
 import { listOfflinePacks } from "@/lib/offline/localOfflineStore";
 import type { OfflineStoredPack } from "@/lib/offline/offlinePackSchemas";
@@ -169,6 +170,8 @@ export function LibraryView() {
           Keep saved language, offline resources, and recent work together.
         </p>
       </section>
+
+      <VocabularyReviewCard />
 
       <section className="grid gap-3 sm:grid-cols-2" aria-label="Library collections">
         {collections.map((item) => (

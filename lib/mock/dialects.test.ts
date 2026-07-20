@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getLanguageSelectGroups } from "@/lib/languages/languageOptions";
-import { PHILIPPINE_INDIGENOUS_LANGUAGES_GROUP } from "@/lib/languages/philippineIndigenousLanguages";
+import { getLanguageSelectGroups, LOCAL_DIALECTS_GROUP } from "@/lib/languages/languageOptions";
 import { mockDialects } from "@/lib/mock/dialects";
 
 describe("Philippine Indigenous language catalog", () => {
@@ -13,14 +12,15 @@ describe("Philippine Indigenous language catalog", () => {
     expect(koronadal?.name).toBe("B'laan");
     expect(koronadal?.name).not.toMatch(/Filipino|Tagalog/i);
 
-    const indigenousGroup = getLanguageSelectGroups().find(
-      (group) => group.label === PHILIPPINE_INDIGENOUS_LANGUAGES_GROUP,
+    const localGroup = getLanguageSelectGroups().find(
+      (group) => group.label === LOCAL_DIALECTS_GROUP,
     );
-    const labels = indigenousGroup?.options.map((option) => option.label) ?? [];
+    const labels = localGroup?.options.map((option) => option.label) ?? [];
+    const blaanLabels = labels.filter((label) => /B'laan/i.test(label));
 
-    expect(labels.some((label) => label.includes("Koronadal B'laan"))).toBe(true);
-    expect(labels.some((label) => label.includes("Sarangani B'laan"))).toBe(true);
-    expect(labels.some((label) => label.includes("Filipino / Tagalog"))).toBe(false);
-    expect(labels.some((label) => label.startsWith("B'laan"))).toBe(true);
+    expect(blaanLabels.some((label) => label.includes("Koronadal B'laan"))).toBe(true);
+    expect(blaanLabels.some((label) => label.includes("Sarangani B'laan"))).toBe(true);
+    expect(blaanLabels.every((label) => !/Filipino|Tagalog/i.test(label))).toBe(true);
+    expect(blaanLabels.some((label) => label.startsWith("B'laan"))).toBe(true);
   });
 });

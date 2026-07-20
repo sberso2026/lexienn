@@ -21,9 +21,9 @@ const variantClasses: Record<IconButtonVariant, string> = {
 };
 
 const sizeClasses = {
-  sm: "h-9 w-9 min-h-9 min-w-9",
-  md: "h-11 w-11 min-h-11 min-w-11",
-  lg: "h-12 w-12 min-h-12 min-w-12",
+  sm: "h-12 w-12 min-h-12 min-w-12",
+  md: "h-12 w-12 min-h-12 min-w-12",
+  lg: "h-14 w-14 min-h-14 min-w-14",
 };
 
 export function IconButton({
@@ -40,7 +40,7 @@ export function IconButton({
       type="button"
       aria-label={label}
       title={label}
-      className={`inline-flex shrink-0 items-center justify-center rounded-xl transition-colors touch-manipulation disabled:opacity-50 ${sizeClasses[size]} ${variantClasses[variant]} ${active ? "ring-2 ring-[var(--focus-ring)] ring-offset-1" : ""} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-xl transition-colors touch-manipulation active:scale-[0.98] disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] ${sizeClasses[size]} ${variantClasses[variant]} ${active ? "ring-2 ring-[var(--focus-ring)] ring-offset-1" : ""} ${className}`}
       {...props}
     >
       {icon}

@@ -12,6 +12,7 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { LanguageBadge } from "@/components/ui/LanguageBadge";
 import { Badge } from "@/components/ui/StatusBadge";
 import { encodeLanguageSelection } from "@/lib/languages/languageOptions";
+import { languageTextDirection } from "@/lib/languages/languageDirection";
 import { cleanTextForSpeech } from "@/lib/audio/speechText";
 import { stopVoicePlayback } from "@/lib/voice/audioPlayback";
 import { formatEnumLabel } from "@/lib/dictionary/displayUtils";
@@ -301,25 +302,37 @@ export function DictionaryResultCard({
                 title={`${targetLang?.name ?? "Local"} translation`}
                 padding="compact"
               >
-                <p className="text-sm leading-relaxed sm:text-base">
+                <p
+                  className="text-sm leading-relaxed sm:text-base"
+                  dir={languageTextDirection(query.target_language)}
+                  lang={query.target_language}
+                >
                   {enrichedEntry.target_meaning}
                 </p>
               </SectionCard>
             )}
 
             {enrichedEntry.examples.length > 0 && (
-              <SectionCard title="Examples" padding="compact">
+              <ExpandableSection
+                summary="Examples"
+                defaultOpen={enrichedEntry.examples.length <= 2}
+              >
                 <ul className="space-y-2">
                   {enrichedEntry.examples.map((example, index) => (
                     <li
                       key={`${example.text}-${index}`}
                       className="rounded-xl border border-[var(--border-subtle)] bg-[var(--background)] px-3 py-2 text-sm"
                     >
+                      {example.context_label && (
+                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                          {example.context_label}
+                        </p>
+                      )}
                       {example.text}
                     </li>
                   ))}
                 </ul>
-              </SectionCard>
+              </ExpandableSection>
             )}
 
             <SectionCard title="Pronunciation" padding="compact">
@@ -327,9 +340,9 @@ export function DictionaryResultCard({
             </SectionCard>
 
             {enrichedEntry.related_terms.length > 0 && (
-              <SectionCard title="Related terms" padding="compact">
+              <ExpandableSection summary="Related words" defaultOpen={enrichedEntry.related_terms.length <= 6}>
                 <TagList items={enrichedEntry.related_terms} />
-              </SectionCard>
+              </ExpandableSection>
             )}
 
             {enrichedEntry.usage_notes.length > 0 && (

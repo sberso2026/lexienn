@@ -1,24 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
-  AFRICAN_LANGUAGES_GROUP,
-  AUSTRALIAN_LANGUAGES_GROUP,
   getAfricanLanguageOptions,
   getLanguageSelectGroups,
-  PHILIPPINE_INDIGENOUS_LANGUAGES_GROUP,
+  LOCAL_DIALECTS_GROUP,
+  NATIONAL_LANGUAGES_GROUP,
 } from "@/lib/languages/languageOptions";
 
 describe("languageCatalog re-exports", () => {
-  it("orders priority regional groups before alphabetical groups", () => {
+  it("exposes exactly National Languages and Local Dialects groups", () => {
     const labels = getLanguageSelectGroups().map((group) => group.label);
-    expect(labels[0]).toBe(AFRICAN_LANGUAGES_GROUP);
-    expect(labels[1]).toBe(AUSTRALIAN_LANGUAGES_GROUP);
-    expect(labels[2]).toBe(PHILIPPINE_INDIGENOUS_LANGUAGES_GROUP);
-
-    const rest = labels.slice(3);
-    const sortedRest = [...rest].sort((a, b) =>
-      a.localeCompare(b, undefined, { sensitivity: "base" }),
-    );
-    expect(rest).toEqual(sortedRest);
+    expect(labels).toEqual([NATIONAL_LANGUAGES_GROUP, LOCAL_DIALECTS_GROUP]);
   });
 
   it("sorts African languages alphabetically by display name", () => {

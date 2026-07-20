@@ -221,9 +221,9 @@ export function ImageCaptureCard({
             onClick={capturePhoto}
             disabled={isBusy}
             aria-label="Capture image"
-            className="flex h-14 w-14 items-center justify-center rounded-full border-4 border-[var(--accent)] bg-white disabled:opacity-50"
+            className="flex h-16 w-16 min-h-16 min-w-16 items-center justify-center rounded-full border-4 border-[var(--accent)] bg-white touch-manipulation active:scale-[0.98] disabled:opacity-60"
           >
-            <span className="h-10 w-10 rounded-full bg-[var(--accent)]" />
+            <span className="h-11 w-11 rounded-full bg-[var(--accent)]" />
           </button>
         ) : (
           <button
@@ -231,7 +231,7 @@ export function ImageCaptureCard({
             onClick={() => void openCamera()}
             disabled={isBusy || isStartingCamera || Boolean(previewUrl)}
             aria-label="Open camera"
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)] text-white disabled:opacity-50"
+            className="flex h-16 w-16 min-h-16 min-w-16 items-center justify-center rounded-full bg-[var(--accent)] text-white touch-manipulation active:scale-[0.98] disabled:opacity-60"
           >
             <svg aria-hidden className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h3l1.5-2h7L17 7h3v12H4V7z" />

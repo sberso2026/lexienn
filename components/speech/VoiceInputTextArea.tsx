@@ -120,7 +120,7 @@ export function VoiceInputTextArea({
               label="Clear previous entry"
               size="sm"
               variant="ghost"
-              className="!min-h-11 !w-11"
+              className="!min-h-12 !w-12"
               onClick={handleClear}
             />
           )}
@@ -130,7 +130,7 @@ export function VoiceInputTextArea({
             disabled={disabled}
             onSpeak={handleSpeak}
             onStop={voice.stopListening}
-            className="!min-h-11 !px-3"
+            className="!min-h-14 !min-w-14 !px-3"
           />
         </div>
       </div>

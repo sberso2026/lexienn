@@ -47,7 +47,7 @@ export function VoiceInputButton({
         aria-busy
         aria-label="Stop voice input"
         onClick={onStop}
-        className={`min-h-11 shrink-0 px-3 sm:px-4 ${className}`}
+        className={`!min-h-14 !min-w-14 shrink-0 px-3 sm:px-4 ${className}`}
       >
         <span className="inline-flex items-center gap-1.5">
           <StopIcon />
@@ -65,7 +65,7 @@ export function VoiceInputButton({
       aria-busy={isBusy}
       aria-label={label}
       onClick={onSpeak}
-      className={`min-h-11 shrink-0 px-3 sm:px-4 ${className}`}
+      className={`!min-h-14 !min-w-14 shrink-0 px-3 sm:px-4 ${className}`}
     >
       <span className="inline-flex items-center gap-1.5">
         <MicrophoneIcon active={isBusy} />

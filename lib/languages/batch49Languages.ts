@@ -1,16 +1,17 @@
 import type { LanguageOptionDefinition } from "@/lib/languages/languageOptions";
 import { LOCAL_DIALECTS_GROUP, NATIONAL_LANGUAGES_GROUP } from "@/lib/languages/languageGrouping";
 
-type Seed = Omit<
-  LanguageOptionDefinition,
-  "locale_tag" | "display_label" | "bcp_47_tag" | "iso_639_code" | "base_language" | "value"
-> & {
+type Seed = {
   value: string;
   display_name: string;
   native_name: string;
   region_group: string;
   country_or_regions: string;
   bcp_47_tag?: string;
+  dialect_label?: string;
+  supports_voice?: boolean;
+  supports_offline_pack?: boolean;
+  supports_speech_input?: boolean;
 };
 
 function national(seed: Seed): LanguageOptionDefinition {

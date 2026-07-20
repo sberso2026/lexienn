@@ -30,7 +30,7 @@ export function ActionButton({
   return (
     <button
       type={type}
-      className={`inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${variantClasses[variant]} ${fullWidth ? "w-full" : ""} ${className}`}
+      className={`inline-flex min-h-12 items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors touch-manipulation active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 ${variant === "primary" ? "min-h-14" : ""} ${variantClasses[variant]} ${fullWidth ? "w-full" : ""} ${className}`}
       {...props}
     >
       {children}

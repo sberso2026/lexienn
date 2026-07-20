@@ -1,11 +1,9 @@
+import { getMicrophoneStreamWithQuality } from "@/lib/speech/micAudioConstraints";
+
 const DEFAULT_RECORD_MS = 8_000;
 
 export async function requestMicrophoneStream(): Promise<MediaStream> {
-  if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-    throw new Error("Microphone access is not supported in this browser.");
-  }
-
-  return navigator.mediaDevices.getUserMedia({ audio: true });
+  return getMicrophoneStreamWithQuality();
 }
 
 export async function recordAudioBlob(options?: {

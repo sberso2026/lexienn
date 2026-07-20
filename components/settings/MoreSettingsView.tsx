@@ -109,8 +109,8 @@ export function MoreSettingsView() {
           },
           {
             title: "Microphone test",
-            description: "Open Translate and test live speech capture",
-            href: "/translator",
+            description: "Check mic support and recognition language",
+            href: "/settings",
           },
           {
             title: "Speech input status",

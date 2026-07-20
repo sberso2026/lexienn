@@ -157,7 +157,7 @@ export function SearchableLanguageSelect({
     }
   };
 
-  const triggerClassName = `${fieldInputClassName(hasError)} flex min-h-11 items-center justify-between gap-2 text-left touch-manipulation`;
+          const triggerClassName = `${fieldInputClassName(hasError)} flex min-h-12 items-center justify-between gap-2 text-left touch-manipulation`;
 
   return (
     <div ref={containerRef} className="relative">
@@ -216,8 +216,11 @@ export function SearchableLanguageSelect({
             onKeyDown={handleMenuKeyDown}
           >
             {filteredGroups.map((group) => (
-              <div key={group.label} role="presentation">
-                <div className="sticky top-0 z-10 border-b border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              <div key={group.label} role="group" aria-label={group.label}>
+                <div
+                  className="sticky top-0 z-10 border-b border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]"
+                  id={`${id}-group-${group.label.replace(/\W+/g, "-").toLowerCase()}`}
+                >
                   {group.label}
                 </div>
                 {group.options.map((option) => {
@@ -235,7 +238,7 @@ export function SearchableLanguageSelect({
                       role="option"
                       aria-selected={isSelected}
                       data-active={isActive ? "true" : "false"}
-                      className={`flex min-h-11 w-full touch-manipulation items-center px-3 py-2.5 text-left text-base transition-colors hover:bg-[var(--background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-indigo)] ${
+                      className={`flex min-h-12 w-full touch-manipulation items-center px-3 py-2.5 text-left text-base transition-colors hover:bg-[var(--background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-indigo)] ${
                         isSelected ? "bg-[var(--background)] font-medium" : ""
                       } ${isActive ? "bg-[var(--background)]" : ""}`}
                       onMouseEnter={() => setActiveIndex(optionIndex)}

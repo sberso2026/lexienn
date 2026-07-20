@@ -12,6 +12,6 @@ describe("SearchableLanguageSelect UI", () => {
     expect(selectSource).toContain('placeholder="Search languages…"');
     expect(selectSource).not.toContain("<select");
     expect(selectSource).toContain('role="listbox"');
-    expect(selectSource).toContain("min-h-11");
+    expect(selectSource).toContain("min-h-12");
   });
 });

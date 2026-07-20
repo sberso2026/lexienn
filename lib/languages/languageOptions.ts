@@ -46,6 +46,7 @@ export type LanguageOptionDefinition = {
   supports_offline_pack: boolean;
   supports_ocr?: boolean;
   supports_speech_input?: boolean;
+  search_text?: string;
 };
 
 export type LanguageSelectOption = {
@@ -390,20 +391,22 @@ function optionToSelectOption(option: LanguageOptionDefinition): LanguageSelectO
     option.native_name && option.native_name !== option.display_name
       ? `${option.display_label} — ${option.native_name}`
       : option.display_label;
+  const aliasBits = LANGUAGE_SEARCH_ALIASES[option.base_language] ?? [];
 
   return {
     value: option.value,
     label,
     native_name: option.native_name,
     search_text: [
+      option.search_text,
       option.display_name,
       option.display_label,
       option.native_name,
-      option.region_group,
-      option.country_or_regions,
       option.iso_639_code,
       option.base_language,
       option.dialect_label,
+      option.value,
+      ...aliasBits,
     ]
       .filter(Boolean)
       .join(" ")
@@ -420,32 +423,30 @@ export function filterLanguageOptions(query: string): LanguageOptionDefinition[]
 
 export function getLanguageSelectGroups(searchQuery = ""): LanguageSelectGroup[] {
   const options = searchQuery ? filterLanguageOptions(searchQuery) : getAllLanguageOptions();
-  const grouped = new Map<string, LanguageSelectOption[]>();
+  const grouped = new Map<string, LanguageSelectOption[]>([
+    [NATIONAL_LANGUAGES_GROUP, []],
+    [LOCAL_DIALECTS_GROUP, []],
+  ]);
 
   for (const option of options) {
-    const groupOptions = grouped.get(option.region_group) ?? [];
+    const selectorLabel = resolveSelectorGroup({
+      value: option.value,
+      base_language: option.base_language,
+      dialect_variant: option.dialect_variant,
+    });
+    const groupOptions = grouped.get(selectorLabel) ?? [];
     groupOptions.push(optionToSelectOption(option));
-    grouped.set(option.region_group, groupOptions);
+    grouped.set(selectorLabel, groupOptions);
   }
 
-  return [...grouped.entries()]
-    .sort(([a], [b]) => {
-      if (a === AFRICAN_LANGUAGES_GROUP) return b === AFRICAN_LANGUAGES_GROUP ? 0 : -1;
-      if (b === AFRICAN_LANGUAGES_GROUP) return 1;
-      if (a === AUSTRALIAN_LANGUAGES_GROUP) return b === AUSTRALIAN_LANGUAGES_GROUP ? 0 : -1;
-      if (b === AUSTRALIAN_LANGUAGES_GROUP) return 1;
-      if (a === PHILIPPINE_INDIGENOUS_LANGUAGES_GROUP) {
-        return b === PHILIPPINE_INDIGENOUS_LANGUAGES_GROUP ? 0 : -1;
-      }
-      if (b === PHILIPPINE_INDIGENOUS_LANGUAGES_GROUP) return 1;
-      return a.localeCompare(b, undefined, { sensitivity: "base" });
-    })
-    .map(([label, groupOptions]) => ({
+  return [NATIONAL_LANGUAGES_GROUP, LOCAL_DIALECTS_GROUP]
+    .map((label) => ({
       label,
-      options: groupOptions.sort((a, b) =>
+      options: (grouped.get(label) ?? []).sort((a, b) =>
         a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
       ),
-    }));
+    }))
+    .filter((group) => group.options.length > 0 || !searchQuery);
 }
 
 export function getFlatLanguageSelectOptions(searchQuery = ""): LanguageSelectOption[] {

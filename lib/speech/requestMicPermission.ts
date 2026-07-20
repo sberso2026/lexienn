@@ -2,6 +2,7 @@ import {
   classifyMicError,
   type MicErrorCode,
 } from "@/lib/speech/classifyMicError";
+import { getMicrophoneStreamWithQuality } from "@/lib/speech/micAudioConstraints";
 
 export type MicPermissionPreflightResult =
   | { ok: true }
@@ -25,7 +26,7 @@ export async function requestMicPermissionPreflight(): Promise<MicPermissionPref
   }
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await getMicrophoneStreamWithQuality();
     stream.getTracks().forEach((track) => track.stop());
     return { ok: true };
   } catch (error) {
