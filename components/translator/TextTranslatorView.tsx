@@ -93,6 +93,8 @@ export function TextTranslatorView() {
   const [copied, setCopied] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
+  const sourceLanguageRef = useRef(sourceLanguage);
+  sourceLanguageRef.current = sourceLanguage;
 
   const targetResolved = resolveLanguageSelection(targetLanguageSelection);
   const isUnavailable = result?.source === "unavailable";
@@ -162,13 +164,16 @@ export function TextTranslatorView() {
 
   const handleLanguageDetection = useCallback(
     (detection: SpokenLanguageDetectionResult) => {
-      if (!autoDetectEnabled || !isAutoDetectLanguage(sourceLanguage)) {
+      if (!autoDetectEnabled) return;
+      // Manual From selection must never be overwritten by mic detection.
+      if (!isAutoDetectLanguage(sourceLanguageRef.current)) {
         return;
       }
 
       const decision = decideSpokenLanguageDetection(detection);
       if (decision.action === "apply" && decision.catalogValue) {
         setSourceLanguage(decision.catalogValue);
+        setFormError(null);
         setDetectionUi({
           message: decision.message,
           pendingValue: null,
@@ -178,6 +183,7 @@ export function TextTranslatorView() {
       }
 
       if (decision.action === "confirm" && decision.catalogValue) {
+        setFormError(null);
         setDetectionUi({
           message: decision.message,
           pendingValue: decision.catalogValue,
@@ -195,12 +201,13 @@ export function TextTranslatorView() {
         });
       }
     },
-    [autoDetectEnabled, sourceLanguage],
+    [autoDetectEnabled],
   );
 
   const confirmDetectedLanguage = useCallback(() => {
     if (!detectionUi?.pendingValue) return;
     setSourceLanguage(detectionUi.pendingValue);
+    setFormError(null);
     const name =
       getLanguageOptionByValue(detectionUi.pendingValue)?.display_name ??
       detectionUi.pendingValue;
@@ -218,6 +225,21 @@ export function TextTranslatorView() {
       needsConfirm: false,
     });
   }, []);
+
+  // Once From leaves Auto Detect, drop stale Auto Detect / detection errors.
+  useEffect(() => {
+    if (isAutoDetectLanguage(sourceLanguage)) return;
+    setFormError((current) => {
+      if (!current) return current;
+      if (
+        current.includes("Select a From language") ||
+        current.includes("could not be detected reliably")
+      ) {
+        return null;
+      }
+      return current;
+    });
+  }, [sourceLanguage]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -402,6 +424,7 @@ export function TextTranslatorView() {
               onChange={(value) => {
                 setSourceLanguage(value);
                 setDetectionUi(null);
+                setFormError(null);
               }}
               leadingOptions={
                 autoDetectEnabled

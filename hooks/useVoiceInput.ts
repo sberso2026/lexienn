@@ -35,16 +35,13 @@ import {
 import { logMicSessionDebug } from "@/lib/voice/micSessionDebug";
 import { VoiceTranscribeApiError } from "@/lib/voice/voiceTranscribeClient";
 import type { SpokenLanguageDetectionResult } from "@/lib/languages/spokenLanguageDetection";
-import {
-  buildSpokenLanguageDetectionResult,
-  isAutoDetectLanguage,
-} from "@/lib/languages/spokenLanguageDetection";
+import { isAutoDetectLanguage } from "@/lib/languages/spokenLanguageDetection";
+import { resolveMicSpokenLanguageDetection } from "@/lib/languages/resolveMicSpokenLanguageDetection";
 import {
   detectLanguagePipeline,
   pipelineResultToSpokenDetection,
 } from "@/lib/languages/languageDetectionPipeline";
 import { detectLanguageViaApi } from "@/lib/languages/languageDetectClient";
-import { LOCAL_SKIP_AI_CONFIDENCE } from "@/lib/languages/localLanguageDetector";
 import { recordLanguageDetectionDiagnostic } from "@/lib/languages/languageDetectionDiagnostics";
 
 export type VoiceTranscriptMeta = {
@@ -174,6 +171,8 @@ export function useVoiceInput({
   const stoppingRef = useRef(false);
   const languageHintRef = useRef(languageHint);
   languageHintRef.current = languageHint;
+  const onLanguageDetectionRef = useRef(onLanguageDetection);
+  onLanguageDetectionRef.current = onLanguageDetection;
 
   const isSupported =
     isBrowserOnline() &&
@@ -323,47 +322,57 @@ export function useVoiceInput({
         if (shouldEmitDetection) {
           const source =
             result.source === "server_transcription" ? "server_stt" : "browser";
-          try {
-            const localOnly = await detectLanguagePipeline(result.transcript, {
-              localOnly: true,
-              providerLanguage: result.detectedLanguageCode,
-              providerConfidence: result.confidence ?? null,
-            });
-            if (
-              localOnly.confidence >= LOCAL_SKIP_AI_CONFIDENCE ||
-              !isBrowserOnline()
-            ) {
-              onLanguageDetection?.(
-                pipelineResultToSpokenDetection(localOnly, source),
-              );
-            } else {
-              try {
-                const full = await detectLanguageViaApi({
-                  text: result.transcript,
-                  providerLanguage: result.detectedLanguageCode,
-                  providerConfidence: result.confidence ?? null,
-                  allowAi: true,
-                });
-                recordLanguageDetectionDiagnostic(full);
-                onLanguageDetection?.(
-                  pipelineResultToSpokenDetection(full, source),
-                );
-              } catch {
-                onLanguageDetection?.(
-                  pipelineResultToSpokenDetection(localOnly, source),
-                );
+          const emit = (detection: SpokenLanguageDetectionResult) => {
+            onLanguageDetectionRef.current?.(detection);
+          };
+
+          // Mic order: STT → canonical map → local transcript → (optional) AI → user.
+          const micResolved = resolveMicSpokenLanguageDetection({
+            transcript: result.transcript,
+            providerLanguage: result.detectedLanguageCode,
+            providerConfidence: result.confidence ?? null,
+            source,
+            durationMs: result.durationMs,
+          });
+
+          // Apply / confirm immediately when Stage 1–2 are enough (no second mic tap).
+          if (micResolved.canApply || micResolved.needsConfirm || !micResolved.needsAi) {
+            emit(micResolved.detection);
+          }
+
+          if (micResolved.needsAi && isBrowserOnline()) {
+            try {
+              const full = await detectLanguageViaApi({
+                text: result.transcript,
+                providerLanguage: result.detectedLanguageCode,
+                providerConfidence: result.confidence ?? null,
+                allowAi: true,
+              });
+              recordLanguageDetectionDiagnostic(full);
+              const spoken = pipelineResultToSpokenDetection(full, source);
+              // Never downgrade a reliable local/STT result with a weaker AI miss.
+              if (full.primaryCode && full.confidence >= 0.45) {
+                emit(spoken);
+              } else if (!micResolved.canApply && !micResolved.needsConfirm) {
+                emit(spoken);
+              }
+            } catch {
+              // Prefer sync mic resolution over a failed AI round-trip.
+              if (!micResolved.canApply && !micResolved.needsConfirm) {
+                try {
+                  const localOnly = await detectLanguagePipeline(result.transcript, {
+                    localOnly: true,
+                    providerLanguage: result.detectedLanguageCode,
+                    providerConfidence: result.confidence ?? null,
+                  });
+                  emit(pipelineResultToSpokenDetection(localOnly, source));
+                } catch {
+                  emit(micResolved.detection);
+                }
               }
             }
-          } catch {
-            onLanguageDetection?.(
-              buildSpokenLanguageDetectionResult({
-                transcript: result.transcript,
-                providerLanguage: result.detectedLanguageCode,
-                confidence: result.confidence ?? null,
-                source,
-                durationMs: result.durationMs,
-              }),
-            );
+          } else if (micResolved.needsAi && !micResolved.canApply && !micResolved.needsConfirm) {
+            emit(micResolved.detection);
           }
         } else if (constrainedCeb && providerOk && result.detectedLanguageCode === "ceb") {
           // Keep selection on Cebuano — never switch UI language from detection.
@@ -414,7 +423,7 @@ export function useVoiceInput({
         releaseMicSession(ownerId);
       }
     })();
-  }, [commitTranscript, onLanguageDetection, ownerId]);
+  }, [commitTranscript, ownerId]);
 
   const startListening = useCallback(() => {
     if (typeof window === "undefined") {

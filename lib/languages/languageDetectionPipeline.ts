@@ -164,8 +164,40 @@ export async function detectLanguagePipeline(
   const localSecondary = catalogValue(local.secondaryCode);
   const providerCode =
     mapProviderLanguageToCatalog(options.providerLanguage)?.value ?? null;
+  const providerConfidence =
+    typeof options.providerConfidence === "number" &&
+    Number.isFinite(options.providerConfidence)
+      ? options.providerConfidence
+      : null;
 
   const allowAi = options.allowAi !== false && !options.localOnly;
+
+  // Mic/STT-first: reliable provider language applies before local/AI.
+  // Typed detection typically omits providerLanguage, so behavior is unchanged.
+  if (
+    providerCode &&
+    (providerConfidence == null || providerConfidence >= 0.75)
+  ) {
+    const preferLocal =
+      localPrimary != null &&
+      local.confidence >= LOCAL_SKIP_AI_CONFIDENCE &&
+      localPrimary !== providerCode;
+    const result = buildResult({
+      transcript: text,
+      primaryCode: preferLocal ? localPrimary : providerCode,
+      secondaryCode: localSecondary,
+      confidence: preferLocal
+        ? local.confidence
+        : Math.max(providerConfidence ?? 0.9, 0.9),
+      stage: "local",
+      startedAt,
+      aiCalled: false,
+      localReason: preferLocal ? `${local.reason}+override_provider` : "stt_provider",
+    });
+    if (result.primaryCode) setCachedLanguageDetection(text, result);
+    return result;
+  }
+
   const obviousLocal =
     local.primaryCode != null &&
     local.confidence >= LOCAL_SKIP_AI_CONFIDENCE &&
