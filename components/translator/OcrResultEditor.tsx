@@ -28,8 +28,6 @@ interface OcrResultEditorProps {
   onCorrectedTextChange: (value: string) => void;
   onToggleEdit: () => void;
   onExtract: () => void;
-  onTranslate: () => void;
-  canTranslate: boolean;
   onTapWord?: (word: string) => void;
 }
 
@@ -53,8 +51,6 @@ export function OcrResultEditor({
   onCorrectedTextChange,
   onToggleEdit,
   onExtract,
-  onTranslate,
-  canTranslate,
   onTapWord,
 }: OcrResultEditorProps) {
   const displayText = isEditing ? correctedText : correctedText || extractedText;
@@ -125,13 +121,6 @@ export function OcrResultEditor({
           </ActionButton>
           <ActionButton variant="ghost" disabled={isBusy} onClick={onToggleEdit}>
             {isEditing ? "Done" : "Edit"}
-          </ActionButton>
-          <ActionButton
-            variant="primary"
-            disabled={isBusy || !canTranslate}
-            onClick={onTranslate}
-          >
-            Translate
           </ActionButton>
         </div>
       </ExpandableSection>

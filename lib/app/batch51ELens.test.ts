@@ -100,6 +100,27 @@ describe("Batch 51E Lens visual language intelligence", () => {
     );
   });
 
+  it("mobile Translate action stays reachable above bottom nav", () => {
+    const camera = readFileSync(
+      join(process.cwd(), "components/translator/CameraTranslatorView.tsx"),
+      "utf8",
+    );
+    const editor = readFileSync(
+      join(process.cwd(), "components/translator/OcrResultEditor.tsx"),
+      "utf8",
+    );
+    const capture = readFileSync(
+      join(process.cwd(), "components/translator/ImageCaptureCard.tsx"),
+      "utf8",
+    );
+    expect(camera).toContain("BottomActionBar");
+    expect(camera).toContain("useResultPageChrome");
+    expect(camera).toContain('ariaLabel="Lens translate action"');
+    expect(editor).not.toContain(">Translate<");
+    expect(editor).not.toContain("onTranslate");
+    expect(capture).toContain("touch-pan-y");
+  });
+
   it("OCR cloud prompt requests layout blocks and preserves numbers", () => {
     const service = readFileSync(join(process.cwd(), "lib/ocr/ocrService.ts"), "utf8");
     expect(service).toContain("reading_order");

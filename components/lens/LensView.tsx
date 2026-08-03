@@ -28,7 +28,7 @@ export function LensView() {
 
   return (
     <PageContainer hideHeader>
-      <div className="space-y-5">
+      <div className="space-y-5 pb-4">
         <section>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
             Visual language tools

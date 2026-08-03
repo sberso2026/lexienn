@@ -178,14 +178,14 @@ export function ImageCaptureCard({
             autoPlay
             playsInline
             muted
-            className="h-64 w-full bg-black object-cover sm:h-80"
+            className="h-64 w-full touch-pan-y bg-black object-cover sm:h-80"
           />
         ) : previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={previewUrl}
             alt="Captured image preview"
-            className="h-64 w-full object-contain sm:h-80"
+            className="h-64 w-full touch-pan-y object-contain sm:h-80"
           />
         ) : (
           <div className="flex h-64 items-center justify-center px-8 text-center text-sm text-white/65 sm:h-80">

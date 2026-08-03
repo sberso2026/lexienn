@@ -7,10 +7,13 @@ import { OcrResultEditor } from "@/components/translator/OcrResultEditor";
 import { DocumentIntelligenceActions } from "@/components/lens/DocumentIntelligenceActions";
 import { LensImageTools } from "@/components/lens/LensImageTools";
 import { TapToDefineSheet } from "@/components/lens/TapToDefineSheet";
+import { ActionButton } from "@/components/ui/ActionButton";
+import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import { CompactAlert } from "@/components/ui/CompactAlert";
 import { CompactCard } from "@/components/ui/CompactCard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { SearchableLanguageSelectField } from "@/components/ui/SearchableLanguageSelectField";
+import { useResultPageChrome } from "@/hooks/useResultPageChrome";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { isDeveloperModeFeatureEnabled } from "@/lib/config/publicEnv";
 import { buildTranslationTargetPayload, resolveLanguageSelection } from "@/lib/languages/languageOptions";
@@ -402,9 +405,11 @@ export function CameraTranslatorView({
     ? "Tap speak to play audio."
     : statusMessage;
   const isBusy = isExtracting || isTranslating;
+  const canTranslate = textToTranslate.length > 0;
+  useResultPageChrome(canTranslate);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 pb-6 md:pb-0">
       <CompactCard padding="sm">
         <div className="grid grid-cols-2 gap-2">
           <SearchableLanguageSelectField
@@ -458,12 +463,25 @@ export function CameraTranslatorView({
         onCorrectedTextChange={setCorrectedText}
         onToggleEdit={() => setIsEditing((value) => !value)}
         onExtract={() => void handleExtract()}
-        onTranslate={() => void handleTranslate()}
-        canTranslate={textToTranslate.length > 0}
         onTapWord={(word) => setDefineWord(word)}
       />
 
-      {textToTranslate.length > 0 && (
+      {canTranslate && (
+        <BottomActionBar ariaLabel="Lens translate action">
+          <ActionButton
+            type="button"
+            variant="primary"
+            fullWidth
+            className="!min-h-12"
+            disabled={isBusy}
+            onClick={() => void handleTranslate()}
+          >
+            {isTranslating ? "Translating…" : "Translate"}
+          </ActionButton>
+        </BottomActionBar>
+      )}
+
+      {canTranslate && (
         <DocumentIntelligenceActions
           disabled={isBusy}
           result={docResult}
