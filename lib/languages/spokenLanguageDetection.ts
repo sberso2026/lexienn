@@ -4,6 +4,8 @@ import {
   type LanguageOptionDefinition,
 } from "@/lib/languages/languageOptions";
 import { isMaoriLanguageCode } from "@/lib/languages/nationalLanguages";
+import { inferSpokenLanguageFromTranscript as inferFromLocal } from "@/lib/languages/localLanguageDetector";
+import type { DetectionStage } from "@/lib/languages/languageDetectionTypes";
 
 export const AUTO_DETECT_LANGUAGE = "auto";
 export const AUTO_DETECT_LABEL = "Auto Detect";
@@ -19,9 +21,13 @@ export type SpokenLanguageDetectionResult = {
   transcript: string;
   detectedLanguageCode: string | null;
   detectedLanguageName: string | null;
+  secondaryLanguageCode?: string | null;
+  secondaryLanguageName?: string | null;
   confidence: number | null;
   source: SpokenLanguageDetectionSource;
   durationMs: number;
+  detectionStage?: DetectionStage;
+  detectionTimeMs?: number;
 };
 
 export type SpokenLanguageDetectionAction =
@@ -34,6 +40,8 @@ export type SpokenLanguageDetectionDecision = {
   action: SpokenLanguageDetectionAction;
   catalogValue: string | null;
   displayName: string | null;
+  secondaryCatalogValue?: string | null;
+  secondaryDisplayName?: string | null;
   message: string;
 };
 
@@ -41,13 +49,18 @@ export type SpokenLanguageDetectionDecision = {
 const PROVIDER_LANGUAGE_MAP: Record<string, string> = {
   en: "en",
   eng: "en",
+  english: "en",
   mi: "mi",
   mao: "mi",
   mri: "mi",
   tl: "tl",
   fil: "tl",
   tgl: "tl",
+  filipino: "tl",
+  tagalog: "tl",
   ceb: "ceb",
+  cebuano: "ceb",
+  bisaya: "ceb",
   hil: "hil",
   ilo: "ilo",
   war: "war",
@@ -55,28 +68,38 @@ const PROVIDER_LANGUAGE_MAP: Record<string, string> = {
   ms: "ms",
   es: "es",
   spa: "es",
+  spanish: "es",
   fr: "fr",
   fra: "fr",
+  french: "fr",
   de: "de",
   deu: "de",
+  german: "de",
   pt: "pt",
   por: "pt",
+  portuguese: "pt",
   it: "it",
   ita: "it",
+  italian: "it",
   nl: "nl",
   ru: "ru",
   rus: "ru",
   ar: "ar",
   ara: "ar",
+  arabic: "ar",
   hi: "hi",
   hin: "hi",
   bn: "bn",
   ja: "ja",
   jpn: "ja",
+  japanese: "ja",
   ko: "ko",
   kor: "ko",
+  korean: "ko",
   zh: "zh",
   zho: "zh",
+  cmn: "zh",
+  chinese: "zh",
   yue: "yue",
   vi: "vi",
   vie: "vi",
@@ -112,6 +135,15 @@ export function isAutoDetectLanguage(value: string | null | undefined): boolean 
   return (value ?? "").trim().toLowerCase() === AUTO_DETECT_LANGUAGE;
 }
 
+/** @deprecated Prefer detectLanguageLocal / detectLanguagePipeline (Batch 52A). */
+export function inferSpokenLanguageFromTranscript(transcript: string): {
+  code: string | null;
+  confidence: number;
+  secondaryCode?: string | null;
+} {
+  return inferFromLocal(transcript);
+}
+
 export function mapProviderLanguageToCatalog(
   providerCode: string | null | undefined,
 ): LanguageOptionDefinition | null {
@@ -133,15 +165,28 @@ export function mapProviderLanguageToCatalog(
       option.value.toLowerCase() === normalized ||
       option.iso_639_code.toLowerCase() === base ||
       option.base_language.toLowerCase() === base ||
-      option.bcp_47_tag.toLowerCase() === normalized,
+      option.bcp_47_tag.toLowerCase() === normalized ||
+      option.display_name.toLowerCase() === normalized ||
+      option.display_name.toLowerCase().startsWith(`${normalized} `) ||
+      option.display_name.toLowerCase().includes(` / ${normalized}`),
   );
   return exact ?? null;
 }
 
 export function decideSpokenLanguageDetection(
-  result: Pick<SpokenLanguageDetectionResult, "detectedLanguageCode" | "confidence">,
+  result: Pick<
+    SpokenLanguageDetectionResult,
+    | "detectedLanguageCode"
+    | "confidence"
+    | "secondaryLanguageCode"
+    | "detectionStage"
+  >,
 ): SpokenLanguageDetectionDecision {
   const catalog = mapProviderLanguageToCatalog(result.detectedLanguageCode);
+  const secondaryCatalog = mapProviderLanguageToCatalog(
+    result.secondaryLanguageCode,
+  );
+
   if (!catalog) {
     return {
       action: "unsupported",
@@ -157,16 +202,23 @@ export function decideSpokenLanguageDetection(
       action: "confirm",
       catalogValue: catalog.value,
       displayName: catalog.display_name,
+      secondaryCatalogValue: secondaryCatalog?.value ?? null,
+      secondaryDisplayName: secondaryCatalog?.display_name ?? null,
       message: `We detected ${catalog.display_name}. Use this language?`,
     };
   }
 
   if (confidence >= SPOKEN_LANG_HIGH_CONFIDENCE) {
+    const secondaryNote = secondaryCatalog
+      ? ` (also ${secondaryCatalog.display_name})`
+      : "";
     return {
       action: "apply",
       catalogValue: catalog.value,
       displayName: catalog.display_name,
-      message: `Detected: ${catalog.display_name}`,
+      secondaryCatalogValue: secondaryCatalog?.value ?? null,
+      secondaryDisplayName: secondaryCatalog?.display_name ?? null,
+      message: `Detected: ${catalog.display_name}${secondaryNote}`,
     };
   }
 
@@ -175,6 +227,8 @@ export function decideSpokenLanguageDetection(
       action: "confirm",
       catalogValue: catalog.value,
       displayName: catalog.display_name,
+      secondaryCatalogValue: secondaryCatalog?.value ?? null,
+      secondaryDisplayName: secondaryCatalog?.display_name ?? null,
       message: `We detected ${catalog.display_name}. Use this language?`,
     };
   }
@@ -193,14 +247,53 @@ export function buildSpokenLanguageDetectionResult(input: {
   confidence?: number | null;
   source: SpokenLanguageDetectionSource;
   durationMs?: number;
+  secondaryLanguage?: string | null;
+  detectionStage?: DetectionStage;
+  detectionTimeMs?: number;
 }): SpokenLanguageDetectionResult {
-  const catalog = mapProviderLanguageToCatalog(input.providerLanguage);
+  let providerLanguage = input.providerLanguage ?? null;
+  let confidence = input.confidence ?? null;
+  let secondaryLanguage = input.secondaryLanguage ?? null;
+  let detectionStage = input.detectionStage;
+
+  if (!providerLanguage?.trim()) {
+    const inferred = inferFromLocal(input.transcript);
+    if (inferred.code) {
+      providerLanguage = inferred.code;
+      confidence = confidence ?? inferred.confidence;
+      secondaryLanguage = secondaryLanguage ?? inferred.secondaryCode ?? null;
+      detectionStage = detectionStage ?? "local";
+    }
+  } else {
+    // Even with a provider code, enrich secondary via local mixed-language detection.
+    const inferred = inferFromLocal(input.transcript);
+    if (!secondaryLanguage && inferred.secondaryCode) {
+      secondaryLanguage = inferred.secondaryCode;
+    }
+    // Prefer strong local phrase/script hits over a weak/missing provider confidence.
+    if (
+      inferred.code &&
+      inferred.confidence >= 0.95 &&
+      (!confidence || confidence < inferred.confidence)
+    ) {
+      providerLanguage = inferred.code;
+      confidence = inferred.confidence;
+      detectionStage = "local";
+    }
+  }
+
+  const catalog = mapProviderLanguageToCatalog(providerLanguage);
+  const secondaryCatalog = mapProviderLanguageToCatalog(secondaryLanguage);
   return {
     transcript: input.transcript,
     detectedLanguageCode: catalog?.value ?? null,
     detectedLanguageName: catalog?.display_name ?? null,
-    confidence: input.confidence ?? null,
+    secondaryLanguageCode: secondaryCatalog?.value ?? null,
+    secondaryLanguageName: secondaryCatalog?.display_name ?? null,
+    confidence,
     source: input.source,
     durationMs: input.durationMs ?? 0,
+    detectionStage,
+    detectionTimeMs: input.detectionTimeMs ?? input.durationMs ?? 0,
   };
 }

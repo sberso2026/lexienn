@@ -35,7 +35,17 @@ import {
 import { logMicSessionDebug } from "@/lib/voice/micSessionDebug";
 import { VoiceTranscribeApiError } from "@/lib/voice/voiceTranscribeClient";
 import type { SpokenLanguageDetectionResult } from "@/lib/languages/spokenLanguageDetection";
-import { buildSpokenLanguageDetectionResult } from "@/lib/languages/spokenLanguageDetection";
+import {
+  buildSpokenLanguageDetectionResult,
+  isAutoDetectLanguage,
+} from "@/lib/languages/spokenLanguageDetection";
+import {
+  detectLanguagePipeline,
+  pipelineResultToSpokenDetection,
+} from "@/lib/languages/languageDetectionPipeline";
+import { detectLanguageViaApi } from "@/lib/languages/languageDetectClient";
+import { LOCAL_SKIP_AI_CONFIDENCE } from "@/lib/languages/localLanguageDetector";
+import { recordLanguageDetectionDiagnostic } from "@/lib/languages/languageDetectionDiagnostics";
 
 export type VoiceTranscriptMeta = {
   transcript: string;
@@ -304,19 +314,57 @@ export function useVoiceInput({
         const providerOk =
           !result.detectedLanguageCode ||
           isProviderLanguageAllowedForCebuano(result.detectedLanguageCode);
-        if (
+        const shouldEmitDetection =
           !constrainedCeb &&
-          (result.detectedLanguageCode || result.confidence != null)
-        ) {
-          onLanguageDetection?.(
-            buildSpokenLanguageDetectionResult({
-              transcript: result.transcript,
+          Boolean(result.transcript?.trim()) &&
+          (isAutoDetectLanguage(plan.selectedLanguage) ||
+            result.detectedLanguageCode ||
+            result.confidence != null);
+        if (shouldEmitDetection) {
+          const source =
+            result.source === "server_transcription" ? "server_stt" : "browser";
+          try {
+            const localOnly = await detectLanguagePipeline(result.transcript, {
+              localOnly: true,
               providerLanguage: result.detectedLanguageCode,
-              confidence: result.confidence ?? null,
-              source: result.source === "server_transcription" ? "server_stt" : "browser",
-              durationMs: result.durationMs,
-            }),
-          );
+              providerConfidence: result.confidence ?? null,
+            });
+            if (
+              localOnly.confidence >= LOCAL_SKIP_AI_CONFIDENCE ||
+              !isBrowserOnline()
+            ) {
+              onLanguageDetection?.(
+                pipelineResultToSpokenDetection(localOnly, source),
+              );
+            } else {
+              try {
+                const full = await detectLanguageViaApi({
+                  text: result.transcript,
+                  providerLanguage: result.detectedLanguageCode,
+                  providerConfidence: result.confidence ?? null,
+                  allowAi: true,
+                });
+                recordLanguageDetectionDiagnostic(full);
+                onLanguageDetection?.(
+                  pipelineResultToSpokenDetection(full, source),
+                );
+              } catch {
+                onLanguageDetection?.(
+                  pipelineResultToSpokenDetection(localOnly, source),
+                );
+              }
+            }
+          } catch {
+            onLanguageDetection?.(
+              buildSpokenLanguageDetectionResult({
+                transcript: result.transcript,
+                providerLanguage: result.detectedLanguageCode,
+                confidence: result.confidence ?? null,
+                source,
+                durationMs: result.durationMs,
+              }),
+            );
+          }
         } else if (constrainedCeb && providerOk && result.detectedLanguageCode === "ceb") {
           // Keep selection on Cebuano — never switch UI language from detection.
         }

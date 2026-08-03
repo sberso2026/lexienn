@@ -30,6 +30,13 @@ import {
   isAutoDetectLanguage,
   type SpokenLanguageDetectionResult,
 } from "@/lib/languages/spokenLanguageDetection";
+import {
+  formatDetectionStageLabel,
+  getLanguageDetectionDiagnostic,
+  subscribeLanguageDetectionDiagnostic,
+  type LanguageDetectionDiagnosticSnapshot,
+} from "@/lib/languages/languageDetectionDiagnostics";
+import { shouldShowInternalDebugUi } from "@/lib/debug/shouldShowInternalDebugUi";
 import { buildTranslationRequestKey } from "@/lib/request/requestKeys";
 import { logPerf } from "@/lib/request/perfLog";
 import type { TranslationMode, TranslatorResponse } from "@/lib/translator/translatorSchemas";
@@ -79,6 +86,8 @@ export function TextTranslatorView() {
   const [requestState, setRequestState] = useState<RequestUiState>("ready");
   const [formError, setFormError] = useState<string | null>(null);
   const [detectionUi, setDetectionUi] = useState<DetectionUi | null>(null);
+  const [detectionDiagnostic, setDetectionDiagnostic] =
+    useState<LanguageDetectionDiagnosticSnapshot | null>(null);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [autoplayRequestId, setAutoplayRequestId] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -143,6 +152,14 @@ export function TextTranslatorView() {
     stopVoicePlayback();
   }, [abortActiveRequest, stop]);
 
+  useEffect(() => {
+    if (!shouldShowInternalDebugUi()) return;
+    setDetectionDiagnostic(getLanguageDetectionDiagnostic());
+    return subscribeLanguageDetectionDiagnostic(() => {
+      setDetectionDiagnostic(getLanguageDetectionDiagnostic());
+    });
+  }, [preferences.developer_mode_enabled]);
+
   const handleLanguageDetection = useCallback(
     (detection: SpokenLanguageDetectionResult) => {
       if (!autoDetectEnabled || !isAutoDetectLanguage(sourceLanguage)) {
@@ -169,11 +186,14 @@ export function TextTranslatorView() {
         return;
       }
 
-      setDetectionUi({
-        message: decision.message,
-        pendingValue: null,
-        needsConfirm: false,
-      });
+      // Only surface the unreliable message after the full pipeline failed.
+      if (decision.action === "keep_auto" || decision.action === "unsupported") {
+        setDetectionUi({
+          message: decision.message,
+          pendingValue: null,
+          needsConfirm: false,
+        });
+      }
     },
     [autoDetectEnabled, sourceLanguage],
   );
@@ -440,6 +460,22 @@ export function TextTranslatorView() {
                   Change language
                 </ActionButton>
               </div>
+            </div>
+          )}
+
+          {shouldShowInternalDebugUi() && detectionDiagnostic && (
+            <div
+              className="rounded-xl border border-dashed border-[var(--card-border)] bg-[var(--background)] p-3 text-xs text-[var(--muted)]"
+              data-testid="language-detection-diagnostics"
+            >
+              <p className="font-semibold text-[var(--foreground)]">Language detection</p>
+              <p>Detected: {detectionDiagnostic.detectedLanguage ?? "—"}</p>
+              {detectionDiagnostic.secondaryLanguage ? (
+                <p>Secondary: {detectionDiagnostic.secondaryLanguage}</p>
+              ) : null}
+              <p>Confidence: {(detectionDiagnostic.confidence * 100).toFixed(1)}%</p>
+              <p>Stage: {formatDetectionStageLabel(detectionDiagnostic.stage)}</p>
+              <p>Detection time: {detectionDiagnostic.detectionTimeMs}ms</p>
             </div>
           )}
 

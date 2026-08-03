@@ -17,9 +17,12 @@ import {
   validateBisayaTranscript,
   isProviderLanguageAllowedForCebuano,
 } from "@/lib/speech/bisayaTranscriptValidation";
-import { correctBisayaTranscript } from "@/lib/speech/bisayaLexiconCorrection";
+import {
+  correctBisayaTranscript,
+} from "@/lib/speech/bisayaLexiconCorrection";
 import { checkBisayaAudioQuality } from "@/lib/speech/bisayaAudioQuality";
 import { isCebuanoLanguageHint } from "@/lib/speech/bisayaStt";
+import { inferSpokenLanguageFromTranscript } from "@/lib/languages/localLanguageDetector";
 
 export type CloudTranscribeRequest = {
   audioBuffer: Buffer;
@@ -61,6 +64,8 @@ async function callOpenAiTranscription(options: {
   prompt: string;
   timeoutMs: number;
   temperature: number;
+  /** Prefer verbose_json so Whisper returns a detected language code. */
+  preferVerboseJson?: boolean;
 }): Promise<{ transcript: string; language?: string; ok: boolean; warning?: string }> {
   const extension = options.mimeType.includes("mp4")
     ? "m4a"
@@ -68,64 +73,81 @@ async function callOpenAiTranscription(options: {
       ? "ogg"
       : "webm";
 
-  const formData = new FormData();
-  const blob = new Blob([new Uint8Array(options.audioBuffer)], {
-    type: options.mimeType,
-  });
-  formData.append("file", blob, `speech.${extension}`);
-  formData.append("model", options.model);
-  // Never send unsupported language=ceb (no ISO 639-1).
-  if (!options.omitLanguageParam && options.transportLanguage) {
-    formData.append("language", options.transportLanguage);
-  }
-  formData.append("prompt", options.prompt);
-  formData.append("temperature", String(options.temperature));
+  const tryFormats: Array<"verbose_json" | "json"> = options.preferVerboseJson
+    ? ["verbose_json", "json"]
+    : ["json"];
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs);
-
-  try {
-    const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${options.apiKey}`,
-      },
-      body: formData,
-      signal: controller.signal,
+  for (const responseFormat of tryFormats) {
+    const formData = new FormData();
+    const blob = new Blob([new Uint8Array(options.audioBuffer)], {
+      type: options.mimeType,
     });
+    formData.append("file", blob, `speech.${extension}`);
+    formData.append("model", options.model);
+    // Never send unsupported language=ceb (no ISO 639-1).
+    if (!options.omitLanguageParam && options.transportLanguage) {
+      formData.append("language", options.transportLanguage);
+    }
+    formData.append("prompt", options.prompt);
+    formData.append("temperature", String(options.temperature));
+    formData.append("response_format", responseFormat);
 
-    if (!response.ok) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs);
+
+    try {
+      const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${options.apiKey}`,
+        },
+        body: formData,
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        // Some models reject verbose_json — fall through to json.
+        if (responseFormat === "verbose_json") continue;
+        return {
+          transcript: "",
+          ok: false,
+          warning: "Cloud speech-to-text request failed.",
+        };
+      }
+
+      const payload = (await response.json()) as { text?: string; language?: string };
+      const transcript = payload.text?.trim() ?? "";
+      if (!transcript) {
+        if (responseFormat === "verbose_json") continue;
+        return {
+          transcript: "",
+          ok: false,
+          warning: "No speech was detected.",
+        };
+      }
+
+      return {
+        transcript,
+        language: payload.language?.trim() || undefined,
+        ok: true,
+      };
+    } catch {
+      if (responseFormat === "verbose_json") continue;
       return {
         transcript: "",
         ok: false,
-        warning: "Cloud speech-to-text request failed.",
+        warning: "Cloud speech-to-text timed out or failed.",
       };
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    const payload = (await response.json()) as { text?: string; language?: string };
-    const transcript = payload.text?.trim() ?? "";
-    if (!transcript) {
-      return {
-        transcript: "",
-        ok: false,
-        warning: "No speech was detected.",
-      };
-    }
-
-    return {
-      transcript,
-      language: payload.language,
-      ok: true,
-    };
-  } catch {
-    return {
-      transcript: "",
-      ok: false,
-      warning: "Cloud speech-to-text timed out or failed.",
-    };
-  } finally {
-    clearTimeout(timeoutId);
   }
+
+  return {
+    transcript: "",
+    ok: false,
+    warning: "Cloud speech-to-text request failed.",
+  };
 }
 
 export async function transcribeAudioCloud(
@@ -190,6 +212,7 @@ export async function transcribeAudioCloud(
     prompt,
     timeoutMs,
     temperature,
+    preferVerboseJson: languagePlan.omitLanguageParam || languagePlan.expectedLanguage === "auto",
   });
 
   if (!first.ok) {
@@ -206,6 +229,17 @@ export async function transcribeAudioCloud(
   let detectedLanguage = first.language ?? undefined;
   let retried = false;
   let confidence = 0.85;
+
+  if (!detectedLanguage && languagePlan.expectedLanguage === "auto") {
+    const inferred = inferSpokenLanguageFromTranscript(transcript);
+    if (inferred.code) {
+      detectedLanguage = inferred.code;
+      confidence = Math.max(confidence * 0.95, inferred.confidence);
+    }
+  } else if (!detectedLanguage && languagePlan.expectedLanguage !== "auto") {
+    // Explicit From language: keep expected code as detection signal for UI consumers.
+    detectedLanguage = languagePlan.expectedLanguage;
+  }
 
   if (useBisaya || isCebuanoLanguageHint(request.language_hint)) {
     transcript = correctBisayaTranscript(transcript).transcript;

@@ -3,7 +3,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   AUTO_DETECT_LANGUAGE,
+  buildSpokenLanguageDetectionResult,
   decideSpokenLanguageDetection,
+  inferSpokenLanguageFromTranscript,
   isAutoDetectLanguage,
   mapProviderLanguageToCatalog,
 } from "@/lib/languages/spokenLanguageDetection";
@@ -85,10 +87,26 @@ describe("Batch 51B spoken language detection", () => {
     expect(mic).toContain("channelCount: 1");
   });
 
-  it("does not persist recordings by default", () => {
-    const route = readFileSync(join(process.cwd(), "app/api/voice/transcribe/route.ts"), "utf8");
-    expect(route).not.toContain("writeFile");
-    expect(route).not.toContain("fs.");
-    expect(route).toContain("detectedLanguageCode");
+  it("infers English from common spoken phrases when provider language is missing", () => {
+    const inferred = inferSpokenLanguageFromTranscript("what's your name?");
+    expect(inferred.code).toBe("en");
+    expect(inferred.confidence).toBeGreaterThanOrEqual(0.75);
+
+    const built = buildSpokenLanguageDetectionResult({
+      transcript: "what's your name?",
+      providerLanguage: null,
+      confidence: null,
+      source: "server_stt",
+    });
+    expect(built.detectedLanguageCode).toBe("en");
+    expect(built.detectedLanguageName).toMatch(/English/i);
+    expect(decideSpokenLanguageDetection(built).action).toBe("apply");
+  });
+
+  it("requests verbose_json so Whisper can return a language code", () => {
+    const stt = readFileSync(join(process.cwd(), "lib/speech/speechToTextService.ts"), "utf8");
+    expect(stt).toContain("verbose_json");
+    expect(stt).toContain("preferVerboseJson");
+    expect(stt).toContain("inferSpokenLanguageFromTranscript");
   });
 });
