@@ -167,7 +167,7 @@ export function LibraryView() {
         </p>
         <h2 className="mt-1 text-xl font-semibold tracking-tight">Library</h2>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          Keep saved language, offline resources, and recent work together.
+          Keep saved language, offline resources, and structured practice together.
         </p>
       </section>
 

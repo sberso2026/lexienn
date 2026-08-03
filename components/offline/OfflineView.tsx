@@ -25,8 +25,11 @@ import {
   USER_PREFERENCES_UPDATED_EVENT,
 } from "@/lib/settings/userPreferences";
 import { OfflinePackDownloadPanel } from "@/components/offline/OfflinePackDownloadPanel";
+import { SmartPackBuilder } from "@/components/offline/SmartPackBuilder";
 import { useOfflinePackDownload } from "@/hooks/useOfflinePackDownload";
 import { mapPackDownloadErrorMessage } from "@/lib/offline/offlinePackDownloadTypes";
+import type { SmartPackThemeId } from "@/lib/offline/smartPackBuilder";
+import type { OfflinePackTier } from "@/lib/schemas";
 import {
   getRecentPairs,
   getRecentPhrases,
@@ -72,6 +75,8 @@ export function OfflineView() {
   const [recentPairs, setRecentPairs] = useState<
     Awaited<ReturnType<typeof getRecentPairs>>
   >([]);
+  const [smartThemeId, setSmartThemeId] = useState<SmartPackThemeId>("travel");
+  const [smartPackTier, setSmartPackTier] = useState<OfflinePackTier>("lite");
 
   const {
     snapshot: downloadSnapshot,
@@ -287,6 +292,18 @@ export function OfflineView() {
   function buildDownloadRequest() {
     const toResolved = resolveLanguageSelection(toLanguage);
     const fromResolved = resolveLanguageSelection(fromLanguage);
+    const theme =
+      smartThemeId === "engineering"
+        ? ("engineer" as const)
+        : smartThemeId === "emergency" || smartThemeId === "healthcare"
+          ? ("health_emergency" as const)
+          : smartThemeId === "business"
+            ? ("business_owner" as const)
+            : smartThemeId === "daily"
+              ? ("household_family" as const)
+              : smartThemeId === "personal_vocabulary"
+                ? ("general" as const)
+                : ("traveller" as const);
     return {
       from_language: fromLanguage,
       to_language: toLanguage,
@@ -296,8 +313,8 @@ export function OfflineView() {
       target_dialect_label: toResolved.dialect_label,
       target_display_name: toResolved.display_label,
       from_display_name: fromResolved.display_label,
-      user_context: "traveller" as const,
-      pack_tier: "lite" as const,
+      user_context: theme,
+      pack_tier: smartPackTier,
       include_audio_manifest: true,
     };
   }
@@ -473,6 +490,18 @@ export function OfflineView() {
         onResume={() => void handleDownload({ resume: true })}
         onUpdate={() => void handleUpdate()}
         onRemove={() => void handleRemove()}
+      />
+
+      <SmartPackBuilder
+        fromLanguage={fromLanguage}
+        toLanguage={toLanguage}
+        pairSelected={pairSelected}
+        isBusy={isBusy}
+        themeId={smartThemeId}
+        packTier={smartPackTier}
+        onThemeChange={setSmartThemeId}
+        onTierChange={setSmartPackTier}
+        onDownload={() => void handleDownload()}
       />
 
       {(showProgress || downloadSnapshot.phase !== "idle") && (

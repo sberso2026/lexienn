@@ -304,6 +304,8 @@ export function TextTranslatorView() {
       sourceLanguage,
       targetLanguage: targetResolved.base_language,
       pronunciation: result.pronunciation_simple,
+      source: "translate",
+      userContext: userContext,
     });
     setSaveMessage(
       outcome === "saved"
@@ -312,7 +314,7 @@ export function TextTranslatorView() {
           ? "Already saved in Library."
           : "Could not save this phrase.",
     );
-  }, [result, sourceLanguage, targetResolved.base_language]);
+  }, [result, sourceLanguage, targetResolved.base_language, userContext]);
 
   const swapLanguages = useCallback(() => {
     if (isAutoDetectLanguage(sourceLanguage)) {

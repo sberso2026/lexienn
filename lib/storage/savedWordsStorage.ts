@@ -5,6 +5,7 @@ import {
 } from "@/lib/dictionary/toSavedWord";
 import type { DictionaryEntry, DictionaryQuery, SavedWord } from "@/lib/schemas";
 import { savedWordSchema } from "@/lib/schemas";
+import type { LearningSource } from "@/lib/storage/learningTypes";
 
 export type SavedWordFilters = {
   search: string;
@@ -65,6 +66,7 @@ export type SaveWordResult =
 export function saveWordFromDictionaryResult(
   entry: DictionaryEntry,
   query: DictionaryQuery,
+  options?: { source?: LearningSource },
 ): SaveWordResult {
   try {
     const word = createSavedWordFromResult(entry, query);
@@ -75,6 +77,16 @@ export function saveWordFromDictionaryResult(
     }
 
     persistSavedWords([word, ...words]);
+    void import("@/lib/storage/vocabularyReviewStorage").then(({ registerLearningItem }) => {
+      registerLearningItem({
+        kind: "word",
+        id: word.id,
+        front: word.input_text,
+        back: word.target_meaning || word.short_meaning || "",
+        source: options?.source ?? "define",
+        userContext: word.user_context,
+      });
+    });
     return { ok: true, word };
   } catch {
     return { ok: false, reason: "error" };

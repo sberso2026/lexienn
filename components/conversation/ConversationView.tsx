@@ -478,6 +478,7 @@ export function ConversationView() {
       sourceLanguage: latestTurn.sourceLanguage,
       targetLanguage: latestTurn.targetLanguage,
       pronunciation: latestTurn.pronunciation,
+      source: "conversation",
     });
     setStatusMessage(
       outcome === "saved"

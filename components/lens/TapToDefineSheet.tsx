@@ -105,7 +105,7 @@ export function TapToDefineSheet({
             className="!min-h-11"
             onClick={() => {
               if (!query) return;
-              const outcome = saveWordFromDictionaryResult(entry, query);
+              const outcome = saveWordFromDictionaryResult(entry, query, { source: "lens" });
               setSaveMessage(
                 outcome.ok
                   ? "Saved to Library."

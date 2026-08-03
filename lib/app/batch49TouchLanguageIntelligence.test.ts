@@ -155,10 +155,13 @@ describe("batch 49 mobile touch and language intelligence", () => {
     const card = readFileSync("components/library/VocabularyReviewCard.tsx", "utf8");
     const storage = readFileSync("lib/storage/vocabularyReviewStorage.ts", "utf8");
     const library = readFileSync("components/library/LibraryView.tsx", "utf8");
-    expect(card).toContain("I know this");
-    expect(card).toContain("Review again");
+    expect(card).toContain("Again");
+    expect(card).toContain("Hard");
+    expect(card).toContain("Good");
+    expect(card).toContain("Easy");
     expect(card).toContain("Favorite");
     expect(storage).toContain("buildReviewQueue");
+    expect(storage).toContain("applyReviewGrade");
     expect(library).toContain("VocabularyReviewCard");
   });
 

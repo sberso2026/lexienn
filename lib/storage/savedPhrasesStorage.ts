@@ -1,3 +1,5 @@
+import type { LearningSource } from "@/lib/storage/learningTypes";
+
 export const SAVED_PHRASES_STORAGE_KEY = "lexienn_saved_phrases";
 export const SAVED_PHRASES_UPDATED_EVENT = "lexienn:saved-phrases-updated";
 
@@ -9,6 +11,8 @@ export type SavedPhrase = {
   targetLanguage: string;
   pronunciation?: string;
   savedAt: string;
+  source?: LearningSource;
+  userContext?: string;
 };
 
 export function loadSavedPhrases(): SavedPhrase[] {
@@ -37,9 +41,20 @@ export function saveTranslatedPhrase(
       ...phrase,
       id: `phrase-${Date.now()}`,
       savedAt: new Date().toISOString(),
+      source: phrase.source ?? "translate",
     };
     localStorage.setItem(SAVED_PHRASES_STORAGE_KEY, JSON.stringify([next, ...saved]));
     window.dispatchEvent(new Event(SAVED_PHRASES_UPDATED_EVENT));
+    void import("@/lib/storage/vocabularyReviewStorage").then(({ registerLearningItem }) => {
+      registerLearningItem({
+        kind: "phrase",
+        id: next.id,
+        front: next.sourceText,
+        back: next.translatedText,
+        source: next.source ?? "translate",
+        userContext: next.userContext,
+      });
+    });
     return "saved";
   } catch {
     return "error";

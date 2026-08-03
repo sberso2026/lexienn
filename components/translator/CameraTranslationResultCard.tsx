@@ -52,6 +52,7 @@ export function CameraTranslationResultCard({
       sourceLanguage: result.source_language,
       targetLanguage: result.target_language,
       pronunciation: result.pronunciation_simple,
+      source: "lens",
     });
     setFeedback(
       outcome === "saved"

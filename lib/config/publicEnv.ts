@@ -11,3 +11,11 @@ export function isAutomaticLanguageDetectionEnabled(): boolean {
   if (raw == null || raw.trim() === "") return true;
   return raw.trim().toLowerCase() !== "false";
 }
+
+export {
+  isAdvancedLearningEnabled,
+  isConversationEnabled,
+  isLiveLensOverlayEnabled,
+  isSmartOfflinePackEnabled,
+  isVisualObjectUnderstandingEnabled,
+} from "@/lib/config/featureFlags";
