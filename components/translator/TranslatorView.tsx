@@ -10,6 +10,15 @@ export function TranslatorView() {
       <TranslatorCameraRedirect />
       <TextTranslatorView />
       <p className="text-sm text-[var(--muted)]">
+        Need a live bilingual talk?{" "}
+        <Link
+          href="/conversation"
+          className="font-semibold text-[var(--accent)] underline-offset-2 hover:underline"
+        >
+          Open Conversation
+        </Link>
+      </p>
+      <p className="text-sm text-[var(--muted)]">
         Need to scan text?{" "}
         <Link
           href="/lens"

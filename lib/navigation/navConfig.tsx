@@ -82,6 +82,7 @@ export const PAGE_TITLES: Record<string, string> = {
   "/": "Home",
   "/dictionary": "Define",
   "/translator": "Translate",
+  "/conversation": "Conversation",
   "/lens": "Lens",
   "/library": "Library",
   "/more": "More",
