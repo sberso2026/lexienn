@@ -13,7 +13,12 @@ import {
   buildGenericSttPrompt,
   shouldUseBisayaSttPrompt,
 } from "@/lib/speech/bisayaSttPrompt";
-import { validateBisayaTranscript, isProviderLanguageAllowedForCebuano } from "@/lib/speech/bisayaTranscriptValidation";
+import {
+  validateBisayaTranscript,
+  isProviderLanguageAllowedForCebuano,
+} from "@/lib/speech/bisayaTranscriptValidation";
+import { correctBisayaTranscript } from "@/lib/speech/bisayaLexiconCorrection";
+import { checkBisayaAudioQuality } from "@/lib/speech/bisayaAudioQuality";
 import { isCebuanoLanguageHint } from "@/lib/speech/bisayaStt";
 
 export type CloudTranscribeRequest = {
@@ -24,6 +29,7 @@ export type CloudTranscribeRequest = {
   input_target: SpeechInputTarget;
   /** Bounded STT hint terms (no audio). */
   stt_hints?: string[];
+  duration_ms?: number;
 };
 
 export type CloudTranscribeResult = {
@@ -40,8 +46,8 @@ export type CloudTranscribeResult = {
 
 /** @deprecated Prefer resolveConstrainedSttLanguage — kept for tests/compat. */
 export function mapLanguageHintToWhisper(languageHint: string): string | undefined {
-  const plan = resolveConstrainedSttLanguage(languageHint, "whisper-1");
-  if (!plan.transportLanguage || plan.expectedLanguage === "auto") return undefined;
+  const plan = resolveConstrainedSttLanguage(languageHint);
+  if (plan.omitLanguageParam || !plan.transportLanguage) return undefined;
   return plan.transportLanguage;
 }
 
@@ -51,8 +57,10 @@ async function callOpenAiTranscription(options: {
   audioBuffer: Buffer;
   mimeType: string;
   transportLanguage: string | null;
+  omitLanguageParam: boolean;
   prompt: string;
   timeoutMs: number;
+  temperature: number;
 }): Promise<{ transcript: string; language?: string; ok: boolean; warning?: string }> {
   const extension = options.mimeType.includes("mp4")
     ? "m4a"
@@ -66,10 +74,12 @@ async function callOpenAiTranscription(options: {
   });
   formData.append("file", blob, `speech.${extension}`);
   formData.append("model", options.model);
-  if (options.transportLanguage) {
+  // Never send unsupported language=ceb (no ISO 639-1).
+  if (!options.omitLanguageParam && options.transportLanguage) {
     formData.append("language", options.transportLanguage);
   }
   formData.append("prompt", options.prompt);
+  formData.append("temperature", String(options.temperature));
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs);
@@ -142,9 +152,29 @@ export async function transcribeAudioCloud(
   const apiKey = process.env.AI_API_KEY?.trim() ?? "";
   const timeoutMs = getSpeechInputTimeoutMs();
   const model = resolveConstrainedSttModel(request.language_hint, config.model);
-  const languagePlan = resolveConstrainedSttLanguage(request.language_hint, model);
+  const languagePlan = resolveConstrainedSttLanguage(request.language_hint);
   const transportLanguage = languagePlan.transportLanguage || null;
   const useBisaya = shouldUseBisayaSttPrompt(request.language_hint);
+  const temperature = useBisaya ? 0 : 0;
+
+  if (useBisaya) {
+    const quality = checkBisayaAudioQuality({
+      durationMs: request.duration_ms,
+      byteLength: request.audioBuffer.byteLength,
+    });
+    if (!quality.ok) {
+      return {
+        transcript: "",
+        confidence_score: 0,
+        warnings: [quality.warning ?? "Recording quality was too low."],
+        expected_language: languagePlan.expectedLanguage,
+        transport_language: null,
+        needs_confirmation: true,
+        validation_reason: quality.reason,
+        retried: false,
+      };
+    }
+  }
 
   const prompt = useBisaya
     ? buildBisayaSttPrompt({ extraHints: request.stt_hints, strongRetry: false })
@@ -156,8 +186,10 @@ export async function transcribeAudioCloud(
     audioBuffer: request.audioBuffer,
     mimeType: request.mimeType,
     transportLanguage,
+    omitLanguageParam: languagePlan.omitLanguageParam,
     prompt,
     timeoutMs,
+    temperature,
   });
 
   if (!first.ok) {
@@ -171,11 +203,13 @@ export async function transcribeAudioCloud(
   }
 
   let transcript = first.transcript;
-  let detectedLanguage = first.language ?? transportLanguage ?? undefined;
+  let detectedLanguage = first.language ?? undefined;
   let retried = false;
   let confidence = 0.85;
 
   if (useBisaya || isCebuanoLanguageHint(request.language_hint)) {
+    transcript = correctBisayaTranscript(transcript).transcript;
+
     let validation = validateBisayaTranscript({
       transcript,
       expectedLanguage: languagePlan.expectedLanguage,
@@ -183,24 +217,26 @@ export async function transcribeAudioCloud(
       confidence,
     });
 
-    if (!validation.ok) {
+    if (!validation.ok || validation.rejectedScript) {
       const retry = await callOpenAiTranscription({
         apiKey,
         model,
         audioBuffer: request.audioBuffer,
         mimeType: request.mimeType,
         transportLanguage,
+        omitLanguageParam: languagePlan.omitLanguageParam,
         prompt: buildBisayaSttPrompt({
           extraHints: request.stt_hints,
           strongRetry: true,
         }),
         timeoutMs,
+        temperature: 0,
       });
       retried = true;
 
       if (retry.ok) {
-        transcript = retry.transcript;
-        detectedLanguage = retry.language ?? transportLanguage ?? detectedLanguage;
+        transcript = correctBisayaTranscript(retry.transcript).transcript;
+        detectedLanguage = retry.language ?? detectedLanguage;
         validation = validateBisayaTranscript({
           transcript,
           expectedLanguage: languagePlan.expectedLanguage,
@@ -210,12 +246,13 @@ export async function transcribeAudioCloud(
       }
     }
 
-    // Never report Japanese/Arabic (or other out-of-set codes) as UI language.
     if (
       validation.rejectedScript ||
       (detectedLanguage &&
         !isProviderLanguageAllowedForCebuano(detectedLanguage))
     ) {
+      detectedLanguage = languagePlan.expectedLanguage;
+    } else {
       detectedLanguage = languagePlan.expectedLanguage;
     }
 
@@ -230,7 +267,7 @@ export async function transcribeAudioCloud(
         ? ["bisaya_transcript_needs_confirmation"]
         : [],
       expected_language: languagePlan.expectedLanguage,
-      transport_language: transportLanguage,
+      transport_language: null,
       needs_confirmation: needsConfirmation,
       validation_reason: validation.reason,
       retried,

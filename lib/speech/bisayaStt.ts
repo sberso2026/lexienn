@@ -3,29 +3,35 @@
 export const CEBUANO_BASE = "ceb";
 
 export const BISAYA_STT_VOCABULARY = [
+  "amping",
   "kumusta",
-  "asa",
   "unsa",
+  "asa",
   "ngano",
   "kanus-a",
-  "pila",
   "palihog",
   "salamat",
   "maayo",
-  "adto",
   "diri",
   "didto",
   "balay",
   "simbahan",
+  "padulong",
+  "kasabot",
+  "hinay-hinayi",
+  "pila",
+  "adto",
+  "tabangi",
+  "kanunay",
 ] as const;
 
 export const BISAYA_BASE_PROMPT =
-  "Transcribe in Cebuano/Bisaya. Preserve Cebuano words and spelling. Do not translate. Likely vocabulary: kumusta, asa, unsa, ngano, kanus-a, pila, palihog, salamat, maayo, adto, diri, didto, balay, simbahan.";
+  "Transcribe exactly in Cebuano/Bisaya. Do not translate. Do not output English phonetic guesses. Preserve Cebuano spelling. Common words include: amping, kumusta, unsa, asa, ngano, kanus-a, palihog, salamat, maayo, diri, didto, balay, simbahan, padulong, kasabot, hinay-hinayi.";
 
 export const BISAYA_STRONG_RETRY_PROMPT =
-  "CRITICAL: The speaker is using Cebuano/Bisaya (not Japanese, Arabic, Mandarin, or English). Transcribe ONLY Cebuano/Bisaya Latin orthography. Preserve Cebuano spelling. Do not translate. Do not invent Japanese or Arabic. Vocabulary: kumusta, asa, unsa, ngano, kanus-a, pila, palihog, salamat, maayo, adto, diri, didto, balay, simbahan, tabangi, doktor, gikinahanglan, padulong, kasabot, hinay-hinayi, pangalan, buntag.";
+  "CRITICAL RETRY: Speaker is Cebuano/Bisaya only. Output Latin Cebuano orthography only. Do not translate. Do not output English phonetic guesses like I'm ping or I'm bing. Do not output Arabic, Japanese, Chinese, Hebrew, or Cyrillic. Preserve Cebuano spelling. Words: amping, pag-amping, amping mo, amping kanunay, kumusta, unsa, asa, ngano, kanus-a, palihog, salamat, maayo, diri, didto, balay, simbahan, padulong, kasabot, hinay-hinayi, tabangi, doktor.";
 
-/** Provider languages allowed when expected language is Cebuano. */
+/** Provider languages allowed when expected language is Cebuano (metadata only). */
 export const CEBUANO_ALLOWED_PROVIDER_LANGUAGES = new Set([
   "ceb",
   "fil",
@@ -36,9 +42,14 @@ export const CEBUANO_ALLOWED_PROVIDER_LANGUAGES = new Set([
 ]);
 
 export const BISAYA_CONFIRM_MESSAGE =
-  "Please check the Bisaya transcript before translating.";
+  "We may not have heard this Bisaya phrase correctly.";
 
 export const BISAYA_CONFIDENCE_THRESHOLD = 0.72;
+export const BISAYA_LEXICAL_SCORE_THRESHOLD = 0.28;
+
+/** Minimum usable clip length for Cebuano STT. */
+export const BISAYA_MIN_AUDIO_DURATION_MS = 450;
+export const BISAYA_MIN_AUDIO_BYTES = 800;
 
 export function isCebuanoLanguageHint(languageHint: string): boolean {
   const base =

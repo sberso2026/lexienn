@@ -50,7 +50,11 @@ export function preferMobileRecordedTranscription(): boolean {
 
 export function resolveVoiceCaptureMode(
   preferRecordedTranscription = false,
+  forceServerOnlyTranscription = false,
 ): VoiceCaptureMode {
+  if (forceServerOnlyTranscription) {
+    return "recorded_audio_transcription";
+  }
   if (preferRecordedTranscription && isMediaRecorderSupported()) {
     return preferMobileRecordedTranscription()
       ? "hybrid_mobile"
@@ -154,7 +158,10 @@ export function startVoiceCapture(
   callbacks: VoiceCaptureCallbacks = {},
   signal?: AbortSignal,
 ): VoiceCaptureSession {
-  const captureMode = resolveVoiceCaptureMode(Boolean(request.preferRecordedTranscription));
+  const captureMode = resolveVoiceCaptureMode(
+    Boolean(request.preferRecordedTranscription),
+    Boolean(request.forceServerOnlyTranscription),
+  );
   const maxDurationMs = request.maxDurationMs ?? 60_000;
   const selectedMimeType = selectMediaRecorderMimeType();
   const browserLanguageHint = request.browserLocaleHint ?? request.languageHint;
@@ -295,10 +302,11 @@ export function startVoiceCapture(
       // Keep activeStream so abort() can stop tracks synchronously before peer mic opens.
       readyCallbacks.resolve?.();
 
-      // Interim assist is optional; never block capture when locale is weak.
+      // Interim assist is optional; never use browser STT for forced server-only (Cebuano).
       if (
         isBrowserSpeechRecognitionSupported() &&
-        !request.preferRecordedTranscription
+        !request.preferRecordedTranscription &&
+        !request.forceServerOnlyTranscription
       ) {
         speechAssist = startBrowserSpeechInterimAssist({
           languageHint: browserLanguageHint,
@@ -375,7 +383,12 @@ export function startVoiceCapture(
           signal,
           sttHints: request.sttHints,
         });
-        const chosen = chooseBestTranscript(browserTranscript, server.transcript);
+        const chosen = request.forceServerOnlyTranscription
+          ? {
+              transcript: server.transcript,
+              refinedFromServer: true,
+            }
+          : chooseBestTranscript(browserTranscript, server.transcript);
         return {
           transcript: chosen.transcript,
           captureMode,

@@ -5,31 +5,23 @@ import {
 
 /**
  * Resolve provider transport language vs expected language.
- * expectedLanguage is always preserved for validation / UI.
- * Transport may use a closest supported locale when the provider
- * cannot accept `ceb` on the wire.
+ * Cebuano has no ISO 639-1 code — never send `language=ceb`.
+ * Prompt + post-validation constrain the transcript instead.
  */
 export type ConstrainedSttLanguagePlan = {
   expectedLanguage: string;
-  /** ISO-ish code sent as OpenAI `language` (never omitted for constrained ceb). */
+  /**
+   * ISO 639-1 code for OpenAI `language`, or empty to omit.
+   * Empty for Cebuano (unsupported on the wire).
+   */
   transportLanguage: string;
   constrained: boolean;
+  omitLanguageParam: boolean;
   reason: string;
 };
 
-/** Models known to accept broader / non-ISO639-1 language codes. */
-function modelAcceptsCebuanoCode(model: string): boolean {
-  const normalized = model.trim().toLowerCase();
-  return (
-    normalized.includes("gpt-4o-transcribe") ||
-    normalized.includes("4o-transcribe") ||
-    normalized.includes("gpt-4o-mini-transcribe")
-  );
-}
-
 export function resolveConstrainedSttLanguage(
   languageHint: string,
-  model: string,
 ): ConstrainedSttLanguagePlan {
   if (!isCebuanoLanguageHint(languageHint)) {
     const base =
@@ -39,6 +31,7 @@ export function resolveConstrainedSttLanguage(
         expectedLanguage: "auto",
         transportLanguage: "",
         constrained: false,
+        omitLanguageParam: true,
         reason: "open_auto",
       };
     }
@@ -46,42 +39,35 @@ export function resolveConstrainedSttLanguage(
       expectedLanguage: base,
       transportLanguage: base === "fil" ? "tl" : base,
       constrained: false,
+      omitLanguageParam: false,
       reason: "unconstrained",
     };
   }
 
-  if (modelAcceptsCebuanoCode(model)) {
-    return {
-      expectedLanguage: CEBUANO_BASE,
-      transportLanguage: CEBUANO_BASE,
-      constrained: true,
-      reason: "fixed_ceb_supported",
-    };
-  }
-
-  // whisper-1 and similar: closest Philippine transport locale, expected stays ceb.
+  // Never send language=ceb — OpenAI expects ISO 639-1; Cebuano has none.
   return {
     expectedLanguage: CEBUANO_BASE,
-    transportLanguage: "tl",
+    transportLanguage: "",
     constrained: true,
-    reason: "fixed_ceb_closest_transport",
+    omitLanguageParam: true,
+    reason: "cebuano_omit_unsupported_iso6391",
   };
 }
 
-/** Prefer gpt-4o-transcribe for constrained Cebuano when env still points at whisper-1. */
+/** Always prefer gpt-4o-transcribe for constrained Cebuano. */
 export function resolveConstrainedSttModel(
   languageHint: string,
   configuredModel: string,
 ): string {
   if (!isCebuanoLanguageHint(languageHint)) return configuredModel;
+  const override = process.env.SPEECH_INPUT_MODEL_CONSTRAINED?.trim();
+  if (override) return override;
   const configured = configuredModel.trim() || "whisper-1";
   if (
-    configured.includes("transcribe") &&
-    !configured.startsWith("whisper")
+    configured.includes("gpt-4o-transcribe") ||
+    configured.includes("4o-mini-transcribe")
   ) {
     return configured;
   }
-  const override = process.env.SPEECH_INPUT_MODEL_CONSTRAINED?.trim();
-  if (override) return override;
   return "gpt-4o-transcribe";
 }

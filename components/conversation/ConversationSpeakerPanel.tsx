@@ -33,6 +33,8 @@ type ConversationSpeakerPanelProps = {
   needsTranscriptConfirm: boolean;
   onTranscriptMeta: (meta: VoiceTranscriptMeta) => void;
   onConfirmTranscript: () => void;
+  onTryAgainTranscript: () => void;
+  onTypeManually: () => void;
   onTeachBisayaPhrase: () => void;
   getSttHints: () => string[];
   teachStatus?: string | null;
@@ -57,6 +59,8 @@ export function ConversationSpeakerPanel({
   needsTranscriptConfirm,
   onTranscriptMeta,
   onConfirmTranscript,
+  onTryAgainTranscript,
+  onTypeManually,
   onTeachBisayaPhrase,
   getSttHints,
   teachStatus,
@@ -116,11 +120,27 @@ export function ConversationSpeakerPanel({
         <CompactAlert variant="warning">
           <p className="font-medium">{BISAYA_CONFIRM_MESSAGE}</p>
           <p className="mt-1 text-xs">
-            Edit the transcript if needed, then confirm before translating.
+            Edit the transcript below if needed, then confirm before translating.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <ActionButton type="button" onClick={onConfirmTranscript} className="!min-h-11">
-              Confirm transcript
+              Confirm
+            </ActionButton>
+            <ActionButton
+              type="button"
+              variant="secondary"
+              onClick={onTryAgainTranscript}
+              className="!min-h-11"
+            >
+              Try Again
+            </ActionButton>
+            <ActionButton
+              type="button"
+              variant="ghost"
+              onClick={onTypeManually}
+              className="!min-h-11"
+            >
+              Type Manually
             </ActionButton>
             <ActionButton
               type="button"

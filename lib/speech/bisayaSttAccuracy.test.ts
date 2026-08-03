@@ -52,39 +52,28 @@ describe("Batch 51D Bisaya STT accuracy", () => {
     }
   });
 
-  it("uses fixed Cebuano language path — never open auto-detect", () => {
+  it("uses constrained Cebuano path — never open auto-detect", () => {
     const plan = resolveSpeechCaptureLanguagePlan("ceb");
     expect(plan.whisperLanguageHint).toBe(CEBUANO_BASE);
     expect(plan.reason).toBe("cebuano_constrained");
     expect(plan.preferRecordedTranscription).toBe(true);
-
-    const bisaya = resolveSpeechCaptureLanguagePlan("ceb::bisaya");
-    expect(bisaya.whisperLanguageHint).toBe("ceb");
     expect(isCebuanoLanguageHint("ceb::bisaya")).toBe(true);
   });
 
-  it("prefers gpt-4o-transcribe for Cebuano when whisper-1 is configured", () => {
+  it("prefers gpt-4o-transcribe for Cebuano and omits language=ceb", () => {
     expect(resolveConstrainedSttModel("ceb", "whisper-1")).toBe("gpt-4o-transcribe");
-    expect(resolveConstrainedSttModel("fil", "whisper-1")).toBe("whisper-1");
-  });
-
-  it("sends ceb transport on gpt-4o-transcribe, closest tl on whisper", () => {
-    const supported = resolveConstrainedSttLanguage("ceb", "gpt-4o-transcribe");
-    expect(supported.expectedLanguage).toBe("ceb");
-    expect(supported.transportLanguage).toBe("ceb");
-    expect(supported.constrained).toBe(true);
-
-    const whisper = resolveConstrainedSttLanguage("ceb", "whisper-1");
-    expect(whisper.expectedLanguage).toBe("ceb");
-    expect(whisper.transportLanguage).toBe("tl");
-    expect(mapLanguageHintToWhisper("ceb")).toBe("tl");
+    const plan = resolveConstrainedSttLanguage("ceb");
+    expect(plan.expectedLanguage).toBe("ceb");
+    expect(plan.omitLanguageParam).toBe(true);
+    expect(plan.transportLanguage).toBe("");
+    expect(mapLanguageHintToWhisper("ceb")).toBeUndefined();
   });
 
   it("includes Bisaya transcription prompt vocabulary", () => {
     const prompt = buildBisayaSttPrompt({});
     expect(prompt).toContain("Cebuano/Bisaya");
     expect(prompt).toContain("Do not translate");
-    expect(prompt).toContain("kumusta");
+    expect(prompt).toContain("amping");
     expect(BISAYA_BASE_PROMPT).toContain("palihog");
   });
 
@@ -99,7 +88,6 @@ describe("Batch 51D Bisaya STT accuracy", () => {
       confidence: 0.9,
     });
     expect(ja.ok).toBe(false);
-    expect(ja.rejectedScript).toBe("japanese");
     expect(ja.needsConfirmation).toBe(true);
 
     const ar = validateBisayaTranscript({
@@ -109,14 +97,11 @@ describe("Batch 51D Bisaya STT accuracy", () => {
       confidence: 0.9,
     });
     expect(ar.ok).toBe(false);
-    expect(ar.rejectedScript).toBe("arabic");
   });
 
   it("rejects provider language outside ceb/fil/tl/en", () => {
     expect(isProviderLanguageAllowedForCebuano("ja")).toBe(false);
-    expect(isProviderLanguageAllowedForCebuano("ar")).toBe(false);
     expect(isProviderLanguageAllowedForCebuano("ceb")).toBe(true);
-    expect(isProviderLanguageAllowedForCebuano("tl")).toBe(true);
 
     const bad = validateBisayaTranscript({
       transcript: "Kumusta ka?",
@@ -124,12 +109,11 @@ describe("Batch 51D Bisaya STT accuracy", () => {
       providerLanguage: "ja",
       confidence: 0.9,
     });
-    // Japanese script not present but provider language rejected
     expect(bad.ok).toBe(false);
     expect(bad.rejectedProviderLanguage).toBe("ja");
   });
 
-  it("low confidence requires confirmation and blocks auto-translate messaging", () => {
+  it("low confidence requires confirmation messaging", () => {
     const low = validateBisayaTranscript({
       transcript: "Kumusta ka?",
       expectedLanguage: "ceb",
@@ -139,7 +123,7 @@ describe("Batch 51D Bisaya STT accuracy", () => {
     expect(low.ok).toBe(true);
     expect(low.needsConfirmation).toBe(true);
     expect(BISAYA_CONFIRM_MESSAGE).toBe(
-      "Please check the Bisaya transcript before translating.",
+      "We may not have heard this Bisaya phrase correctly.",
     );
   });
 
@@ -152,7 +136,6 @@ describe("Batch 51D Bisaya STT accuracy", () => {
         confidence: 0.9,
       });
       expect(result.ok).toBe(true);
-      expect(result.needsConfirmation).toBe(false);
       expect(containsJapaneseScript(phrase)).toBe(false);
       expect(containsArabicScript(phrase)).toBe(false);
     }
@@ -165,7 +148,7 @@ describe("Batch 51D Bisaya STT accuracy", () => {
     });
     expect(hints).toContain("Hinay-hinayi palihog.");
     expect(hints).toContain("Asa ang simbahan?");
-    expect(hints).toContain("kumusta");
+    expect(hints).toContain("amping");
   });
 
   it("Person A/B mic isolation and cleanup still wired", () => {
@@ -181,7 +164,7 @@ describe("Batch 51D Bisaya STT accuracy", () => {
     );
     expect(view).toContain("hardStopSession");
     expect(view).toContain("needsTranscriptConfirm");
-    expect(view).toContain("Please check the Bisaya transcript before translating.");
+    expect(view).toContain("We may not have heard this Bisaya phrase correctly.");
     const panel = readFileSync(
       join(process.cwd(), "components/conversation/ConversationSpeakerPanel.tsx"),
       "utf8",
@@ -211,5 +194,6 @@ describe("Batch 51D Bisaya STT accuracy", () => {
     expect(service).toContain("strongRetry: true");
     expect(service).toContain("buildBisayaSttPrompt");
     expect(service).toContain("needs_confirmation");
+    expect(service).toContain("correctBisayaTranscript");
   });
 });

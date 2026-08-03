@@ -5,15 +5,15 @@ import {
   isCebuanoLanguageHint,
 } from "@/lib/speech/bisayaStt";
 
-const MAX_HINT_CHARS = 480;
-const MAX_HINT_TERMS = 24;
+const MAX_HINT_CHARS = 520;
+const MAX_HINT_TERMS = 28;
 
 function sanitizeHintTerm(term: string): string {
   return term.replace(/\s+/g, " ").trim().slice(0, 80);
 }
 
 /**
- * Build Whisper / gpt-4o-transcribe prompt for Cebuano.
+ * Build gpt-4o-transcribe prompt for Cebuano.
  * Bounded: vocabulary + recent conversation + personal glossary hints.
  */
 export function buildBisayaSttPrompt(options: {

@@ -109,6 +109,16 @@ function mapSpeechErrorMessage(error: unknown): MicUserMessage {
     if (error.code === "unsupported_audio_format") {
       return { body: "This browser audio format is not supported for transcription." };
     }
+    if (
+      error.code === "audio_too_short" ||
+      error.code === "audio_too_small" ||
+      error.code === "likely_silence"
+    ) {
+      return {
+        title: "Recording too short",
+        body: error.message || "Hold Speak a bit longer, then try again.",
+      };
+    }
   }
   return { body: "Try again or type manually." };
 }
@@ -445,11 +455,13 @@ export function useVoiceInput({
 
       try {
         const serverLanguageHint = plan.whisperLanguageHint ?? "auto";
+        const forceServerOnly = isCebuanoLanguageHint(plan.selectedLanguage);
         const session = startVoiceCapture(
           {
             languageHint: serverLanguageHint,
             browserLocaleHint: plan.resolvedBrowserLocale,
-            preferRecordedTranscription: useRecorded,
+            preferRecordedTranscription: useRecorded || forceServerOnly,
+            forceServerOnlyTranscription: forceServerOnly,
             userContext,
             inputTarget,
             maxDurationMs: timeoutMs,

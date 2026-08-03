@@ -47,7 +47,14 @@ export const BISAYA_STT_REGRESSION_PHRASES: readonly string[] = [
   "Kasabot ka og English?",
   "Ako si Maria.",
   "Nindot kaayo.",
+  "Amping.",
   "Amping kanunay.",
+  "Pag-amping.",
+  "Amping mo.",
+  "Maayo.",
+  "Asa ka padulong?",
+  "Wala ko kasabot.",
+  "Palihog tabangi ko.",
   "Hangtod sa sunod.",
 ] as const;
 

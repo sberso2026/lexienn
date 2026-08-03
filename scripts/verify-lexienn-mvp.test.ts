@@ -391,12 +391,14 @@ describe("Lexienn MVP verification", () => {
   it("batch 29 speech-to-text route keeps API keys server-side", () => {
     const route = readFileSync("app/api/speech/transcribe/route.ts", "utf8");
     const service = readFileSync("lib/speech/speechToTextService.ts", "utf8");
+    const constrained = readFileSync("lib/speech/constrainedSttLanguage.ts", "utf8");
     const client = readFileSync("lib/speech/speechToTextClient.ts", "utf8");
     expect(route).not.toContain("AI_API_KEY");
     expect(client).toContain("/api/speech/transcribe");
     expect(client).not.toContain("AI_API_KEY");
     expect(service).toContain("process.env.AI_API_KEY");
-    expect(service).toContain("whisper");
+    expect(service).toContain("audio/transcriptions");
+    expect(constrained).toContain("gpt-4o-transcribe");
   });
 
   it("batch 29 sqlite schema documents speech input tables", () => {

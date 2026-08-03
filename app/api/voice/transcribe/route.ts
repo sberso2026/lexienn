@@ -124,6 +124,7 @@ export async function POST(request: Request) {
       user_context: userContextParsed.data,
       input_target: inputTargetParsed.data,
       stt_hints: sttHints,
+      duration_ms: Number.isFinite(durationMs) && durationMs > 0 ? durationMs : undefined,
     });
 
     if (result.transcript.startsWith("Voice input unavailable")) {
@@ -133,6 +134,17 @@ export async function POST(request: Request) {
           code: "transcription_provider_unavailable",
         },
         { status: 503 },
+      );
+    }
+
+    if (!result.transcript.trim()) {
+      const qualityCode = result.validation_reason ?? "no_speech";
+      return NextResponse.json(
+        {
+          error: result.warnings[0] ?? "No speech was detected.",
+          code: qualityCode,
+        },
+        { status: 400 },
       );
     }
 

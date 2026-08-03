@@ -189,12 +189,41 @@ export function ConversationView() {
     setStatusMessage("Bisaya transcript confirmed.");
   }, []);
 
+  const tryAgainTranscript = useCallback((speaker: ConversationSpeaker) => {
+    if (speaker === "a") {
+      setConfirmA(false);
+      setTeachStatusA(null);
+      voiceApiARef.current?.clearError();
+      // Re-open mic session via hard stop then user taps Speak — clear draft only if empty confirm state.
+    } else {
+      setConfirmB(false);
+      setTeachStatusB(null);
+      voiceApiBRef.current?.clearError();
+    }
+    const api = speaker === "a" ? voiceApiARef.current : voiceApiBRef.current;
+    api?.hardStopSession();
+    setStatusMessage("Tap Speak to try the Bisaya phrase again.");
+  }, []);
+
+  const typeManually = useCallback((speaker: ConversationSpeaker) => {
+    if (speaker === "a") {
+      setConfirmA(false);
+      setTeachStatusA(null);
+      voiceApiARef.current?.clearError();
+    } else {
+      setConfirmB(false);
+      setTeachStatusB(null);
+      voiceApiBRef.current?.clearError();
+    }
+    setStatusMessage("Edit the text manually, then translate when ready.");
+  }, []);
+
   const teachPhrase = useCallback((speaker: ConversationSpeaker) => {
     const draft = speaker === "a" ? draftA : draftB;
     const result = teachBisayaPhrase(draft);
     const message =
       result === "saved"
-        ? "Saved for future Bisaya speech hints."
+        ? "Saved phrase and variants for future Bisaya speech hints."
         : result === "duplicate"
           ? "Already saved as a Bisaya hint."
           : result === "empty"
@@ -299,7 +328,7 @@ export function ConversationView() {
       }
 
       if ((speaker === "a" && confirmA) || (speaker === "b" && confirmB)) {
-        setFormError("Please check the Bisaya transcript before translating.");
+        setFormError("We may not have heard this Bisaya phrase correctly.");
         return;
       }
 
@@ -545,6 +574,8 @@ export function ConversationView() {
           needsTranscriptConfirm={confirmA}
           onTranscriptMeta={(meta) => handleTranscriptMeta("a", meta)}
           onConfirmTranscript={() => confirmTranscript("a")}
+          onTryAgainTranscript={() => tryAgainTranscript("a")}
+          onTypeManually={() => typeManually("a")}
           onTeachBisayaPhrase={() => teachPhrase("a")}
           getSttHints={() => buildSttHintsForSpeaker("a")}
           teachStatus={teachStatusA}
@@ -576,6 +607,8 @@ export function ConversationView() {
           needsTranscriptConfirm={confirmB}
           onTranscriptMeta={(meta) => handleTranscriptMeta("b", meta)}
           onConfirmTranscript={() => confirmTranscript("b")}
+          onTryAgainTranscript={() => tryAgainTranscript("b")}
+          onTypeManually={() => typeManually("b")}
           onTeachBisayaPhrase={() => teachPhrase("b")}
           getSttHints={() => buildSttHintsForSpeaker("b")}
           teachStatus={teachStatusB}

@@ -30,6 +30,11 @@ export type VoiceCaptureRequest = {
   browserLocaleHint?: string;
   /** When true, skip realtime browser-only path and capture for server STT. */
   preferRecordedTranscription?: boolean;
+  /**
+   * Cebuano/Bisaya: force MediaRecorder → server STT only.
+   * Never use browser SpeechRecognition (including interim assist).
+   */
+  forceServerOnlyTranscription?: boolean;
   userContext: UserContext;
   inputTarget: SpeechInputTarget;
   maxDurationMs?: number;

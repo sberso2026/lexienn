@@ -94,26 +94,27 @@ describe("Batch 51D Person B mic hotfix", () => {
     expect(hook).toContain("preferRecordedTranscription");
     expect(hook).toContain("browserLocaleHint");
     expect(hook).toContain("hardStopSession");
+    expect(hook).toContain("forceServerOnlyTranscription");
     expect(capture).toContain("stopAllTracks");
     expect(capture).toContain("Synchronously release hardware");
   });
 
   it("abort stops MediaStream tracks so Person B can reopen mic", () => {
     const capture = readFileSync(join(process.cwd(), "lib/voice/voiceCapture.ts"), "utf8");
-    // Keep stream ref during recording so abort can stop tracks immediately.
     expect(capture).not.toMatch(
       /activeStream = null;\s*\n\s*readyCallbacks\.resolve/,
     );
     expect(capture).toContain("activeStream?.getTracks()");
   });
 
-  it("server STT uses constrained Cebuano path (not open auto omit)", () => {
+  it("server STT uses constrained Cebuano path (omit unsupported language=ceb)", () => {
     const service = readFileSync(
       join(process.cwd(), "lib/speech/speechToTextService.ts"),
       "utf8",
     );
     expect(service).toContain("resolveConstrainedSttLanguage");
     expect(service).toContain("buildBisayaSttPrompt");
+    expect(service).toContain("Never send unsupported language=ceb");
   });
 
   it("Developer Mode mic logs omit audio/secrets", () => {
