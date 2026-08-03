@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ConversationBigScreen } from "@/components/conversation/ConversationBigScreen";
 import { ConversationSpeakerPanel } from "@/components/conversation/ConversationSpeakerPanel";
+import type { VoiceInputApi } from "@/components/speech/VoiceInputTextArea";
 import { ResultCorrectionActions } from "@/components/corrections/ResultCorrectionActions";
 import { ActionButton } from "@/components/ui/ActionButton";
 import { CompactAlert } from "@/components/ui/CompactAlert";
@@ -109,8 +110,35 @@ export function ConversationView() {
   const playRef = useRef(play);
   playRef.current = play;
   const generationRef = useRef(0);
+  const voiceApiARef = useRef<VoiceInputApi | null>(null);
+  const voiceApiBRef = useRef<VoiceInputApi | null>(null);
 
   useEffect(() => () => stopVoicePlayback(), []);
+
+  useEffect(() => {
+    const aRef = voiceApiARef;
+    const bRef = voiceApiBRef;
+    return () => {
+      aRef.current?.hardStopSession();
+      bRef.current?.hardStopSession();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!paused) return;
+    voiceApiARef.current?.hardStopSession();
+    voiceApiBRef.current?.hardStopSession();
+  }, [paused]);
+
+  const handleMicSessionStart = useCallback((speaker: ConversationSpeaker) => {
+    setActiveSpeaker(speaker);
+    // Clear only the active side's transient error; peer is force-stopped by coordinator.
+    if (speaker === "a") {
+      voiceApiARef.current?.clearError();
+    } else {
+      voiceApiBRef.current?.clearError();
+    }
+  }, []);
 
   useEffect(() => {
     if (autoplayRequestId === 0 || !latestTurn?.translatedText) return;
@@ -285,6 +313,8 @@ export function ConversationView() {
     abortActiveRequest();
     stopVoicePlayback();
     stop();
+    voiceApiARef.current?.hardStopSession();
+    voiceApiBRef.current?.hardStopSession();
     setTurns([]);
     setDraftA("");
     setDraftB("");
@@ -419,6 +449,8 @@ export function ConversationView() {
           userContext={preferences.default_user_context}
           onLanguageDetection={(detection) => handleDetection("a", detection)}
           onSpeakTurn={() => void runTurn("a")}
+          onMicSessionStart={() => handleMicSessionStart("a")}
+          voiceApiRef={voiceApiARef}
         />
         <ConversationSpeakerPanel
           speaker="b"
@@ -441,6 +473,8 @@ export function ConversationView() {
           userContext={preferences.default_user_context}
           onLanguageDetection={(detection) => handleDetection("b", detection)}
           onSpeakTurn={() => void runTurn("b")}
+          onMicSessionStart={() => handleMicSessionStart("b")}
+          voiceApiRef={voiceApiBRef}
         />
       </div>
 

@@ -48,7 +48,14 @@ export function preferMobileRecordedTranscription(): boolean {
   );
 }
 
-export function resolveVoiceCaptureMode(): VoiceCaptureMode {
+export function resolveVoiceCaptureMode(
+  preferRecordedTranscription = false,
+): VoiceCaptureMode {
+  if (preferRecordedTranscription && isMediaRecorderSupported()) {
+    return preferMobileRecordedTranscription()
+      ? "hybrid_mobile"
+      : "recorded_audio_transcription";
+  }
   if (!isMediaRecorderSupported()) {
     return isBrowserSpeechRecognitionSupported()
       ? "realtime_browser_speech"
@@ -147,15 +154,17 @@ export function startVoiceCapture(
   callbacks: VoiceCaptureCallbacks = {},
   signal?: AbortSignal,
 ): VoiceCaptureSession {
-  const captureMode = resolveVoiceCaptureMode();
+  const captureMode = resolveVoiceCaptureMode(Boolean(request.preferRecordedTranscription));
   const maxDurationMs = request.maxDurationMs ?? 60_000;
   const selectedMimeType = selectMediaRecorderMimeType();
+  const browserLanguageHint = request.browserLocaleHint ?? request.languageHint;
 
   let finalTranscript = "";
   let interimTranscript = "";
   let recording: RecordingHandle | null = null;
   let speechAssist: ReturnType<typeof startBrowserSpeechInterimAssist> | null = null;
   let browserSessionStop: (() => void) | null = null;
+  let activeStream: MediaStream | null = null;
   let timerId = 0;
   let startedAt = 0;
   let aborted = false;
@@ -169,6 +178,17 @@ export function startVoiceCapture(
     readyCallbacks.resolve = () => resolve();
     readyCallbacks.reject = reject;
   });
+
+  const stopAllTracks = () => {
+    activeStream?.getTracks().forEach((track) => {
+      try {
+        track.stop();
+      } catch {
+        // ignore
+      }
+    });
+    activeStream = null;
+  };
 
   const emitInterim = () => {
     callbacks.onInterim?.({
@@ -189,7 +209,15 @@ export function startVoiceCapture(
     aborted = true;
     window.clearInterval(timerId);
     speechAssist?.abort();
+    speechAssist = null;
     browserSessionStop?.();
+    browserSessionStop = null;
+    // Synchronously release hardware so Person B can open a fresh stream immediately.
+    stopAllTracks();
+    if (recording) {
+      void recording.stop().catch(() => undefined);
+      recording = null;
+    }
   };
 
   void (async () => {
@@ -202,7 +230,7 @@ export function startVoiceCapture(
 
       if (captureMode === "realtime_browser_speech" && isBrowserSpeechRecognitionSupported()) {
         const session = startBrowserSpeechSession({
-          languageHint: request.languageHint,
+          languageHint: browserLanguageHint,
           timeoutMs: maxDurationMs,
           signal,
           onStarted: callbacks.onRecognitionStart,
@@ -251,8 +279,9 @@ export function startVoiceCapture(
       }
 
       const stream = await requestMicrophoneStream();
+      activeStream = stream;
       if (aborted) {
-        stream.getTracks().forEach((track) => track.stop());
+        stopAllTracks();
         return;
       }
 
@@ -263,11 +292,16 @@ export function startVoiceCapture(
         onStarted: callbacks.onRecorderStart,
         signal,
       });
+      // Keep activeStream so abort() can stop tracks synchronously before peer mic opens.
       readyCallbacks.resolve?.();
 
-      if (isBrowserSpeechRecognitionSupported()) {
+      // Interim assist is optional; never block capture when locale is weak.
+      if (
+        isBrowserSpeechRecognitionSupported() &&
+        !request.preferRecordedTranscription
+      ) {
         speechAssist = startBrowserSpeechInterimAssist({
-          languageHint: request.languageHint,
+          languageHint: browserLanguageHint,
           signal,
           onStarted: callbacks.onRecognitionStart,
           onInterim: (text) => {
@@ -282,6 +316,7 @@ export function startVoiceCapture(
         });
       }
     } catch (error) {
+      stopAllTracks();
       readyCallbacks.reject?.(error instanceof Error ? error : new Error("Voice capture failed."));
     }
   })();
@@ -292,11 +327,14 @@ export function startVoiceCapture(
     await ready.catch(() => undefined);
 
     browserSessionStop?.();
+    browserSessionStop = null;
     const browserSnapshot = speechAssist?.stop() ?? "";
+    speechAssist = null;
     finalTranscript = mergeFinalTranscriptChunk(finalTranscript, browserSnapshot);
     interimTranscript = "";
 
     if (captureMode === "realtime_browser_speech" && !recording) {
+      stopAllTracks();
       return {
         transcript: finalTranscript.trim(),
         captureMode,
@@ -306,6 +344,7 @@ export function startVoiceCapture(
     }
 
     if (!recording) {
+      stopAllTracks();
       if (finalTranscript.trim()) {
         return {
           transcript: finalTranscript.trim(),
@@ -318,6 +357,8 @@ export function startVoiceCapture(
     }
 
     const recorded = await recording.stop();
+    recording = null;
+    stopAllTracks();
     const browserTranscript = finalTranscript.trim();
 
     if (

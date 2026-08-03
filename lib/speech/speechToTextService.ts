@@ -23,7 +23,23 @@ export type CloudTranscribeResult = {
 function mapLanguageHintToWhisper(languageHint: string): string | undefined {
   const normalized = languageHint.trim().toLowerCase();
   if (!normalized || normalized === "auto") return undefined;
-  return normalized.split("-")[0]?.split("::")[0];
+  const base = normalized.split("-")[0]?.split("::")[0] ?? "";
+  if (!base) return undefined;
+  // Philippine / regional dialects: let Whisper auto-detect rather than fail.
+  if (
+    base === "ceb" ||
+    base === "hil" ||
+    base === "ilo" ||
+    base === "war" ||
+    base === "bli" ||
+    base === "pam" ||
+    base === "pag" ||
+    base === "bcl" ||
+    base === "cbk"
+  ) {
+    return undefined;
+  }
+  return base;
 }
 
 export async function transcribeAudioCloud(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
   installVoiceDiagnostics,
   logVoiceDiagnostic,
@@ -16,6 +16,7 @@ import {
 import { requestMicPermissionPreflight } from "@/lib/speech/requestMicPermission";
 import { isBrowserSpeechRecognitionSupported } from "@/lib/speech/browserSpeechRecognition";
 import { SpeechToTextApiError, isBrowserOnline } from "@/lib/speech/speechToTextClient";
+import { resolveSpeechCaptureLanguagePlan } from "@/lib/speech/resolveSpeechCaptureLanguage";
 import type { SpeechInputTarget, VoiceInputState } from "@/lib/speech/speechInputSchemas";
 import type { UserContext } from "@/lib/schemas";
 import { stopVoicePlayback } from "@/lib/voice/audioPlayback";
@@ -25,6 +26,11 @@ import {
   startVoiceCapture,
   type VoiceCaptureSession,
 } from "@/lib/voice/voiceCapture";
+import {
+  acquireMicSession,
+  releaseMicSession,
+} from "@/lib/voice/micSessionCoordinator";
+import { logMicSessionDebug } from "@/lib/voice/micSessionDebug";
 import { VoiceTranscribeApiError } from "@/lib/voice/voiceTranscribeClient";
 import type { SpokenLanguageDetectionResult } from "@/lib/languages/spokenLanguageDetection";
 import { buildSpokenLanguageDetectionResult } from "@/lib/languages/spokenLanguageDetection";
@@ -33,8 +39,12 @@ export type UseVoiceInputOptions = {
   languageHint: string;
   userContext: UserContext;
   inputTarget: SpeechInputTarget;
+  /** Stable id for Conversation sides (e.g. conversation:a). */
+  sessionOwnerId?: string;
   onTranscript?: (text: string) => void;
   onLanguageDetection?: (detection: SpokenLanguageDetectionResult) => void;
+  /** Called when this instance begins listening (other sides can clear errors). */
+  onSessionStart?: () => void;
   timeoutMs?: number;
 };
 
@@ -97,14 +107,27 @@ function formatRecordingTimer(elapsedMs: number): string {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
+function capturePathLabel(
+  preferRecorded: boolean,
+  captureMode: string | null,
+): "browser" | "server" | "hybrid" {
+  if (captureMode === "hybrid_mobile") return "hybrid";
+  if (captureMode === "recorded_audio_transcription" || preferRecorded) return "server";
+  return "browser";
+}
+
 export function useVoiceInput({
   languageHint,
   userContext,
   inputTarget,
+  sessionOwnerId,
   onTranscript,
   onLanguageDetection,
+  onSessionStart,
   timeoutMs = 60_000,
 }: UseVoiceInputOptions) {
+  const reactId = useId();
+  const ownerId = sessionOwnerId ?? `voice:${reactId}`;
   const [state, setState] = useState<VoiceInputState>("idle");
   const [pendingTranscript, setPendingTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
@@ -114,6 +137,8 @@ export function useVoiceInput({
   const captureSessionRef = useRef<VoiceCaptureSession | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const stoppingRef = useRef(false);
+  const languageHintRef = useRef(languageHint);
+  languageHintRef.current = languageHint;
 
   const isSupported =
     isBrowserOnline() &&
@@ -130,34 +155,62 @@ export function useVoiceInput({
     });
   }, []);
 
-  const reset = useCallback(() => {
-    logVoiceDiagnostic("stop_tap", { code: "reset" });
+  const hardStopSession = useCallback(() => {
     stoppingRef.current = false;
     abortRef.current?.abort();
     abortRef.current = null;
     captureSessionRef.current?.abort();
     captureSessionRef.current = null;
+    releaseMicSession(ownerId);
+  }, [ownerId]);
+
+  useEffect(() => {
+    return () => {
+      hardStopSession();
+    };
+  }, [hardStopSession]);
+
+  const resetTransientErrorOnly = useCallback(() => {
     setState("idle");
+    setStatusMessage(null);
     setPendingTranscript("");
     setInterimTranscript("");
     setCapturedSpeechPreview("");
     setRecordingElapsedMs(0);
-    setStatusMessage(null);
-    updateVoiceDebugSnapshot({ voiceState: "idle", captureMode: null, selectedMimeType: null });
   }, []);
 
-  const setMicFailure = useCallback((errorCode: Parameters<typeof getMicErrorMessage>[0]) => {
-    const platform = detectClientPlatform();
-    setState(micErrorCodeToVoiceInputState(errorCode));
-    setStatusMessage(getMicErrorMessage(errorCode, platform));
-    logVoiceDiagnostic("recognition_error", { code: errorCode });
-    updateVoiceDebugSnapshot({ voiceState: micErrorCodeToVoiceInputState(errorCode) });
-    if (errorCode === "mic_permission_denied") {
-      void import("@/lib/analytics/appEvents").then(({ trackAppEvent }) => {
-        trackAppEvent("microphone_permission_denied");
+  const reset = useCallback(() => {
+    logVoiceDiagnostic("stop_tap", { code: "reset" });
+    hardStopSession();
+    resetTransientErrorOnly();
+    updateVoiceDebugSnapshot({ voiceState: "idle", captureMode: null, selectedMimeType: null });
+  }, [hardStopSession, resetTransientErrorOnly]);
+
+  const setMicFailure = useCallback(
+    (errorCode: Parameters<typeof getMicErrorMessage>[0]) => {
+      const platform = detectClientPlatform();
+      const plan = resolveSpeechCaptureLanguagePlan(languageHintRef.current);
+      setState(micErrorCodeToVoiceInputState(errorCode));
+      setStatusMessage(getMicErrorMessage(errorCode, platform));
+      logVoiceDiagnostic("recognition_error", { code: errorCode });
+      logMicSessionDebug({
+        side: ownerId,
+        selectedLanguage: plan.selectedLanguage,
+        resolvedLocale: plan.resolvedBrowserLocale,
+        path: capturePathLabel(plan.preferRecordedTranscription, null),
+        errorCode,
+        event: "mic_failure",
       });
-    }
-  }, []);
+      updateVoiceDebugSnapshot({ voiceState: micErrorCodeToVoiceInputState(errorCode) });
+      hardStopSession();
+      if (errorCode === "mic_permission_denied") {
+        void import("@/lib/analytics/appEvents").then(({ trackAppEvent }) => {
+          trackAppEvent("microphone_permission_denied");
+        });
+      }
+    },
+    [hardStopSession, ownerId],
+  );
 
   const commitTranscript = useCallback(
     (text: string, refinedFromServer = false) => {
@@ -185,9 +238,11 @@ export function useVoiceInput({
 
     void (async () => {
       const session = captureSessionRef.current;
+      const plan = resolveSpeechCaptureLanguagePlan(languageHintRef.current);
       if (!session) {
         stoppingRef.current = false;
         setState("idle");
+        releaseMicSession(ownerId);
         return;
       }
 
@@ -211,6 +266,13 @@ export function useVoiceInput({
         if (!result.refinedFromServer) {
           setStatusMessage({ body: "Voice input stopped." });
         }
+        logMicSessionDebug({
+          side: ownerId,
+          selectedLanguage: plan.selectedLanguage,
+          resolvedLocale: plan.resolvedBrowserLocale,
+          path: capturePathLabel(plan.preferRecordedTranscription, result.captureMode),
+          event: "session_success",
+        });
         updateVoiceDebugSnapshot({
           voiceState: "speech_ready",
           captureMode: result.captureMode,
@@ -228,14 +290,23 @@ export function useVoiceInput({
           logVoiceDiagnostic("recognition_error", {
             code: error instanceof Error ? error.name : "unknown",
           });
+          logMicSessionDebug({
+            side: ownerId,
+            selectedLanguage: plan.selectedLanguage,
+            resolvedLocale: plan.resolvedBrowserLocale,
+            path: capturePathLabel(plan.preferRecordedTranscription, session.captureMode),
+            errorCode: error instanceof Error ? error.message : "unknown",
+            event: "session_error",
+          });
         }
       } finally {
         captureSessionRef.current = null;
         abortRef.current = null;
         stoppingRef.current = false;
+        releaseMicSession(ownerId);
       }
     })();
-  }, [commitTranscript, onLanguageDetection]);
+  }, [commitTranscript, onLanguageDetection, ownerId]);
 
   const startListening = useCallback(() => {
     if (typeof window === "undefined") {
@@ -246,8 +317,10 @@ export function useVoiceInput({
       return;
     }
 
+    const plan = resolveSpeechCaptureLanguagePlan(languageHintRef.current);
     logVoiceDiagnostic("mic_tap");
     stopVoicePlayback();
+    onSessionStart?.();
 
     if (!window.isSecureContext) {
       setMicFailure("insecure_context_or_policy_block");
@@ -262,12 +335,14 @@ export function useVoiceInput({
       return;
     }
 
-    abortRef.current?.abort();
-    captureSessionRef.current?.abort();
+    // Always tear down any prior session (this side or coordinator-released peer).
+    hardStopSession();
+
     const controller = new AbortController();
     abortRef.current = controller;
     stoppingRef.current = false;
 
+    // Clear only this side's transient mic UI state — never wipe parent typed text.
     setPendingTranscript("");
     setInterimTranscript("");
     setCapturedSpeechPreview("");
@@ -276,6 +351,20 @@ export function useVoiceInput({
     setState("requesting_permission");
     logVoiceDiagnostic("ui_listening");
     updateVoiceDebugSnapshot({ voiceState: "requesting_permission" });
+
+    acquireMicSession(ownerId, () => {
+      hardStopSession();
+      setState("idle");
+      setStatusMessage(null);
+    });
+
+    logMicSessionDebug({
+      side: ownerId,
+      selectedLanguage: plan.selectedLanguage,
+      resolvedLocale: plan.resolvedBrowserLocale,
+      path: capturePathLabel(plan.preferRecordedTranscription, null),
+      event: "session_start",
+    });
 
     void (async () => {
       const platform = detectClientPlatform();
@@ -291,10 +380,13 @@ export function useVoiceInput({
         }
       }
 
+      const useRecorded =
+        plan.preferRecordedTranscription || preferMobileRecordedTranscription();
+
       setStatusMessage((current) =>
         current?.body === "Listening…"
           ? {
-              body: preferMobileRecordedTranscription()
+              body: useRecorded
                 ? "Listening… recording audio for reliable capture."
                 : getMicPreflightHint(platform),
             }
@@ -302,9 +394,12 @@ export function useVoiceInput({
       );
 
       try {
+        const serverLanguageHint = plan.whisperLanguageHint ?? "auto";
         const session = startVoiceCapture(
           {
-            languageHint,
+            languageHint: serverLanguageHint,
+            browserLocaleHint: plan.resolvedBrowserLocale,
+            preferRecordedTranscription: useRecorded,
             userContext,
             inputTarget,
             maxDurationMs: timeoutMs,
@@ -312,7 +407,11 @@ export function useVoiceInput({
           {
             onRecorderStart: () => logVoiceDiagnostic("recorder_start"),
             onRecognitionStart: () => logVoiceDiagnostic("recognition_start"),
-            onInterim: ({ finalTranscript, interimTranscript: interim, capturedSpeechPreview: preview }) => {
+            onInterim: ({
+              finalTranscript,
+              interimTranscript: interim,
+              capturedSpeechPreview: preview,
+            }) => {
               if (interim.trim()) logVoiceDiagnostic("first_interim");
               setFinalIfChanged(finalTranscript);
               setInterimTranscript(interim);
@@ -341,6 +440,7 @@ export function useVoiceInput({
               setState("speech_ready");
               setStatusMessage(null);
               captureSessionRef.current = null;
+              releaseMicSession(ownerId);
             })
             .catch((error) => {
               if (controller.signal.aborted || captureSessionRef.current !== session) return;
@@ -352,8 +452,17 @@ export function useVoiceInput({
               } else {
                 setState("speech_error");
                 setStatusMessage(mapSpeechErrorMessage(error));
+                logMicSessionDebug({
+                  side: ownerId,
+                  selectedLanguage: plan.selectedLanguage,
+                  resolvedLocale: plan.resolvedBrowserLocale,
+                  path: capturePathLabel(useRecorded, session.captureMode),
+                  errorCode: error instanceof Error ? error.message : "unknown",
+                  event: "session_error",
+                });
               }
               captureSessionRef.current = null;
+              releaseMicSession(ownerId);
             });
         }
       } catch (error) {
@@ -371,9 +480,27 @@ export function useVoiceInput({
         logVoiceDiagnostic("recognition_error", {
           code: error instanceof Error ? error.name : "unknown",
         });
+        logMicSessionDebug({
+          side: ownerId,
+          selectedLanguage: plan.selectedLanguage,
+          resolvedLocale: plan.resolvedBrowserLocale,
+          path: capturePathLabel(plan.preferRecordedTranscription, null),
+          errorCode: error instanceof Error ? error.message : "unknown",
+          event: "session_error",
+        });
+        hardStopSession();
       }
     })();
-  }, [commitTranscript, inputTarget, languageHint, setMicFailure, timeoutMs, userContext]);
+  }, [
+    commitTranscript,
+    hardStopSession,
+    inputTarget,
+    onSessionStart,
+    ownerId,
+    setMicFailure,
+    timeoutMs,
+    userContext,
+  ]);
 
   function setFinalIfChanged(finalTranscript: string) {
     setPendingTranscript((previous) =>
@@ -410,5 +537,8 @@ export function useVoiceInput({
     applyTranscript,
     dismiss,
     reset,
+    /** Clear error UI without touching parent typed text. */
+    clearError: resetTransientErrorOnly,
+    hardStopSession,
   };
 }

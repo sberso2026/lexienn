@@ -63,6 +63,10 @@ describe("Batch 51D conversation acceptance gates", () => {
     expect(panel).toContain("!min-h-16");
     expect(panel).toContain("Active speaker");
     expect(panel).toContain("VoiceInputTextArea");
+    expect(panel).toContain("sessionOwnerId");
+    expect(view).toContain("voiceApiARef");
+    expect(view).toContain("voiceApiBRef");
+    expect(view).toContain("hardStopSession");
   });
 
   it("graceful voice unavailable messaging exists", () => {

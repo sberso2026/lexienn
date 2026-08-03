@@ -1,7 +1,11 @@
 "use client";
 
+import type { MutableRefObject } from "react";
 import { SearchableLanguageSelectField } from "@/components/ui/SearchableLanguageSelectField";
-import { VoiceInputTextArea } from "@/components/speech/VoiceInputTextArea";
+import {
+  VoiceInputTextArea,
+  type VoiceInputApi,
+} from "@/components/speech/VoiceInputTextArea";
 import { ActionButton } from "@/components/ui/ActionButton";
 import type { SpokenLanguageDetectionResult } from "@/lib/languages/spokenLanguageDetection";
 import type { UserContext } from "@/lib/schemas";
@@ -21,6 +25,8 @@ type ConversationSpeakerPanelProps = {
   userContext: UserContext;
   onLanguageDetection: (detection: SpokenLanguageDetectionResult) => void;
   onSpeakTurn: () => void;
+  onMicSessionStart: () => void;
+  voiceApiRef: MutableRefObject<VoiceInputApi | null>;
 };
 
 export function ConversationSpeakerPanel({
@@ -37,6 +43,8 @@ export function ConversationSpeakerPanel({
   userContext,
   onLanguageDetection,
   onSpeakTurn,
+  onMicSessionStart,
+  voiceApiRef,
 }: ConversationSpeakerPanelProps) {
   return (
     <section
@@ -81,6 +89,9 @@ export function ConversationSpeakerPanel({
         compact
         showPrivacyNote={isActive}
         disabled={isPaused}
+        sessionOwnerId={`conversation:${speaker}`}
+        onSessionStart={onMicSessionStart}
+        voiceApiRef={voiceApiRef}
         onLanguageDetection={onLanguageDetection}
       />
 

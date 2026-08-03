@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { VoiceInputButton } from "@/components/speech/VoiceInputButton";
 import { VoiceInputStatus } from "@/components/speech/VoiceInputStatus";
 import { IconButton } from "@/components/ui/IconButton";
@@ -9,6 +9,12 @@ import { fieldInputClassName } from "@/components/ui/FormField";
 import type { SpeechInputTarget } from "@/lib/speech/speechInputSchemas";
 import type { UserContext } from "@/lib/schemas";
 import type { SpokenLanguageDetectionResult } from "@/lib/languages/spokenLanguageDetection";
+
+export type VoiceInputApi = {
+  hardStopSession: () => void;
+  clearError: () => void;
+  isRecording: boolean;
+};
 
 interface VoiceInputTextAreaProps {
   id: string;
@@ -29,6 +35,9 @@ interface VoiceInputTextAreaProps {
   showClear?: boolean;
   onClear?: () => void;
   onLanguageDetection?: (detection: SpokenLanguageDetectionResult) => void;
+  sessionOwnerId?: string;
+  onSessionStart?: () => void;
+  voiceApiRef?: React.MutableRefObject<VoiceInputApi | null>;
 }
 
 function ClearIcon() {
@@ -58,15 +67,32 @@ export function VoiceInputTextArea({
   showClear = false,
   onClear,
   onLanguageDetection,
+  sessionOwnerId,
+  onSessionStart,
+  voiceApiRef,
 }: VoiceInputTextAreaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const voice = useVoiceInput({
     languageHint,
     userContext,
     inputTarget,
+    sessionOwnerId,
     onTranscript: onChange,
     onLanguageDetection,
+    onSessionStart,
   });
+
+  useEffect(() => {
+    if (!voiceApiRef) return;
+    voiceApiRef.current = {
+      hardStopSession: voice.hardStopSession,
+      clearError: voice.clearError,
+      isRecording: voice.isRecording,
+    };
+    return () => {
+      voiceApiRef.current = null;
+    };
+  }, [voice.hardStopSession, voice.clearError, voice.isRecording, voiceApiRef]);
 
   const handleSpeak = () => {
     if (voice.state === "speech_ready") {

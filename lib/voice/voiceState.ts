@@ -26,6 +26,10 @@ export type VoiceAudioPlaybackPhase =
 
 export type VoiceCaptureRequest = {
   languageHint: string;
+  /** Locale used for browser SpeechRecognition.lang */
+  browserLocaleHint?: string;
+  /** When true, skip realtime browser-only path and capture for server STT. */
+  preferRecordedTranscription?: boolean;
   userContext: UserContext;
   inputTarget: SpeechInputTarget;
   maxDurationMs?: number;
