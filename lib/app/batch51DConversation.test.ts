@@ -23,11 +23,15 @@ describe("Batch 51D conversation acceptance gates", () => {
       join(process.cwd(), "components/translator/TranslatorView.tsx"),
       "utf8",
     );
-    expect(translator).toContain('href="/conversation"');
+    expect(translator).toContain('router.push("/conversation")');
     expect(translator).toContain("Open Conversation");
     expect(translator).toContain('href="/lens"');
     expect(translator).toContain("Open Lens");
     expect(translator).not.toContain("CameraTranslatorView");
+    expect(translator).not.toContain('target="_blank"');
+    expect(translator).not.toContain("window.open");
+    expect(translator).not.toContain("location.href");
+    expect(translator).not.toMatch(/https?:\/\/[^\s"']*\/conversation/);
   });
 
   it("Conversation UI includes required controls and Big Screen", () => {
