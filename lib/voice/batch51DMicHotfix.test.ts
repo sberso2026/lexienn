@@ -46,16 +46,16 @@ describe("Batch 51D Person B mic hotfix", () => {
     expect(getActiveMicSessionOwnerId()).toBe("conversation:b");
   });
 
-  it("Cebuano/Bisaya prefers server STT auto-detect, not hard locale fail", () => {
+  it("Cebuano/Bisaya prefers server STT constrained path, not open auto", () => {
     const plan = resolveSpeechCaptureLanguagePlan("ceb");
     expect(plan.preferRecordedTranscription).toBe(true);
-    expect(plan.whisperLanguageHint).toBeUndefined();
-    expect(plan.reason).toBe("dialect_server_auto");
+    expect(plan.whisperLanguageHint).toBe("ceb");
+    expect(plan.reason).toBe("cebuano_constrained");
     expect(isBrowserSpeechLocaleLikelyUnsupported("ceb")).toBe(true);
 
     const bisaya = resolveSpeechCaptureLanguagePlan("ceb::bisaya");
     expect(bisaya.preferRecordedTranscription).toBe(true);
-    expect(bisaya.whisperLanguageHint).toBeUndefined();
+    expect(bisaya.whisperLanguageHint).toBe("ceb");
   });
 
   it("Filipino/Tagalog keeps mapped locale path", () => {
@@ -107,13 +107,13 @@ describe("Batch 51D Person B mic hotfix", () => {
     expect(capture).toContain("activeStream?.getTracks()");
   });
 
-  it("server STT omits Whisper language for Cebuano dialects", () => {
+  it("server STT uses constrained Cebuano path (not open auto omit)", () => {
     const service = readFileSync(
       join(process.cwd(), "lib/speech/speechToTextService.ts"),
       "utf8",
     );
-    expect(service).toContain('base === "ceb"');
-    expect(service).toContain("return undefined");
+    expect(service).toContain("resolveConstrainedSttLanguage");
+    expect(service).toContain("buildBisayaSttPrompt");
   });
 
   it("Developer Mode mic logs omit audio/secrets", () => {

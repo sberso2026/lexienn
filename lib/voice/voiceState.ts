@@ -33,6 +33,8 @@ export type VoiceCaptureRequest = {
   userContext: UserContext;
   inputTarget: SpeechInputTarget;
   maxDurationMs?: number;
+  /** Bounded textual STT hints (never audio). */
+  sttHints?: string[];
 };
 
 export type VoiceCaptureResult = {
@@ -45,6 +47,9 @@ export type VoiceCaptureResult = {
   confidence?: number;
   detectedLanguageCode?: string | null;
   detectedLanguageName?: string | null;
+  needsConfirmation?: boolean;
+  validationReason?: string;
+  expectedLanguage?: string;
 };
 
 export type VoiceCaptureCallbacks = {

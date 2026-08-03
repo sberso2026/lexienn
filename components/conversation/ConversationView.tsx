@@ -5,7 +5,15 @@ import Link from "next/link";
 import { ConversationBigScreen } from "@/components/conversation/ConversationBigScreen";
 import { ConversationSpeakerPanel } from "@/components/conversation/ConversationSpeakerPanel";
 import type { VoiceInputApi } from "@/components/speech/VoiceInputTextArea";
+import type { VoiceTranscriptMeta } from "@/hooks/useVoiceInput";
 import { ResultCorrectionActions } from "@/components/corrections/ResultCorrectionActions";
+import { isCebuanoLanguageHint } from "@/lib/speech/bisayaStt";
+import { collectBoundedSttHints } from "@/lib/speech/bisayaSttPrompt";
+import {
+  loadTaughtBisayaPhraseTexts,
+  teachBisayaPhrase,
+} from "@/lib/storage/bisayaSttHintsStorage";
+import { isProviderLanguageAllowedForCebuano } from "@/lib/speech/bisayaTranscriptValidation";
 import { ActionButton } from "@/components/ui/ActionButton";
 import { CompactAlert } from "@/components/ui/CompactAlert";
 import { CompactCard } from "@/components/ui/CompactCard";
@@ -82,6 +90,10 @@ export function ConversationView() {
   const [bigScreen, setBigScreen] = useState(false);
   const [showIntelligence, setShowIntelligence] = useState(false);
   const [autoplayRequestId, setAutoplayRequestId] = useState(0);
+  const [confirmA, setConfirmA] = useState(false);
+  const [confirmB, setConfirmB] = useState(false);
+  const [teachStatusA, setTeachStatusA] = useState<string | null>(null);
+  const [teachStatusB, setTeachStatusB] = useState<string | null>(null);
 
   const pair = useMemo(
     () => ({ personALanguage, personBLanguage }),
@@ -140,6 +152,58 @@ export function ConversationView() {
     }
   }, []);
 
+  const buildSttHintsForSpeaker = useCallback(
+    (speaker: ConversationSpeaker) => {
+      const language = speaker === "a" ? personALanguage : personBLanguage;
+      if (!isCebuanoLanguageHint(language)) return [];
+      const recent = turns
+        .filter((turn) => turn.speaker === speaker)
+        .flatMap((turn) => [turn.sourceText, turn.translatedText])
+        .filter(Boolean)
+        .slice(0, 12);
+      return collectBoundedSttHints({
+        recentConversationTerms: recent,
+        taughtBisayaPhrases: loadTaughtBisayaPhraseTexts(),
+      });
+    },
+    [personALanguage, personBLanguage, turns],
+  );
+
+  const handleTranscriptMeta = useCallback(
+    (speaker: ConversationSpeaker, meta: VoiceTranscriptMeta) => {
+      setActiveSpeaker(speaker);
+      if (speaker === "a") {
+        setConfirmA(Boolean(meta.needsConfirmation));
+        setTeachStatusA(null);
+      } else {
+        setConfirmB(Boolean(meta.needsConfirmation));
+        setTeachStatusB(null);
+      }
+    },
+    [],
+  );
+
+  const confirmTranscript = useCallback((speaker: ConversationSpeaker) => {
+    if (speaker === "a") setConfirmA(false);
+    else setConfirmB(false);
+    setStatusMessage("Bisaya transcript confirmed.");
+  }, []);
+
+  const teachPhrase = useCallback((speaker: ConversationSpeaker) => {
+    const draft = speaker === "a" ? draftA : draftB;
+    const result = teachBisayaPhrase(draft);
+    const message =
+      result === "saved"
+        ? "Saved for future Bisaya speech hints."
+        : result === "duplicate"
+          ? "Already saved as a Bisaya hint."
+          : result === "empty"
+            ? "Enter a phrase to teach Lexienn."
+            : "Could not save the phrase locally.";
+    if (speaker === "a") setTeachStatusA(message);
+    else setTeachStatusB(message);
+  }, [draftA, draftB]);
+
   useEffect(() => {
     if (autoplayRequestId === 0 || !latestTurn?.translatedText) return;
     void playRef.current("normal");
@@ -156,9 +220,24 @@ export function ConversationView() {
         speaker === "a" ? personALanguage : personBLanguage;
       if (!isAutoDetectLanguage(current)) return;
 
+      // Never apply Japanese/Arabic (or other out-of-set) detections onto a Cebuano side.
+      if (
+        detection.detectedLanguageCode &&
+        !isProviderLanguageAllowedForCebuano(detection.detectedLanguageCode) &&
+        isCebuanoLanguageHint(current)
+      ) {
+        return;
+      }
+
       setActiveSpeaker(speaker);
       const decision = decideSpokenLanguageDetection(detection);
       if (decision.action === "apply" && decision.catalogValue) {
+        if (
+          isCebuanoLanguageHint(current) &&
+          !isCebuanoLanguageHint(decision.catalogValue)
+        ) {
+          return;
+        }
         const next = applyDetectedLanguageToSide(speaker, pair, decision.catalogValue);
         setPersonALanguage(next.personALanguage);
         setPersonBLanguage(next.personBLanguage);
@@ -216,6 +295,11 @@ export function ConversationView() {
       const draft = speaker === "a" ? draftA : draftB;
       if (!draft.trim()) {
         setFormError("Enter or speak text before translating a turn.");
+        return;
+      }
+
+      if ((speaker === "a" && confirmA) || (speaker === "b" && confirmB)) {
+        setFormError("Please check the Bisaya transcript before translating.");
         return;
       }
 
@@ -301,6 +385,8 @@ export function ConversationView() {
       isActiveRequest,
       pair,
       paused,
+      confirmA,
+      confirmB,
       preferences.ai_translation_enabled,
       preferences.default_user_context,
       preferences.rule_fallback_enabled,
@@ -318,6 +404,10 @@ export function ConversationView() {
     setTurns([]);
     setDraftA("");
     setDraftB("");
+    setConfirmA(false);
+    setConfirmB(false);
+    setTeachStatusA(null);
+    setTeachStatusB(null);
     setFormError(null);
     setStatusMessage(null);
     setDetectionUi(null);
@@ -435,6 +525,7 @@ export function ConversationView() {
           onLanguageChange={(value) => {
             setPersonALanguage(value);
             setDetectionUi(null);
+            setConfirmA(false);
             setActiveSpeaker("a");
           }}
           leadingOptions={leadingOptions}
@@ -451,6 +542,12 @@ export function ConversationView() {
           onSpeakTurn={() => void runTurn("a")}
           onMicSessionStart={() => handleMicSessionStart("a")}
           voiceApiRef={voiceApiARef}
+          needsTranscriptConfirm={confirmA}
+          onTranscriptMeta={(meta) => handleTranscriptMeta("a", meta)}
+          onConfirmTranscript={() => confirmTranscript("a")}
+          onTeachBisayaPhrase={() => teachPhrase("a")}
+          getSttHints={() => buildSttHintsForSpeaker("a")}
+          teachStatus={teachStatusA}
         />
         <ConversationSpeakerPanel
           speaker="b"
@@ -459,6 +556,7 @@ export function ConversationView() {
           onLanguageChange={(value) => {
             setPersonBLanguage(value);
             setDetectionUi(null);
+            setConfirmB(false);
             setActiveSpeaker("b");
           }}
           leadingOptions={leadingOptions}
@@ -475,6 +573,12 @@ export function ConversationView() {
           onSpeakTurn={() => void runTurn("b")}
           onMicSessionStart={() => handleMicSessionStart("b")}
           voiceApiRef={voiceApiBRef}
+          needsTranscriptConfirm={confirmB}
+          onTranscriptMeta={(meta) => handleTranscriptMeta("b", meta)}
+          onConfirmTranscript={() => confirmTranscript("b")}
+          onTeachBisayaPhrase={() => teachPhrase("b")}
+          getSttHints={() => buildSttHintsForSpeaker("b")}
+          teachStatus={teachStatusB}
         />
       </div>
 

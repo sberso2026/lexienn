@@ -373,6 +373,7 @@ export function startVoiceCapture(
           inputTarget: request.inputTarget,
           durationMs: recorded.durationMs,
           signal,
+          sttHints: request.sttHints,
         });
         const chosen = chooseBestTranscript(browserTranscript, server.transcript);
         return {
@@ -385,6 +386,9 @@ export function startVoiceCapture(
           confidence: server.confidence,
           detectedLanguageCode: server.detectedLanguageCode ?? null,
           detectedLanguageName: server.detectedLanguageName ?? null,
+          needsConfirmation: server.needsConfirmation,
+          validationReason: server.validationReason ?? undefined,
+          expectedLanguage: server.expectedLanguage ?? undefined,
         };
       } catch (error) {
         if (browserTranscript) {

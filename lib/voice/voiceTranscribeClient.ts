@@ -18,6 +18,10 @@ export type VoiceTranscribeResponse = {
   durationMs: number;
   detectedLanguageCode?: string | null;
   detectedLanguageName?: string | null;
+  needsConfirmation?: boolean;
+  validationReason?: string | null;
+  expectedLanguage?: string | null;
+  transportLanguage?: string | null;
 };
 
 const TRANSCRIPTION_TIMEOUT_MS = 15_000;
@@ -29,6 +33,7 @@ export async function transcribeRecordedAudio(options: {
   inputTarget: SpeechInputTarget;
   durationMs?: number;
   signal?: AbortSignal;
+  sttHints?: string[];
 }): Promise<VoiceTranscribeResponse> {
   const formData = new FormData();
   const extension = options.audio.type.includes("mp4")
@@ -44,6 +49,9 @@ export async function transcribeRecordedAudio(options: {
   formData.append("input_target", options.inputTarget);
   if (options.durationMs) {
     formData.append("duration_ms", String(options.durationMs));
+  }
+  if (options.sttHints && options.sttHints.length > 0) {
+    formData.append("stt_hints", JSON.stringify(options.sttHints.slice(0, 24)));
   }
 
   const controller = new AbortController();

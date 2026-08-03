@@ -1,8 +1,9 @@
 import { mapSpeechRecognitionLocale } from "@/lib/speech/speechRecognitionLocale";
 import { getBcp47Lang } from "@/lib/audio/speechSynthesis";
+import { isCebuanoLanguageHint, CEBUANO_BASE } from "@/lib/speech/bisayaStt";
 
-/** Dialects without a reliable dedicated browser STT locale. */
-const SERVER_AUTO_DETECT_BASES = new Set([
+/** Dialects that prefer server STT (recorded) over weak browser recognition. */
+const SERVER_PREFERRED_DIALECT_BASES = new Set([
   "ceb",
   "hil",
   "ilo",
@@ -17,10 +18,15 @@ const SERVER_AUTO_DETECT_BASES = new Set([
 export type SpeechCaptureLanguagePlan = {
   selectedLanguage: string;
   resolvedBrowserLocale: string;
-  /** Whisper language code, or undefined to omit (= auto-detect). */
+  /**
+   * Language hint sent to server STT.
+   * For Cebuano this is always `ceb` (constrained) — never open `auto`.
+   * Undefined only for true Auto Detect.
+   */
   whisperLanguageHint: string | undefined;
   preferRecordedTranscription: boolean;
   reason: string;
+  expectedLanguage?: string;
 };
 
 function baseCode(languageHint: string): string {
@@ -29,7 +35,7 @@ function baseCode(languageHint: string): string {
 
 /**
  * Resolve STT locales for the active speaker only.
- * Unsupported browser locales must not hard-fail — prefer server auto-detect.
+ * Cebuano/Bisaya uses constrained expected language `ceb` (not open auto-detect).
  */
 export function resolveSpeechCaptureLanguagePlan(
   languageHint: string,
@@ -44,37 +50,50 @@ export function resolveSpeechCaptureLanguagePlan(
       whisperLanguageHint: undefined,
       preferRecordedTranscription: true,
       reason: "auto_detect",
+      expectedLanguage: "auto",
     };
   }
 
   const resolvedBrowserLocale = mapSpeechRecognitionLocale(selectedLanguage);
-  const needsServerAuto = SERVER_AUTO_DETECT_BASES.has(base);
 
-  if (needsServerAuto) {
+  if (isCebuanoLanguageHint(selectedLanguage)) {
     return {
       selectedLanguage,
       resolvedBrowserLocale,
-      whisperLanguageHint: undefined,
+      whisperLanguageHint: CEBUANO_BASE,
       preferRecordedTranscription: true,
-      reason: "dialect_server_auto",
+      reason: "cebuano_constrained",
+      expectedLanguage: CEBUANO_BASE,
     };
   }
 
-  const whisperBase = base;
+  if (SERVER_PREFERRED_DIALECT_BASES.has(base)) {
+    return {
+      selectedLanguage,
+      resolvedBrowserLocale,
+      whisperLanguageHint: base,
+      preferRecordedTranscription: true,
+      reason: "dialect_server_preferred",
+      expectedLanguage: base,
+    };
+  }
+
   return {
     selectedLanguage,
     resolvedBrowserLocale,
-    whisperLanguageHint: whisperBase,
+    whisperLanguageHint: base,
     preferRecordedTranscription: false,
     reason: "exact_or_mapped_locale",
+    expectedLanguage: base,
   };
 }
 
 export function isBrowserSpeechLocaleLikelyUnsupported(languageHint: string): boolean {
   const base = baseCode(languageHint);
   if (!base || base === "auto") return true;
-  if (SERVER_AUTO_DETECT_BASES.has(base)) return true;
+  if (SERVER_PREFERRED_DIALECT_BASES.has(base)) return true;
+  if (isCebuanoLanguageHint(languageHint)) return true;
   const locale = mapSpeechRecognitionLocale(languageHint);
   const mapped = getBcp47Lang(base);
-  return locale === mapped && SERVER_AUTO_DETECT_BASES.has(base);
+  return locale === mapped && SERVER_PREFERRED_DIALECT_BASES.has(base);
 }

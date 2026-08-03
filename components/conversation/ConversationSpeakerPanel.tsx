@@ -7,9 +7,12 @@ import {
   type VoiceInputApi,
 } from "@/components/speech/VoiceInputTextArea";
 import { ActionButton } from "@/components/ui/ActionButton";
+import { CompactAlert } from "@/components/ui/CompactAlert";
 import type { SpokenLanguageDetectionResult } from "@/lib/languages/spokenLanguageDetection";
 import type { UserContext } from "@/lib/schemas";
 import type { ConversationSpeaker } from "@/lib/conversation/conversationTypes";
+import type { VoiceTranscriptMeta } from "@/hooks/useVoiceInput";
+import { BISAYA_CONFIRM_MESSAGE } from "@/lib/speech/bisayaStt";
 
 type ConversationSpeakerPanelProps = {
   speaker: ConversationSpeaker;
@@ -27,6 +30,12 @@ type ConversationSpeakerPanelProps = {
   onSpeakTurn: () => void;
   onMicSessionStart: () => void;
   voiceApiRef: MutableRefObject<VoiceInputApi | null>;
+  needsTranscriptConfirm: boolean;
+  onTranscriptMeta: (meta: VoiceTranscriptMeta) => void;
+  onConfirmTranscript: () => void;
+  onTeachBisayaPhrase: () => void;
+  getSttHints: () => string[];
+  teachStatus?: string | null;
 };
 
 export function ConversationSpeakerPanel({
@@ -45,6 +54,12 @@ export function ConversationSpeakerPanel({
   onSpeakTurn,
   onMicSessionStart,
   voiceApiRef,
+  needsTranscriptConfirm,
+  onTranscriptMeta,
+  onConfirmTranscript,
+  onTeachBisayaPhrase,
+  getSttHints,
+  teachStatus,
 }: ConversationSpeakerPanelProps) {
   return (
     <section
@@ -93,12 +108,44 @@ export function ConversationSpeakerPanel({
         onSessionStart={onMicSessionStart}
         voiceApiRef={voiceApiRef}
         onLanguageDetection={onLanguageDetection}
+        onTranscriptMeta={onTranscriptMeta}
+        getSttHints={getSttHints}
       />
+
+      {needsTranscriptConfirm && (
+        <CompactAlert variant="warning">
+          <p className="font-medium">{BISAYA_CONFIRM_MESSAGE}</p>
+          <p className="mt-1 text-xs">
+            Edit the transcript if needed, then confirm before translating.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <ActionButton type="button" onClick={onConfirmTranscript} className="!min-h-11">
+              Confirm transcript
+            </ActionButton>
+            <ActionButton
+              type="button"
+              variant="secondary"
+              onClick={onTeachBisayaPhrase}
+              disabled={draftText.trim().length === 0}
+              className="!min-h-11"
+            >
+              Teach Lexienn this Bisaya phrase
+            </ActionButton>
+          </div>
+          {teachStatus && (
+            <p className="mt-2 text-xs" role="status">
+              {teachStatus}
+            </p>
+          )}
+        </CompactAlert>
+      )}
 
       <ActionButton
         type="button"
         fullWidth
-        disabled={isPaused || isBusy || draftText.trim().length === 0}
+        disabled={
+          isPaused || isBusy || draftText.trim().length === 0 || needsTranscriptConfirm
+        }
         onClick={onSpeakTurn}
         className="!min-h-16 text-base"
         aria-label={`Translate ${title} turn`}

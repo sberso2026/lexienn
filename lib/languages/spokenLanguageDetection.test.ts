@@ -68,13 +68,18 @@ describe("Batch 51B spoken language detection", () => {
       "utf8",
     );
     const stt = readFileSync(join(process.cwd(), "lib/speech/speechToTextService.ts"), "utf8");
+    const constrained = readFileSync(
+      join(process.cwd(), "lib/speech/constrainedSttLanguage.ts"),
+      "utf8",
+    );
     const mic = readFileSync(join(process.cwd(), "lib/speech/micAudioConstraints.ts"), "utf8");
 
     expect(translator).toContain("AUTO_DETECT_LANGUAGE");
     expect(translator).toContain("handleLanguageDetection");
     expect(translator).toContain("showPrivacyNote");
     expect(voiceArea).toContain("onLanguageDetection");
-    expect(stt).toContain('normalized === "auto"');
+    expect(stt).toContain("resolveConstrainedSttLanguage");
+    expect(constrained).toContain('expectedLanguage: "auto"');
     expect(mic).toContain("echoCancellation: true");
     expect(mic).toContain("noiseSuppression: true");
     expect(mic).toContain("channelCount: 1");

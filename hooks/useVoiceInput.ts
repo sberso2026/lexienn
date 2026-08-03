@@ -17,6 +17,8 @@ import { requestMicPermissionPreflight } from "@/lib/speech/requestMicPermission
 import { isBrowserSpeechRecognitionSupported } from "@/lib/speech/browserSpeechRecognition";
 import { SpeechToTextApiError, isBrowserOnline } from "@/lib/speech/speechToTextClient";
 import { resolveSpeechCaptureLanguagePlan } from "@/lib/speech/resolveSpeechCaptureLanguage";
+import { BISAYA_CONFIRM_MESSAGE, isCebuanoLanguageHint } from "@/lib/speech/bisayaStt";
+import { isProviderLanguageAllowedForCebuano } from "@/lib/speech/bisayaTranscriptValidation";
 import type { SpeechInputTarget, VoiceInputState } from "@/lib/speech/speechInputSchemas";
 import type { UserContext } from "@/lib/schemas";
 import { stopVoicePlayback } from "@/lib/voice/audioPlayback";
@@ -35,6 +37,14 @@ import { VoiceTranscribeApiError } from "@/lib/voice/voiceTranscribeClient";
 import type { SpokenLanguageDetectionResult } from "@/lib/languages/spokenLanguageDetection";
 import { buildSpokenLanguageDetectionResult } from "@/lib/languages/spokenLanguageDetection";
 
+export type VoiceTranscriptMeta = {
+  transcript: string;
+  needsConfirmation: boolean;
+  confidence?: number;
+  validationReason?: string;
+  expectedLanguage?: string;
+};
+
 export type UseVoiceInputOptions = {
   languageHint: string;
   userContext: UserContext;
@@ -42,9 +52,12 @@ export type UseVoiceInputOptions = {
   /** Stable id for Conversation sides (e.g. conversation:a). */
   sessionOwnerId?: string;
   onTranscript?: (text: string) => void;
+  onTranscriptMeta?: (meta: VoiceTranscriptMeta) => void;
   onLanguageDetection?: (detection: SpokenLanguageDetectionResult) => void;
   /** Called when this instance begins listening (other sides can clear errors). */
   onSessionStart?: () => void;
+  /** Bounded STT hint terms (text only — never audio). */
+  getSttHints?: () => string[];
   timeoutMs?: number;
 };
 
@@ -122,8 +135,10 @@ export function useVoiceInput({
   inputTarget,
   sessionOwnerId,
   onTranscript,
+  onTranscriptMeta,
   onLanguageDetection,
   onSessionStart,
+  getSttHints,
   timeoutMs = 60_000,
 }: UseVoiceInputOptions) {
   const reactId = useId();
@@ -213,19 +228,37 @@ export function useVoiceInput({
   );
 
   const commitTranscript = useCallback(
-    (text: string, refinedFromServer = false) => {
+    (
+      text: string,
+      meta?: {
+        refinedFromServer?: boolean;
+        needsConfirmation?: boolean;
+        confidence?: number;
+        validationReason?: string;
+        expectedLanguage?: string;
+      },
+    ) => {
       const trimmed = text.trim();
       if (!trimmed) return;
       setPendingTranscript(trimmed);
       setCapturedSpeechPreview(trimmed);
       setInterimTranscript("");
       onTranscript?.(trimmed);
+      onTranscriptMeta?.({
+        transcript: trimmed,
+        needsConfirmation: Boolean(meta?.needsConfirmation),
+        confidence: meta?.confidence,
+        validationReason: meta?.validationReason,
+        expectedLanguage: meta?.expectedLanguage,
+      });
       logVoiceDiagnostic("final_result");
-      if (refinedFromServer) {
+      if (meta?.needsConfirmation) {
+        setStatusMessage({ body: BISAYA_CONFIRM_MESSAGE });
+      } else if (meta?.refinedFromServer) {
         setStatusMessage({ body: "Transcript refined from recorded audio." });
       }
     },
-    [onTranscript],
+    [onTranscript, onTranscriptMeta],
   );
 
   const stopListening = useCallback(() => {
@@ -250,8 +283,21 @@ export function useVoiceInput({
       try {
         const result = await session.stop();
         logVoiceDiagnostic("transcription_end", { durationMs: result.durationMs });
-        commitTranscript(result.transcript, result.refinedFromServer);
-        if (result.detectedLanguageCode || result.confidence != null) {
+        commitTranscript(result.transcript, {
+          refinedFromServer: result.refinedFromServer,
+          needsConfirmation: result.needsConfirmation,
+          confidence: result.confidence,
+          validationReason: result.validationReason,
+          expectedLanguage: result.expectedLanguage,
+        });
+        const constrainedCeb = isCebuanoLanguageHint(plan.selectedLanguage);
+        const providerOk =
+          !result.detectedLanguageCode ||
+          isProviderLanguageAllowedForCebuano(result.detectedLanguageCode);
+        if (
+          !constrainedCeb &&
+          (result.detectedLanguageCode || result.confidence != null)
+        ) {
           onLanguageDetection?.(
             buildSpokenLanguageDetectionResult({
               transcript: result.transcript,
@@ -261,9 +307,13 @@ export function useVoiceInput({
               durationMs: result.durationMs,
             }),
           );
+        } else if (constrainedCeb && providerOk && result.detectedLanguageCode === "ceb") {
+          // Keep selection on Cebuano — never switch UI language from detection.
         }
         setState("speech_ready");
-        if (!result.refinedFromServer) {
+        if (result.needsConfirmation) {
+          setStatusMessage({ body: BISAYA_CONFIRM_MESSAGE });
+        } else if (!result.refinedFromServer) {
           setStatusMessage({ body: "Voice input stopped." });
         }
         logMicSessionDebug({
@@ -403,6 +453,7 @@ export function useVoiceInput({
             userContext,
             inputTarget,
             maxDurationMs: timeoutMs,
+            sttHints: getSttHints?.() ?? [],
           },
           {
             onRecorderStart: () => logVoiceDiagnostic("recorder_start"),
@@ -436,9 +487,19 @@ export function useVoiceInput({
           void session.completion
             .then((result) => {
               if (controller.signal.aborted || captureSessionRef.current !== session) return;
-              commitTranscript(result.transcript, result.refinedFromServer);
+              commitTranscript(result.transcript, {
+                refinedFromServer: result.refinedFromServer,
+                needsConfirmation: result.needsConfirmation,
+                confidence: result.confidence,
+                validationReason: result.validationReason,
+                expectedLanguage: result.expectedLanguage,
+              });
               setState("speech_ready");
-              setStatusMessage(null);
+              if (result.needsConfirmation) {
+                setStatusMessage({ body: BISAYA_CONFIRM_MESSAGE });
+              } else {
+                setStatusMessage(null);
+              }
               captureSessionRef.current = null;
               releaseMicSession(ownerId);
             })
@@ -493,6 +554,7 @@ export function useVoiceInput({
     })();
   }, [
     commitTranscript,
+    getSttHints,
     hardStopSession,
     inputTarget,
     onSessionStart,

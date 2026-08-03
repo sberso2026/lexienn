@@ -61,6 +61,22 @@ export async function POST(request: Request) {
   const inputTargetRaw = String(formData.get("input_target") ?? "translator");
   const durationMsRaw = String(formData.get("duration_ms") ?? "").trim();
   const durationMs = durationMsRaw ? Number.parseInt(durationMsRaw, 10) : 0;
+  let sttHints: string[] = [];
+  const sttHintsRaw = formData.get("stt_hints");
+  if (typeof sttHintsRaw === "string" && sttHintsRaw.trim()) {
+    try {
+      const parsed = JSON.parse(sttHintsRaw) as unknown;
+      if (Array.isArray(parsed)) {
+        sttHints = parsed
+          .filter((item): item is string => typeof item === "string")
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .slice(0, 24);
+      }
+    } catch {
+      sttHints = [];
+    }
+  }
 
   const userContextParsed = userContextSchema.safeParse(userContextRaw);
   const inputTargetParsed = speechInputTargetSchema.safeParse(inputTargetRaw);
@@ -107,6 +123,7 @@ export async function POST(request: Request) {
       language_hint: languageHint,
       user_context: userContextParsed.data,
       input_target: inputTargetParsed.data,
+      stt_hints: sttHints,
     });
 
     if (result.transcript.startsWith("Voice input unavailable")) {
@@ -119,6 +136,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // Audio buffer goes out of scope after this request — never persisted.
     return NextResponse.json({
       transcript: result.transcript,
       confidence: result.confidence_score,
@@ -126,6 +144,10 @@ export async function POST(request: Request) {
       durationMs: Number.isFinite(durationMs) && durationMs > 0 ? durationMs : 0,
       detectedLanguageCode: result.detected_language ?? null,
       detectedLanguageName: result.detected_language ?? null,
+      needsConfirmation: Boolean(result.needs_confirmation),
+      validationReason: result.validation_reason ?? null,
+      expectedLanguage: result.expected_language ?? null,
+      transportLanguage: result.transport_language ?? null,
     });
   } catch {
     return NextResponse.json(

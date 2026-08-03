@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { VoiceInputButton } from "@/components/speech/VoiceInputButton";
 import { VoiceInputStatus } from "@/components/speech/VoiceInputStatus";
 import { IconButton } from "@/components/ui/IconButton";
-import { useVoiceInput } from "@/hooks/useVoiceInput";
+import { useVoiceInput, type VoiceTranscriptMeta } from "@/hooks/useVoiceInput";
 import { fieldInputClassName } from "@/components/ui/FormField";
 import type { SpeechInputTarget } from "@/lib/speech/speechInputSchemas";
 import type { UserContext } from "@/lib/schemas";
@@ -35,6 +35,8 @@ interface VoiceInputTextAreaProps {
   showClear?: boolean;
   onClear?: () => void;
   onLanguageDetection?: (detection: SpokenLanguageDetectionResult) => void;
+  onTranscriptMeta?: (meta: VoiceTranscriptMeta) => void;
+  getSttHints?: () => string[];
   sessionOwnerId?: string;
   onSessionStart?: () => void;
   voiceApiRef?: React.MutableRefObject<VoiceInputApi | null>;
@@ -67,6 +69,8 @@ export function VoiceInputTextArea({
   showClear = false,
   onClear,
   onLanguageDetection,
+  onTranscriptMeta,
+  getSttHints,
   sessionOwnerId,
   onSessionStart,
   voiceApiRef,
@@ -78,8 +82,10 @@ export function VoiceInputTextArea({
     inputTarget,
     sessionOwnerId,
     onTranscript: onChange,
+    onTranscriptMeta,
     onLanguageDetection,
     onSessionStart,
+    getSttHints,
   });
 
   useEffect(() => {

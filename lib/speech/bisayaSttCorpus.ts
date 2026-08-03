@@ -1,0 +1,58 @@
+/**
+ * Curated Bisaya / Cebuano STT regression phrases (minimum 40).
+ * Used for validation tests — not shipped as runtime audio fixtures.
+ */
+export const BISAYA_STT_REGRESSION_PHRASES: readonly string[] = [
+  "Kumusta ka?",
+  "Unsa imong pangalan?",
+  "Asa ang simbahan?",
+  "Pila kini?",
+  "Palihog tabangi ko.",
+  "Gikinahanglan nako og doktor.",
+  "Maayong buntag.",
+  "Asa ka padulong?",
+  "Wala ko kasabot.",
+  "Hinay-hinayi palihog.",
+  "Salamat kaayo.",
+  "Maayong hapon.",
+  "Maayong gabii.",
+  "Asa ang balay?",
+  "Unsa ni?",
+  "Ngano man?",
+  "Kanus-a ka moadto?",
+  "Pila ang bayad?",
+  "Palihog balik.",
+  "Tabangi ko palihog.",
+  "Asa ang hospital?",
+  "Nasakit ako.",
+  "Gusto ko moinom og tubig.",
+  "Asa ang CR?",
+  "Wala koy kwarta.",
+  "Pwede ko mangutana?",
+  "Unsa ang imong trabaho?",
+  "Taga-asa ka?",
+  "Moadto ko sa merkado.",
+  "Asa ang dyipney?",
+  "Hinay lang palihog.",
+  "Sulti og hinay.",
+  "Wala ko kabalo.",
+  "Pasayloa ko.",
+  "Maayo ba ang pagkaon?",
+  "Gusto ko og kan-on.",
+  "Asa ang hotel?",
+  "Unsa orasa?",
+  "Dugay pa ba?",
+  "Moadto ko karon.",
+  "Palihog isulti pag-usab.",
+  "Kasabot ka og English?",
+  "Ako si Maria.",
+  "Nindot kaayo.",
+  "Amping kanunay.",
+  "Hangtod sa sunod.",
+] as const;
+
+export function assertBisayaSttCorpusSize(min = 40): number {
+  return BISAYA_STT_REGRESSION_PHRASES.length >= min
+    ? BISAYA_STT_REGRESSION_PHRASES.length
+    : 0;
+}
