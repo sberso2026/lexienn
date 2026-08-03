@@ -12,6 +12,7 @@ export function mapSpeechRecognitionLocale(languageHint: string): string {
     tl: "fil-PH",
     fil: "fil-PH",
     ga: "ga-IE",
+    mi: "mi-NZ",
     fa: "fa-IR",
     ur: "ur-PK",
     he: "he-IL",

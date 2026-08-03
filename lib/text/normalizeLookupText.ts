@@ -26,6 +26,22 @@ function expandContractions(text: string): string {
 }
 
 /**
+ * Fold combining diacritics (including Māori macrons) for alias search.
+ * Display strings keep macrons; only search matching uses the folded form.
+ */
+export function foldDiacriticsForSearch(input: string): string {
+  return input
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase();
+}
+
+/** @deprecated Prefer foldDiacriticsForSearch */
+export function foldMaoriMacronsForSearch(input: string): string {
+  return foldDiacriticsForSearch(input);
+}
+
+/**
  * Normalize lookup text for curated dictionary and phrase matching.
  */
 export function normalizeLookupText(input: string): string {

@@ -84,10 +84,12 @@ describe("Batch 45A enterprise UI foundation", () => {
     expect(translator).toContain("TranslatorView");
   });
 
-  it("keeps camera OCR available in both Translator and Lens", () => {
+  it("Lens exclusively owns camera OCR; Translate links to Lens", () => {
     const translator = readFileSync("components/translator/TranslatorView.tsx", "utf8");
     const lens = readFileSync("components/lens/LensView.tsx", "utf8");
-    expect(translator).toContain("CameraTranslatorView");
+    expect(translator).not.toContain("CameraTranslatorView");
+    expect(translator).toContain('href="/lens"');
+    expect(translator).toContain("Open Lens");
     expect(lens).toContain("CameraTranslatorView");
   });
 });

@@ -346,11 +346,17 @@ describe("Lexienn MVP verification", () => {
     expect(selector).toContain("packTierLabel");
   });
 
-  it("batch 28 translator exposes Text and Camera modes", () => {
+  it("batch 51 translator is text-only and Lens owns camera", () => {
     const shell = readFileSync("components/translator/TranslatorView.tsx", "utf8");
-    expect(shell).toContain("TranslatorModeTabs");
     expect(shell).toContain("TextTranslatorView");
-    expect(shell).toContain("CameraTranslatorView");
+    expect(shell).toContain('href="/lens"');
+    expect(shell).toContain("Open Lens");
+    expect(shell).not.toContain("TranslatorModeTabs");
+    expect(shell).not.toContain("CameraTranslatorView");
+    expect(existsSync("components/translator/TranslatorModeTabs.tsx")).toBe(false);
+    expect(existsSync("app/lens/page.tsx")).toBe(true);
+    const lens = readFileSync("components/lens/LensView.tsx", "utf8");
+    expect(lens).toContain("CameraTranslatorView");
   });
 
   it("batch 28 camera OCR reuses translator API and manual fallback", () => {

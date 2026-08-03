@@ -39,6 +39,8 @@ export type VoiceCaptureResult = {
   mimeType?: string;
   durationMs?: number;
   confidence?: number;
+  detectedLanguageCode?: string | null;
+  detectedLanguageName?: string | null;
 };
 
 export type VoiceCaptureCallbacks = {

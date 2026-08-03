@@ -18,11 +18,16 @@ import {
   resolveSelectorGroup,
 } from "@/lib/languages/languageGrouping";
 import {
+  NATIONAL_LANGUAGE_DEFINITIONS,
+  isMaoriLanguageCode,
+} from "@/lib/languages/nationalLanguages";
+import {
   PHILIPPINE_INDIGENOUS_DIALECT_LANGUAGE_IDS,
   PHILIPPINE_INDIGENOUS_LANGUAGE_DEFINITIONS,
   PHILIPPINE_INDIGENOUS_LANGUAGES_GROUP,
 } from "@/lib/languages/philippineIndigenousLanguages";
 import { getBcp47Lang } from "@/lib/audio/speechSynthesis";
+import { foldDiacriticsForSearch } from "@/lib/text/normalizeLookupText";
 
 export const AFRICAN_LANGUAGES_GROUP = "African Languages";
 export { AUSTRALIAN_LANGUAGES_GROUP, PHILIPPINE_INDIGENOUS_LANGUAGES_GROUP };
@@ -137,6 +142,7 @@ const REGION_BY_CODE: Record<string, string> = {
   qu: "European & Americas",
   gn: "European & Americas",
   ay: "European & Americas",
+  mi: NATIONAL_LANGUAGES_GROUP,
   sw: AFRICAN_LANGUAGES_GROUP,
   am: AFRICAN_LANGUAGES_GROUP,
   yo: AFRICAN_LANGUAGES_GROUP,
@@ -210,6 +216,7 @@ const COUNTRY_BY_CODE: Record<string, string> = {
   qu: "Peru, Bolivia",
   gn: "Paraguay",
   ay: "Bolivia",
+  mi: "New Zealand / Aotearoa",
 };
 
 function finalizeOption(
@@ -247,11 +254,30 @@ function finalizeOption(
   };
 }
 
+function buildNationalLanguageOptions(): LanguageOptionDefinition[] {
+  return NATIONAL_LANGUAGE_DEFINITIONS.map((item) => {
+    const { aliases = [], ...rest } = item;
+    const option = finalizeOption(rest);
+    if (aliases.length === 0) return option;
+    return {
+      ...option,
+      search_text: [option.search_text, ...aliases.map((alias) => alias.toLowerCase())]
+        .filter(Boolean)
+        .join(" "),
+    };
+  }).sort((a, b) =>
+    a.display_name.localeCompare(b.display_name, undefined, { sensitivity: "base" }),
+  );
+}
+
 function buildMockLanguageOptions(): LanguageOptionDefinition[] {
   const catalogValues = new Set([
     ...AFRICAN_LANGUAGE_DEFINITIONS.map((item) => item.value),
     ...AUSTRALIAN_LANGUAGE_DEFINITIONS.map((item) => item.value),
     ...PHILIPPINE_INDIGENOUS_LANGUAGE_DEFINITIONS.map((item) => item.value),
+    ...NATIONAL_LANGUAGE_DEFINITIONS.map((item) => item.value),
+    ...EUROPEAN_NATIONAL_LANGUAGE_DEFINITIONS.map((item) => item.value),
+    ...LOCAL_DIALECT_LANGUAGE_DEFINITIONS.map((item) => item.value),
   ]);
 
   return mockLanguages
@@ -340,6 +366,7 @@ export function getAllLanguageOptions(): LanguageOptionDefinition[] {
     ...buildAustralianLanguageOptions(),
     ...buildPhilippineIndigenousLanguageOptions(),
     ...buildEuropeanNationalLanguageOptions(),
+    ...buildNationalLanguageOptions(),
     ...buildLocalDialectLanguageOptions(),
     ...buildDialectLanguageOptions(),
   ]) {
@@ -415,10 +442,12 @@ function optionToSelectOption(option: LanguageOptionDefinition): LanguageSelectO
 }
 
 export function filterLanguageOptions(query: string): LanguageOptionDefinition[] {
-  const normalized = query.trim().toLowerCase();
+  const normalized = foldDiacriticsForSearch(query.trim());
   const options = getAllLanguageOptions();
   if (!normalized) return options;
-  return options.filter((option) => optionToSelectOption(option).search_text.includes(normalized));
+  return options.filter((option) =>
+    foldDiacriticsForSearch(optionToSelectOption(option).search_text).includes(normalized),
+  );
 }
 
 export function getLanguageSelectGroups(searchQuery = ""): LanguageSelectGroup[] {
@@ -451,6 +480,21 @@ export function getLanguageSelectGroups(searchQuery = ""): LanguageSelectGroup[]
 
 export function getFlatLanguageSelectOptions(searchQuery = ""): LanguageSelectOption[] {
   return getLanguageSelectGroups(searchQuery).flatMap((group) => group.options);
+}
+
+export function getNationalLanguageOptions(): LanguageOptionDefinition[] {
+  return getAllLanguageOptions()
+    .filter(
+      (option) =>
+        resolveSelectorGroup({
+          value: option.value,
+          base_language: option.base_language,
+          dialect_variant: option.dialect_variant,
+        }) === NATIONAL_LANGUAGES_GROUP,
+    )
+    .sort((a, b) =>
+      a.display_name.localeCompare(b.display_name, undefined, { sensitivity: "base" }),
+    );
 }
 
 export function getAustralianLanguageOptions(): LanguageOptionDefinition[] {
@@ -550,6 +594,15 @@ export function buildVoiceInstruction(selection: ResolvedLanguageSelection): str
     );
     parts.push("Do not use Tagalog, Filipino, or Cebuano accent or intonation.");
     parts.push("If pronunciation guidance is provided, follow it closely.");
+  }
+  if (isMaoriLanguageCode(selection.selection_value) || selection.base_language === "mi") {
+    parts.push(
+      "This is te reo Māori. Preserve tohutō (macrons) in pronunciation guidance when provided.",
+    );
+    parts.push("Use clear New Zealand Māori pronunciation. Do not anglicize vowels.");
+    parts.push(
+      "If a native Māori voice is unavailable, use a clear New Zealand English voice as fallback and do not claim it is native Māori.",
+    );
   }
   return parts.join(" ");
 }

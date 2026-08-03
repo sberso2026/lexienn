@@ -1,32 +1,23 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useState } from "react";
+import Link from "next/link";
 import { TextTranslatorView } from "@/components/translator/TextTranslatorView";
-import { TranslatorModeTabs } from "@/components/translator/TranslatorModeTabs";
-
-const CameraTranslatorView = dynamic(
-  () =>
-    import("@/components/translator/CameraTranslatorView").then((mod) => ({
-      default: mod.CameraTranslatorView,
-    })),
-  {
-    ssr: false,
-    loading: () => (
-      <p className="text-sm text-[var(--muted)]" aria-live="polite">
-        Loading camera tools…
-      </p>
-    ),
-  },
-);
+import { TranslatorCameraRedirect } from "@/components/translator/TranslatorCameraRedirect";
 
 export function TranslatorView() {
-  const [mode, setMode] = useState<"text" | "camera">("text");
-
   return (
     <div className="space-y-5">
-      <TranslatorModeTabs mode={mode} onChange={setMode} />
-      {mode === "text" ? <TextTranslatorView /> : <CameraTranslatorView />}
+      <TranslatorCameraRedirect />
+      <TextTranslatorView />
+      <p className="text-sm text-[var(--muted)]">
+        Need to scan text?{" "}
+        <Link
+          href="/lens"
+          className="font-semibold text-[var(--accent)] underline-offset-2 hover:underline"
+        >
+          Open Lens
+        </Link>
+      </p>
     </div>
   );
 }

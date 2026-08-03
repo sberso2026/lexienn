@@ -17,11 +17,19 @@ import { ConfidenceBadge } from "@/components/ui/ConfidenceBadge";
 import { useActiveRequest } from "@/hooks/useActiveRequest";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { trackAppEvent } from "@/lib/analytics/appEvents";
+import { isAutomaticLanguageDetectionEnabled } from "@/lib/config/publicEnv";
 import {
   resolveLanguageSelection,
   buildTranslationTargetPayload,
   getLanguageOptionByValue,
 } from "@/lib/languages/languageOptions";
+import {
+  AUTO_DETECT_LABEL,
+  AUTO_DETECT_LANGUAGE,
+  decideSpokenLanguageDetection,
+  isAutoDetectLanguage,
+  type SpokenLanguageDetectionResult,
+} from "@/lib/languages/spokenLanguageDetection";
 import { buildTranslationRequestKey } from "@/lib/request/requestKeys";
 import { logPerf } from "@/lib/request/perfLog";
 import type { TranslationMode, TranslatorResponse } from "@/lib/translator/translatorSchemas";
@@ -45,11 +53,20 @@ const translationModes: Array<{ value: TranslationMode; label: string }> = [
 
 type RequestUiState = "ready" | "translating" | "from_cache" | "error";
 
+type DetectionUi = {
+  message: string;
+  pendingValue: string | null;
+  needsConfirm: boolean;
+};
+
 export function TextTranslatorView() {
   const { preferences } = useUserPreferences();
+  const autoDetectEnabled = isAutomaticLanguageDetectionEnabled();
   const { abortActiveRequest, beginRequest, finishRequest, isActiveRequest, isAbortError } =
     useActiveRequest();
-  const [sourceLanguage, setSourceLanguage] = useState(preferences.default_source_language);
+  const [sourceLanguage, setSourceLanguage] = useState(
+    autoDetectEnabled ? AUTO_DETECT_LANGUAGE : preferences.default_source_language,
+  );
   const [targetLanguageSelection, setTargetLanguageSelection] = useState(
     preferences.default_target_language,
   );
@@ -61,6 +78,7 @@ export function TextTranslatorView() {
   const [result, setResult] = useState<TranslatorResponse | null>(null);
   const [requestState, setRequestState] = useState<RequestUiState>("ready");
   const [formError, setFormError] = useState<string | null>(null);
+  const [detectionUi, setDetectionUi] = useState<DetectionUi | null>(null);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [autoplayRequestId, setAutoplayRequestId] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -88,11 +106,13 @@ export function TextTranslatorView() {
   const submitGenerationRef = useRef(0);
 
   useEffect(() => {
-    setSourceLanguage(preferences.default_source_language);
+    if (!autoDetectEnabled) {
+      setSourceLanguage(preferences.default_source_language);
+    }
     setTargetLanguageSelection(preferences.default_target_language);
     setUserContext(preferences.default_user_context);
     setTranslationMode(preferences.default_translation_mode);
-  }, [preferences]);
+  }, [autoDetectEnabled, preferences]);
 
   useEffect(() => () => stopVoicePlayback(), []);
   useEffect(() => {
@@ -114,6 +134,7 @@ export function TextTranslatorView() {
     setSentence("");
     setResult(null);
     setFormError(null);
+    setDetectionUi(null);
     setRequestState("ready");
     setAutoplayBlocked(false);
     setSaveMessage(null);
@@ -122,11 +143,74 @@ export function TextTranslatorView() {
     stopVoicePlayback();
   }, [abortActiveRequest, stop]);
 
+  const handleLanguageDetection = useCallback(
+    (detection: SpokenLanguageDetectionResult) => {
+      if (!autoDetectEnabled || !isAutoDetectLanguage(sourceLanguage)) {
+        return;
+      }
+
+      const decision = decideSpokenLanguageDetection(detection);
+      if (decision.action === "apply" && decision.catalogValue) {
+        setSourceLanguage(decision.catalogValue);
+        setDetectionUi({
+          message: decision.message,
+          pendingValue: null,
+          needsConfirm: false,
+        });
+        return;
+      }
+
+      if (decision.action === "confirm" && decision.catalogValue) {
+        setDetectionUi({
+          message: decision.message,
+          pendingValue: decision.catalogValue,
+          needsConfirm: true,
+        });
+        return;
+      }
+
+      setDetectionUi({
+        message: decision.message,
+        pendingValue: null,
+        needsConfirm: false,
+      });
+    },
+    [autoDetectEnabled, sourceLanguage],
+  );
+
+  const confirmDetectedLanguage = useCallback(() => {
+    if (!detectionUi?.pendingValue) return;
+    setSourceLanguage(detectionUi.pendingValue);
+    const name =
+      getLanguageOptionByValue(detectionUi.pendingValue)?.display_name ??
+      detectionUi.pendingValue;
+    setDetectionUi({
+      message: `Detected: ${name}`,
+      pendingValue: null,
+      needsConfirm: false,
+    });
+  }, [detectionUi?.pendingValue]);
+
+  const rejectDetectedLanguage = useCallback(() => {
+    setDetectionUi({
+      message: "Language could not be detected reliably. Select it manually.",
+      pendingValue: null,
+      needsConfirm: false,
+    });
+  }, []);
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const generation = ++submitGenerationRef.current;
     setFormError(null);
     setAutoplayBlocked(false);
+
+    if (isAutoDetectLanguage(sourceLanguage)) {
+      setFormError("Select a From language, or speak so Auto Detect can set it.");
+      setRequestState("ready");
+      return;
+    }
+
     setRequestState("translating");
 
     const targetFields = buildTranslationTargetPayload(targetLanguageSelection);
@@ -231,16 +315,22 @@ export function TextTranslatorView() {
   }, [result, sourceLanguage, targetResolved.base_language]);
 
   const swapLanguages = useCallback(() => {
+    if (isAutoDetectLanguage(sourceLanguage)) {
+      setFormError("Select a From language before swapping.");
+      return;
+    }
     const nextSource = targetResolved.base_language;
     setTargetLanguageSelection(sourceLanguage);
     setSourceLanguage(nextSource);
+    setDetectionUi(null);
     setResult(null);
     setFormError(null);
     stopVoicePlayback();
   }, [sourceLanguage, targetResolved.base_language]);
 
-  const fromName =
-    getLanguageOptionByValue(sourceLanguage)?.display_name ?? sourceLanguage;
+  const fromName = isAutoDetectLanguage(sourceLanguage)
+    ? AUTO_DETECT_LABEL
+    : getLanguageOptionByValue(sourceLanguage)?.display_name ?? sourceLanguage;
   const toName =
     getLanguageOptionByValue(targetLanguageSelection)?.display_label ?? "Target";
 
@@ -273,8 +363,10 @@ export function TextTranslatorView() {
             userContext={userContext}
             inputTarget="translator"
             compact
+            showPrivacyNote
             showClear={sentence.trim().length > 0 || Boolean(result)}
             onClear={handleClear}
+            onLanguageDetection={handleLanguageDetection}
           />
           <p className="-mt-1 text-right text-[10px] text-[var(--muted)]" aria-live="polite">
             {sentence.length} characters
@@ -285,7 +377,15 @@ export function TextTranslatorView() {
               id="translator_source_language"
               label="From"
               value={sourceLanguage}
-              onChange={setSourceLanguage}
+              onChange={(value) => {
+                setSourceLanguage(value);
+                setDetectionUi(null);
+              }}
+              leadingOptions={
+                autoDetectEnabled
+                  ? [{ value: AUTO_DETECT_LANGUAGE, label: AUTO_DETECT_LABEL }]
+                  : undefined
+              }
             />
             <IconButton
               icon={
@@ -304,6 +404,42 @@ export function TextTranslatorView() {
               onChange={setTargetLanguageSelection}
             />
           </div>
+
+          {detectionUi && (
+            <div className="space-y-2 rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-3">
+              <p className="text-sm text-[var(--foreground)]" role="status">
+                {detectionUi.message}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {detectionUi.needsConfirm && detectionUi.pendingValue && (
+                  <>
+                    <ActionButton type="button" onClick={confirmDetectedLanguage}>
+                      Use{" "}
+                      {getLanguageOptionByValue(detectionUi.pendingValue)?.display_name ??
+                        "language"}
+                    </ActionButton>
+                    <ActionButton
+                      type="button"
+                      variant="secondary"
+                      onClick={rejectDetectedLanguage}
+                    >
+                      Keep Auto Detect
+                    </ActionButton>
+                  </>
+                )}
+                <ActionButton
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setSourceLanguage(AUTO_DETECT_LANGUAGE);
+                    setDetectionUi(null);
+                  }}
+                >
+                  Change language
+                </ActionButton>
+              </div>
+            </div>
+          )}
 
           <div>
             <p className="mb-2 text-xs font-medium text-[var(--muted)]">Translation mode</p>

@@ -22,8 +22,8 @@ export type CloudTranscribeResult = {
 
 function mapLanguageHintToWhisper(languageHint: string): string | undefined {
   const normalized = languageHint.trim().toLowerCase();
-  if (!normalized) return undefined;
-  return normalized.split("-")[0];
+  if (!normalized || normalized === "auto") return undefined;
+  return normalized.split("-")[0]?.split("::")[0];
 }
 
 export async function transcribeAudioCloud(

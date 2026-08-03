@@ -26,12 +26,15 @@ import {
   type VoiceCaptureSession,
 } from "@/lib/voice/voiceCapture";
 import { VoiceTranscribeApiError } from "@/lib/voice/voiceTranscribeClient";
+import type { SpokenLanguageDetectionResult } from "@/lib/languages/spokenLanguageDetection";
+import { buildSpokenLanguageDetectionResult } from "@/lib/languages/spokenLanguageDetection";
 
 export type UseVoiceInputOptions = {
   languageHint: string;
   userContext: UserContext;
   inputTarget: SpeechInputTarget;
   onTranscript?: (text: string) => void;
+  onLanguageDetection?: (detection: SpokenLanguageDetectionResult) => void;
   timeoutMs?: number;
 };
 
@@ -99,6 +102,7 @@ export function useVoiceInput({
   userContext,
   inputTarget,
   onTranscript,
+  onLanguageDetection,
   timeoutMs = 60_000,
 }: UseVoiceInputOptions) {
   const [state, setState] = useState<VoiceInputState>("idle");
@@ -192,6 +196,17 @@ export function useVoiceInput({
         const result = await session.stop();
         logVoiceDiagnostic("transcription_end", { durationMs: result.durationMs });
         commitTranscript(result.transcript, result.refinedFromServer);
+        if (result.detectedLanguageCode || result.confidence != null) {
+          onLanguageDetection?.(
+            buildSpokenLanguageDetectionResult({
+              transcript: result.transcript,
+              providerLanguage: result.detectedLanguageCode,
+              confidence: result.confidence ?? null,
+              source: result.source === "server_transcription" ? "server_stt" : "browser",
+              durationMs: result.durationMs,
+            }),
+          );
+        }
         setState("speech_ready");
         if (!result.refinedFromServer) {
           setStatusMessage({ body: "Voice input stopped." });
@@ -220,7 +235,7 @@ export function useVoiceInput({
         stoppingRef.current = false;
       }
     })();
-  }, [commitTranscript]);
+  }, [commitTranscript, onLanguageDetection]);
 
   const startListening = useCallback(() => {
     if (typeof window === "undefined") {

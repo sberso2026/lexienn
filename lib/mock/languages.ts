@@ -11,6 +11,14 @@ export const mockLanguages: Language[] = [
     is_mock_data: true,
   },
   {
+    id: "lang-mi",
+    code: "mi",
+    name: "Māori",
+    native_name: "te reo Māori",
+    is_active: true,
+    is_mock_data: true,
+  },
+  {
     id: "lang-tl",
     code: "tl",
     name: "Filipino / Tagalog",

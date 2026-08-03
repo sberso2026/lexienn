@@ -15,6 +15,7 @@ const ISO_HINTS: Record<string, string> = {
   de: "German",
   ar: "Arabic",
   hi: "Hindi",
+  mi: "Māori / te reo Māori",
   auto: "auto-detect from image",
 };
 

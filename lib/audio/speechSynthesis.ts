@@ -46,6 +46,7 @@ const BCP47_MAP: Record<string, string> = {
   he: "he-IL",
   uk: "uk-UA",
   ga: "ga-IE",
+  mi: "mi-NZ",
   sq: "sq-AL",
   be: "be-BY",
   bs: "bs-BA",

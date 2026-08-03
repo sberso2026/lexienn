@@ -285,12 +285,12 @@ describe("Batch 45C production UI QA", () => {
     expect(css).toContain("orientation: landscape");
   });
 
-  it("Lens and Translate lazy-load camera tools", () => {
+  it("Lens lazy-loads camera tools; Translate does not", () => {
     const translator = readFileSync("components/translator/TranslatorView.tsx", "utf8");
     const lens = readFileSync("components/lens/LensView.tsx", "utf8");
-    expect(translator).toContain("next/dynamic");
+    expect(translator).not.toContain("CameraTranslatorView");
+    expect(translator).toContain("Open Lens");
     expect(lens).toContain("next/dynamic");
-    expect(translator).toContain("CameraTranslatorView");
     expect(lens).toContain("CameraTranslatorView");
   });
 });

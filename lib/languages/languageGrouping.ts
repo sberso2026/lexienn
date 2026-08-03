@@ -70,6 +70,16 @@ export const LANGUAGE_SEARCH_ALIASES: Record<string, string[]> = {
   pam: ["kapampangan", "pampango"],
   bcl: ["bicolano", "bikol"],
   cbk: ["chavacano", "chabacano"],
+  mi: [
+    "maori",
+    "māori",
+    "te reo",
+    "te reo maori",
+    "te reo māori",
+    "mi-nz",
+    "aotearoa",
+    "oceania",
+  ],
 };
 
 export function resolveSelectorGroup(options: {

@@ -16,6 +16,8 @@ export type VoiceTranscribeResponse = {
   confidence?: number;
   provider: string;
   durationMs: number;
+  detectedLanguageCode?: string | null;
+  detectedLanguageName?: string | null;
 };
 
 const TRANSCRIPTION_TIMEOUT_MS = 15_000;

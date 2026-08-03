@@ -6,6 +6,9 @@ import { CompactAlert } from "@/components/ui/CompactAlert";
 import type { MicUserMessage } from "@/lib/speech/micPermissionMessages";
 import type { VoiceInputState } from "@/lib/speech/speechInputSchemas";
 
+export const VOICE_INPUT_PRIVACY_NOTE =
+  "Voice is used only to create the transcript and is not saved by default.";
+
 interface VoiceInputStatusProps {
   state: VoiceInputState;
   pendingTranscript?: string;
@@ -57,7 +60,7 @@ export function VoiceInputStatus({
 
     return (
       <p className="text-xs text-[var(--muted)]" role="note">
-        Voice is used only to create the transcript and is not saved by default.
+        {VOICE_INPUT_PRIVACY_NOTE}
       </p>
     );
   }

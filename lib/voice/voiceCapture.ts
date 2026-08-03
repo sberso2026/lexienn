@@ -342,6 +342,8 @@ export function startVoiceCapture(
           mimeType: recorded.mimeType,
           durationMs: server.durationMs || recorded.durationMs,
           confidence: server.confidence,
+          detectedLanguageCode: server.detectedLanguageCode ?? null,
+          detectedLanguageName: server.detectedLanguageName ?? null,
         };
       } catch (error) {
         if (browserTranscript) {

@@ -7,7 +7,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { FeatureCard } from "@/components/ui/FeatureCard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { formatEnumLabel } from "@/lib/dictionary/displayUtils";
-import { getLanguageSelectGroups, mockUserContextProfiles } from "@/lib/mock";
+import { getLanguageSelectGroups } from "@/lib/languages/languageOptions";
+import { mockUserContextProfiles } from "@/lib/mock";
 import { entryTypeSchema } from "@/lib/schemas";
 import {
   DEFAULT_SAVED_WORD_FILTERS,

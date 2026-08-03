@@ -124,6 +124,8 @@ export async function POST(request: Request) {
       confidence: result.confidence_score,
       provider: config.provider,
       durationMs: Number.isFinite(durationMs) && durationMs > 0 ? durationMs : 0,
+      detectedLanguageCode: result.detected_language ?? null,
+      detectedLanguageName: result.detected_language ?? null,
     });
   } catch {
     return NextResponse.json(

@@ -8,6 +8,7 @@ import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { fieldInputClassName } from "@/components/ui/FormField";
 import type { SpeechInputTarget } from "@/lib/speech/speechInputSchemas";
 import type { UserContext } from "@/lib/schemas";
+import type { SpokenLanguageDetectionResult } from "@/lib/languages/spokenLanguageDetection";
 
 interface VoiceInputTextAreaProps {
   id: string;
@@ -27,6 +28,7 @@ interface VoiceInputTextAreaProps {
   showPrivacyNote?: boolean;
   showClear?: boolean;
   onClear?: () => void;
+  onLanguageDetection?: (detection: SpokenLanguageDetectionResult) => void;
 }
 
 function ClearIcon() {
@@ -55,6 +57,7 @@ export function VoiceInputTextArea({
   showPrivacyNote = false,
   showClear = false,
   onClear,
+  onLanguageDetection,
 }: VoiceInputTextAreaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const voice = useVoiceInput({
@@ -62,6 +65,7 @@ export function VoiceInputTextArea({
     userContext,
     inputTarget,
     onTranscript: onChange,
+    onLanguageDetection,
   });
 
   const handleSpeak = () => {

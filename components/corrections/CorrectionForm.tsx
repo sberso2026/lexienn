@@ -7,7 +7,7 @@ import { FeatureCard } from "@/components/ui/FeatureCard";
 import { getCatalogDialectById } from "@/lib/admin/catalog";
 import { formatEnumLabel } from "@/lib/dictionary/displayUtils";
 import { createCorrectionSubmission } from "@/lib/corrections/createCorrection";
-import { getLanguageSelectGroups } from "@/lib/mock";
+import { getLanguageSelectGroups } from "@/lib/languages/languageOptions";
 import { correctionTypeSchema } from "@/lib/schemas";
 import { saveCorrection } from "@/lib/storage/correctionsStorage";
 
