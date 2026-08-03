@@ -4,6 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CameraTranslationResultCard } from "@/components/translator/CameraTranslationResultCard";
 import { ImageCaptureCard } from "@/components/translator/ImageCaptureCard";
 import { OcrResultEditor } from "@/components/translator/OcrResultEditor";
+import { DocumentIntelligenceActions } from "@/components/lens/DocumentIntelligenceActions";
+import { LensImageTools } from "@/components/lens/LensImageTools";
+import { TapToDefineSheet } from "@/components/lens/TapToDefineSheet";
 import { CompactAlert } from "@/components/ui/CompactAlert";
 import { CompactCard } from "@/components/ui/CompactCard";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -17,6 +20,7 @@ import {
   OcrApiError,
 } from "@/lib/ocr/ocrClient";
 import { prepareOcrImageFile, revokeObjectUrl } from "@/lib/ocr/imageUtils";
+import type { OcrAcceptedMimeType } from "@/lib/ocr/imageUtils";
 import type { OcrExtractResponse } from "@/lib/ocr/ocrSchemas";
 import {
   saveOcrMissingTranslationRequest,
@@ -30,10 +34,27 @@ import {
 import { translatorRequestSchema } from "@/lib/translator/translatorSchemas";
 import { stopVoicePlayback } from "@/lib/voice/audioPlayback";
 import { useVoicePlayback } from "@/lib/voice/useVoicePlayback";
+import { assessOcrImageQuality } from "@/lib/lens/imageQuality";
+import { enhanceOcrContrast, rotateOcrImage } from "@/lib/lens/imageTransforms";
+import { mergeOcrTextWithBlocks } from "@/lib/lens/ocrBlocks";
+import {
+  runLocalDocumentIntelligence,
+  type DocumentIntelligenceResult,
+} from "@/lib/lens/documentIntelligence";
+import { saveLensScanHistoryItem } from "@/lib/lens/lensScanHistory";
+import { LENS_SAFETY_DISCLAIMER, type LensDocumentActionId } from "@/lib/lens/lensTypes";
 
 const AUTO_DETECT = "auto";
 
-export function CameraTranslatorView() {
+type CameraTranslatorViewProps = {
+  preferCamera?: boolean;
+  preferImport?: boolean;
+};
+
+export function CameraTranslatorView({
+  preferCamera = false,
+  preferImport = false,
+}: CameraTranslatorViewProps) {
   const { preferences } = useUserPreferences();
   const [sourceLanguage, setSourceLanguage] = useState<string>(AUTO_DETECT);
   const [targetLanguageSelection, setTargetLanguageSelection] = useState(
@@ -45,9 +66,7 @@ export function CameraTranslatorView() {
   const [ocrModeLabel, setOcrModeLabel] = useState("Manual");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
-  const [imageMimeType, setImageMimeType] = useState<
-    "image/jpeg" | "image/png" | "image/webp" | null
-  >(null);
+  const [imageMimeType, setImageMimeType] = useState<OcrAcceptedMimeType | null>(null);
   const [ocrResult, setOcrResult] = useState<OcrExtractResponse | null>(null);
   const [correctedText, setCorrectedText] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -58,6 +77,10 @@ export function CameraTranslatorView() {
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [autoplayRequestId, setAutoplayRequestId] = useState(0);
+  const [qualityMessages, setQualityMessages] = useState<string[]>([]);
+  const [defineWord, setDefineWord] = useState<string | null>(null);
+  const [docResult, setDocResult] = useState<DocumentIntelligenceResult | null>(null);
+  const [objectHint, setObjectHint] = useState<string | null>(null);
 
   const developerModeActive =
     isDeveloperModeFeatureEnabled() && preferences.developer_mode_enabled;
@@ -125,6 +148,9 @@ export function CameraTranslatorView() {
     setOcrResult(null);
     setCorrectedText("");
     setTranslationResult(null);
+    setQualityMessages([]);
+    setDocResult(null);
+    setObjectHint(null);
   }, [previewUrl]);
 
   async function handleImageSelected(file: File) {
@@ -133,15 +159,55 @@ export function CameraTranslatorView() {
     setTranslationResult(null);
     setOcrResult(null);
     setCorrectedText("");
+    setDocResult(null);
 
     try {
       const prepared = await prepareOcrImageFile(file);
       revokeObjectUrl(previewUrl);
+      const mime =
+        prepared.mimeType === "image/jpg" ? "image/jpeg" : prepared.mimeType;
       setPreviewUrl(prepared.previewUrl);
       setImageBase64(prepared.base64);
-      setImageMimeType(prepared.mimeType === "image/jpg" ? "image/jpeg" : prepared.mimeType);
+      setImageMimeType(mime);
+      const quality = await assessOcrImageQuality(prepared.previewUrl, mime);
+      setQualityMessages(
+        quality
+          .filter((item) => item.code !== "ok")
+          .map((item) => `${item.message} ${item.guidance}`.trim()),
+      );
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Could not load image.");
+    }
+  }
+
+  async function handleRotate() {
+    if (!previewUrl || !imageMimeType) return;
+    try {
+      const next = await rotateOcrImage(previewUrl, imageMimeType, 90);
+      revokeObjectUrl(previewUrl);
+      setPreviewUrl(next.previewUrl);
+      setImageBase64(next.base64);
+      setImageMimeType(next.mimeType);
+      setInfoMessage("Rotated image. Extract again.");
+    } catch {
+      setFormError("Could not rotate image.");
+    }
+  }
+
+  async function handleEnhance() {
+    if (!previewUrl || !imageMimeType) return;
+    try {
+      const next = await enhanceOcrContrast(previewUrl, imageMimeType);
+      revokeObjectUrl(previewUrl);
+      setPreviewUrl(next.previewUrl);
+      setImageBase64(next.base64);
+      setImageMimeType(next.mimeType);
+      setInfoMessage("Enhanced contrast. Extract again.");
+      setQualityMessages((prev) =>
+        prev.filter((message) => !message.toLowerCase().includes("contrast")),
+      );
+    } catch {
+      setFormError("Could not enhance image.");
     }
   }
 
@@ -166,8 +232,13 @@ export function CameraTranslatorView() {
         user_context: userContext,
       });
 
-      setOcrResult(response);
-      setCorrectedText(response.extracted_text);
+      const orderedText = mergeOcrTextWithBlocks(
+        response.extracted_text,
+        response.blocks,
+      );
+      const nextResult = { ...response, extracted_text: orderedText };
+      setOcrResult(nextResult);
+      setCorrectedText(orderedText);
       setOcrModeLabel(
         response.ocr_mode === "local"
           ? "On-device"
@@ -175,6 +246,12 @@ export function CameraTranslatorView() {
             ? "Cloud"
             : "Manual",
       );
+
+      const warnings = response.warnings ?? [];
+      const objectWarning = warnings.find((item) =>
+        /sign|menu|label|ticket|notice|form|drawing/i.test(item),
+      );
+      setObjectHint(objectWarning ?? null);
 
       if (response.source === "unavailable") {
         setIsEditing(true);
@@ -186,11 +263,11 @@ export function CameraTranslatorView() {
       }
 
       if (
-        response.extracted_text.trim().length >= 4 &&
+        orderedText.trim().length >= 4 &&
         response.confidence_score >= 0.45 &&
         isBrowserOnline()
       ) {
-        await handleTranslate(response.extracted_text);
+        await handleTranslate(orderedText);
       }
     } catch (error) {
       setIsEditing(true);
@@ -226,6 +303,13 @@ export function CameraTranslatorView() {
         if (offline) {
           setTranslationResult(offline);
           setAutoplayRequestId((id) => id + 1);
+          saveLensScanHistoryItem({
+            sourceLanguage: effectiveSourceLanguage,
+            targetLanguage: targetLanguageSelection,
+            originalText: inputText,
+            translatedText: offline.translated_text,
+            userContext,
+          });
           return;
         }
 
@@ -271,6 +355,16 @@ export function CameraTranslatorView() {
       const { response } = await translateSentenceViaApi(parsed.data);
       setTranslationResult(response);
       setAutoplayRequestId((id) => id + 1);
+      if (response.translated_text) {
+        saveLensScanHistoryItem({
+          sourceLanguage: effectiveSourceLanguage,
+          targetLanguage: targetLanguageSelection,
+          originalText: inputText,
+          translatedText: response.translated_text,
+          objectType: objectHint,
+          userContext,
+        });
+      }
     } catch (error) {
       setFormError(
         error instanceof TranslatorApiError
@@ -279,6 +373,18 @@ export function CameraTranslatorView() {
       );
     } finally {
       setIsTranslating(false);
+    }
+  }
+
+  function handleDocumentAction(action: LensDocumentActionId) {
+    if (action === "translate_all") {
+      void handleTranslate();
+      return;
+    }
+    const result = runLocalDocumentIntelligence(action, textToTranslate);
+    setDocResult(result);
+    if (action === "define_difficult" && result.items?.[0]) {
+      // Keep list visible; user taps items.
     }
   }
 
@@ -325,7 +431,18 @@ export function CameraTranslatorView() {
         isBusy={isBusy}
         onImageSelected={handleImageSelected}
         onClear={clearImage}
+        preferCamera={preferCamera}
+        preferImport={preferImport}
       />
+
+      {previewUrl && (
+        <LensImageTools
+          disabled={isBusy}
+          onRotate={() => void handleRotate()}
+          onEnhance={() => void handleEnhance()}
+          qualityMessages={qualityMessages}
+        />
+      )}
 
       <OcrResultEditor
         extractedText={ocrResult?.extracted_text ?? ""}
@@ -343,7 +460,23 @@ export function CameraTranslatorView() {
         onExtract={() => void handleExtract()}
         onTranslate={() => void handleTranslate()}
         canTranslate={textToTranslate.length > 0}
+        onTapWord={(word) => setDefineWord(word)}
       />
+
+      {textToTranslate.length > 0 && (
+        <DocumentIntelligenceActions
+          disabled={isBusy}
+          result={docResult}
+          onAction={handleDocumentAction}
+          onDefineWord={(word) => setDefineWord(word)}
+        />
+      )}
+
+      {objectHint && (
+        <CompactAlert variant="info">
+          Detected context hint: {objectHint}
+        </CompactAlert>
+      )}
 
       {formError && <CompactAlert variant="error">{formError}</CompactAlert>}
       {infoMessage && <CompactAlert variant="info">{infoMessage}</CompactAlert>}
@@ -356,15 +489,27 @@ export function CameraTranslatorView() {
       )}
 
       {translationResult && !isBusy && (
-        <CameraTranslationResultCard
-          result={translationResult}
-          audioType={audioType}
-          isPlaying={isPlaying}
-          statusMessage={displayStatusMessage}
-          onPlay={replayAudio}
-          onRepeatSlowly={repeatSlowly}
-        />
+        <>
+          <CameraTranslationResultCard
+            result={translationResult}
+            audioType={audioType}
+            isPlaying={isPlaying}
+            statusMessage={displayStatusMessage}
+            onPlay={replayAudio}
+            onRepeatSlowly={repeatSlowly}
+          />
+          <CompactAlert variant="warning">{LENS_SAFETY_DISCLAIMER}</CompactAlert>
+        </>
       )}
+
+      <TapToDefineSheet
+        open={Boolean(defineWord)}
+        word={defineWord ?? ""}
+        sourceLanguage={effectiveSourceLanguage}
+        targetLanguage={targetLanguageSelection}
+        userContext={userContext}
+        onClose={() => setDefineWord(null)}
+      />
     </div>
   );
 }

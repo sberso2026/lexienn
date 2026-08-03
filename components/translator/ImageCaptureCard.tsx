@@ -11,6 +11,10 @@ interface ImageCaptureCardProps {
   isBusy?: boolean;
   onImageSelected: (file: File) => void;
   onClear: () => void;
+  /** When true, try opening the camera once on mount / when toggled. */
+  preferCamera?: boolean;
+  /** When true, visually emphasize Import. */
+  preferImport?: boolean;
 }
 
 function isCameraCaptureSupported(): boolean {
@@ -25,6 +29,8 @@ export function ImageCaptureCard({
   isBusy = false,
   onImageSelected,
   onClear,
+  preferCamera = false,
+  preferImport = false,
 }: ImageCaptureCardProps) {
   const cameraFallbackInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -53,6 +59,13 @@ export function ImageCaptureCard({
   useEffect(() => {
     setCameraSupported(isCameraCaptureSupported());
   }, []);
+
+  useEffect(() => {
+    if (!preferCamera || previewUrl || cameraOpen || isBusy) return;
+    void openCamera();
+    // Intentionally only when preferCamera flips on for Live Scan / Capture modes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preferCamera]);
 
   useEffect(() => {
     return () => stopCameraStream();
@@ -207,7 +220,7 @@ export function ImageCaptureCard({
 
       <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <ActionButton
-          variant="secondary"
+          variant={preferImport ? "primary" : "secondary"}
           disabled={isBusy || cameraOpen}
           onClick={() => uploadInputRef.current?.click()}
           aria-label="Import image from gallery"

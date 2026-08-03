@@ -8,6 +8,11 @@ import { ConfidenceBadge } from "@/components/ui/ConfidenceBadge";
 import { Badge } from "@/components/ui/StatusBadge";
 import type { OcrSource } from "@/lib/ocr/ocrSchemas";
 import type { UserContext } from "@/lib/schemas";
+import {
+  isTappableOcrToken,
+  normalizeTappedWord,
+  tokenizeOcrWords,
+} from "@/lib/lens/ocrBlocks";
 
 interface OcrResultEditorProps {
   extractedText: string;
@@ -25,6 +30,7 @@ interface OcrResultEditorProps {
   onExtract: () => void;
   onTranslate: () => void;
   canTranslate: boolean;
+  onTapWord?: (word: string) => void;
 }
 
 const SOURCE_LABELS: Record<OcrSource, string> = {
@@ -49,6 +55,7 @@ export function OcrResultEditor({
   onExtract,
   onTranslate,
   canTranslate,
+  onTapWord,
 }: OcrResultEditorProps) {
   const displayText = isEditing ? correctedText : correctedText || extractedText;
   const hasText = displayText.trim().length > 0;
@@ -58,6 +65,7 @@ export function OcrResultEditor({
       : hasText
         ? displayText
         : "No text yet — scan or upload, then extract";
+  const tokens = tokenizeOcrWords(displayText);
 
   return (
     <CompactCard padding="sm">
@@ -81,7 +89,33 @@ export function OcrResultEditor({
           />
         ) : (
           <div className="rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2.5 text-sm leading-relaxed">
-            {hasText ? displayText : "No text extracted yet."}
+            {hasText ? (
+              <p className="whitespace-pre-wrap">
+                {tokens.map((token, index) => {
+                  if (!onTapWord || !isTappableOcrToken(token)) {
+                    return <span key={`${token}-${index}`}>{token}</span>;
+                  }
+                  const word = normalizeTappedWord(token);
+                  return (
+                    <button
+                      key={`${word}-${index}`}
+                      type="button"
+                      className="rounded px-0.5 font-medium text-[var(--accent)] underline-offset-2 hover:underline"
+                      onClick={() => onTapWord(word)}
+                    >
+                      {token}
+                    </button>
+                  );
+                })}
+              </p>
+            ) : (
+              "No text extracted yet."
+            )}
+            {hasText && onTapWord && (
+              <p className="mt-2 text-[11px] text-[var(--muted)]">
+                Tap a word to open Tap to Define.
+              </p>
+            )}
           </div>
         )}
 

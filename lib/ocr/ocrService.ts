@@ -58,13 +58,16 @@ export async function extractTextFromImageCloud(
 
   const languageHint = getOcrLanguageHint(request.source_language_hint);
   const prompt = [
-    "Extract all visible printed text from this image.",
+    "Extract all visible printed text from this image for language translation.",
+    "Focus on language-related objects: safety signs, menus, medicine labels, product labels, tickets, forms, notices, technical drawings/annotations, equipment labels, warning symbols, public transport signs.",
     "Return strict JSON only with keys:",
     '{"extracted_text":"","detected_language":"","confidence_score":0.0,"blocks":[{"text":"","confidence_score":0.0,"reading_order":0}],"warnings":[]}',
     `Expected source language hint: ${languageHint}.`,
-    "Do not invent text. Do not translate. Preserve line breaks only when clearly present.",
+    "Do not invent text. Do not translate.",
+    "Preserve numbers, units, prices, and dates exactly.",
+    "Split into blocks by paragraph/table row where feasible and set reading_order from top-to-bottom, left-to-right.",
+    "If the object type is clear, add a short warning like 'Detected: safety sign' or 'Detected: menu' in warnings.",
     "If no readable text is visible, return extracted_text as an empty string and confidence_score 0.",
-    "Do not claim handwriting support unless the handwriting is clearly legible printed-style text.",
   ].join(" ");
 
   let response: Response;

@@ -1,7 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { LensModeTabs } from "@/components/lens/LensModeTabs";
+import { LensScanHistory } from "@/components/lens/LensScanHistory";
+import { LensCapabilityStatus } from "@/components/lens/LensCapabilityStatus";
+import type { LensMode } from "@/lib/lens/lensTypes";
 
 const CameraTranslatorView = dynamic(
   () =>
@@ -19,6 +24,8 @@ const CameraTranslatorView = dynamic(
 );
 
 export function LensView() {
+  const [mode, setMode] = useState<LensMode>("live_scan");
+
   return (
     <PageContainer hideHeader>
       <div className="space-y-5">
@@ -28,44 +35,27 @@ export function LensView() {
           </p>
           <h2 className="mt-1 text-xl font-semibold tracking-tight">Lens</h2>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            Scan or import real-world text, then translate it with the existing OCR workflow.
+            Scan signs, menus, labels, tickets, and notices. Review OCR text, translate,
+            tap words to define, and save to Library.
           </p>
         </section>
 
-        <div
-          className="grid grid-cols-3 gap-2"
-          role="group"
-          aria-label="Lens modes"
-        >
-          <div className="flex min-h-16 flex-col justify-center rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-2 py-2 text-white">
-            <span className="text-xs font-semibold">Scan Text</span>
-            <span className="mt-0.5 text-[10px] text-white/70">Camera scanner</span>
-          </div>
-          <div className="flex min-h-16 flex-col justify-center rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-2 py-2 text-[var(--muted)]">
-            <span className="text-xs font-semibold">Import Image</span>
-            <span className="mt-0.5 text-[10px]">Use Import below</span>
-          </div>
-          <div className="flex min-h-16 flex-col justify-center rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-2 py-2 text-[var(--muted)]">
-            <span className="text-xs font-semibold">History</span>
-            <span className="mt-0.5 text-[10px]">Recent scans</span>
-          </div>
-        </div>
+        <LensModeTabs mode={mode} onChange={setMode} />
+        <LensCapabilityStatus />
 
-        <section aria-labelledby="lens-scanner-title">
-          <h2 id="lens-scanner-title" className="sr-only">
-            Scan Text
-          </h2>
-          <CameraTranslatorView />
-        </section>
-
-        <section className="card-surface enterprise-card p-4" aria-labelledby="lens-history-title">
-          <h2 id="lens-history-title" className="text-sm font-semibold">
-            History
-          </h2>
-          <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-            Recent scans will appear here after you save translated text to Library.
-          </p>
-        </section>
+        {mode === "history" ? (
+          <LensScanHistory />
+        ) : (
+          <section aria-labelledby="lens-scanner-title">
+            <h2 id="lens-scanner-title" className="sr-only">
+              {mode === "import" ? "Import Image" : mode === "capture" ? "Capture" : "Live Scan"}
+            </h2>
+            <CameraTranslatorView
+              preferCamera={mode === "live_scan" || mode === "capture"}
+              preferImport={mode === "import"}
+            />
+          </section>
+        )}
       </div>
     </PageContainer>
   );
